@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ASENZO — Growth Operating System</title>
+  <meta name="description" content="ASENZO Founder Growth Operating System. Install capability, automate execution, scale with independence."/>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- ══════════════ COMMAND PALETTE MODAL (⌘K) ══════════════ -->
+  <div id="cmd-overlay" class="cmd-overlay hidden" onclick="closePalette()">
+    <div class="cmd-box" onclick="event.stopPropagation()">
+      <div class="cmd-top">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="cmd-input" placeholder="Search ASENZO engines, run SOPs, ask AI..." autocomplete="off" oninput="filterCmd(this.value)" onkeydown="cmdKey(event)"/>
+        <span class="cmd-esc" onclick="closePalette()">Esc</span>
+      </div>
+      <div class="cmd-results" id="cmd-results"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ POSITIONING & BUSINESS DNA SUITE MODAL ══════════════ -->
+  <div id="positioning-modal" class="modal-overlay hidden" onclick="closePositioningModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:860px">
+      <div class="modal-head">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <h3 class="modal-title">Business DNA & Positioning Suite</h3>
+            <span class="sb-badge green" id="dna-modal-score-badge">Score: 88/100</span>
+            <span class="sb-badge" id="dna-modal-version-badge">Version 1</span>
+          </div>
+          <p class="modal-sub">Single Source of Truth for Attention OS Content Generation, Scoring & AI Coaching</p>
+        </div>
+        <button class="btn-icon" onclick="closePositioningModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Suite Sub-Tab Navigation -->
+      <div class="engine-tab-bar" style="margin:14px 20px 0;background:#F8FAFC">
+        <div class="engine-tab active" id="tab-btn-dna-core" onclick="switchDnaTab('core')">
+          🎯 Core DNA & Scoring
+        </div>
+        <div class="engine-tab" id="tab-btn-dna-icp" onclick="switchDnaTab('icp')">
+          👤 Deep ICP & Offer Builder
+        </div>
+        <div class="engine-tab" id="tab-btn-dna-alts" onclick="switchDnaTab('alts')">
+          ⚡ Strategic Alternatives & Versions
+        </div>
+      </div>
+
+      <form onsubmit="handleSavePositioning(event)" class="modal-body" style="max-height:68vh;overflow-y:auto">
+        
+        <!-- TAB 1: CORE POSITIONING & DETERMINISTIC SCORING -->
+        <div id="dna-tab-core">
+          
+          <!-- Deterministic Score Analysis Box -->
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-weight:800;color:#0F172A;font-size:13.5px">Positioning Clarity Score Analysis</div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="handleGenerateAlternativesFromModal()">⚡ Generate 3 Alternatives</button>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-bottom:12px" id="dna-score-bars-container">
+              <!-- Rendered via JS -->
+            </div>
+            <div id="dna-score-explanation" style="font-size:12px;color:#475569;line-height:1.45"></div>
+          </div>
+
+          <div class="form-group">
+            <label>Target ICP Summary (Specific Person & Revenue Tier)</label>
+            <input id="pos-icp" value="Bootstrapped B2B Founders doing $15k–$50k/mo" required oninput="recalculateDnaScorePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Core Pain (Specific Bottleneck / Friction)</label>
+            <input id="pos-problem" value="Trapped in 60-hr workweeks serving as the single bottleneck for marketing & sales" required oninput="recalculateDnaScorePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Quantified Result (Measurable Outcome & Metric)</label>
+            <input id="pos-result" value="Scale to $100k/mo while increasing Founder Independence Score from 30 to 85+" required oninput="recalculateDnaScorePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Unique Mechanism Name (Proprietary Framework)</label>
+            <input id="pos-mechanism" value="The ASENZO 5-Engine Growth OS Framework" required oninput="recalculateDnaScorePreview()" />
+          </div>
+
+          <!-- Formulaic Positioning Preview -->
+          <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px;margin-top:12px">
+            <div style="font-size:11px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.5px">Formulaic Statement Preview:</div>
+            <div id="dna-statement-preview" style="font-size:13px;font-weight:700;color:#1E3A8A;margin-top:4px"></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: DEEP ICP & OFFER BUILDER -->
+        <div id="dna-tab-icp" class="hidden">
+          <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:10px">Deep ICP Profile Parameters</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Target Customer</label>
+              <input id="icp-customer" placeholder="e.g. Bootstrapped B2B Agency Founders" />
+            </div>
+            <div class="form-group">
+              <label>Industry / Niche</label>
+              <input id="icp-industry" placeholder="e.g. B2B SaaS & Digital Agencies" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Founder Role</label>
+              <input id="icp-role" placeholder="e.g. CEO / Founder Operator" />
+            </div>
+            <div class="form-group">
+              <label>Company Size / Revenue</label>
+              <input id="icp-size" placeholder="e.g. 3–15 Team Members ($15k–$50k/mo)" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Primary Pains (Comma separated)</label>
+            <textarea id="icp-primary-pains" rows="2" style="padding:8px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12px" placeholder="Single bottleneck for sales, working 60hr weeks, legacy retainer dependency"></textarea>
+          </div>
+
+          <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:16px;margin-bottom:10px">Offer & Promise Specification</div>
+          <div class="form-group">
+            <label>Offer Name</label>
+            <input id="offer-name" placeholder="e.g. ASENZO Growth Operating System Installation" />
+          </div>
+          <div class="form-group">
+            <label>Core Promise</label>
+            <input id="offer-promise" placeholder="e.g. Scale to $100k/mo revenue while raising Founder Independence Score to 85+" />
+          </div>
+          <div class="form-group">
+            <label>Offer Pricing Context</label>
+            <input id="offer-price" placeholder="e.g. $12,500 One-time OS Installation & Coaching Sprint" />
+          </div>
+        </div>
+
+        <!-- TAB 3: ALTERNATIVES & VERSION HISTORY -->
+        <div id="dna-tab-alts" class="hidden">
+          <div style="font-weight:800;color:#0F172A;font-size:14px;margin-bottom:10px">Generated Strategic Positioning Angles</div>
+          <div id="dna-alternatives-container" style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">No alternatives generated yet. Click "⚡ Generate 3 Alternatives" to compare strategic options.</div>
+          </div>
+
+          <div style="font-weight:800;color:#0F172A;font-size:14px;margin-top:24px;margin-bottom:10px">Positioning Version History (1-Click Restore)</div>
+          <div id="dna-versions-container" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <div class="modal-foot" style="margin-top:20px">
+          <button type="button" class="btn btn-secondary" onclick="closePositioningModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-dna">Save Business DNA (Create Version)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ NEW DEAL / LEAD MODAL ══════════════ -->
+  <div id="deal-modal" class="modal-overlay hidden" onclick="closeDealModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Add Opportunity to Conversion Pipeline</h3>
+          <p class="modal-sub">Engine 2 — Conversion OS</p>
+        </div>
+        <button class="btn-icon" onclick="closeDealModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleCreateDeal(event)" class="modal-body">
+        <div class="form-group">
+          <label>Prospect / Company Name</label>
+          <input id="deal-name" placeholder="e.g. Acme Tech — Founder Alex" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pipeline Stage</label>
+            <select id="deal-stage">
+              <option value="Lead In">1. DM Qualified</option>
+              <option value="VSL Watched">2. VSL Watched</option>
+              <option value="Call Booked">3. Call Booked</option>
+              <option value="Proposal Sent">4. Proposal Sent</option>
+              <option value="Closed Won">5. Closed Won</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Contract Value ($)</label>
+            <input id="deal-val" type="number" placeholder="12500" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Primary Objection / Notes</label>
+          <input id="deal-notes" placeholder="e.g. Needs clarity on onboarding timeline" />
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeDealModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Deal to Pipeline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ CREATE SOP / PLAYBOOK MODAL ══════════════ -->
+  <div id="sop-modal" class="modal-overlay hidden" onclick="closeSopModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Create Operating SOP / Playbook</h3>
+          <p class="modal-sub">Engine 5 — Operator OS (Capability Installation)</p>
+        </div>
+        <button class="btn-icon" onclick="closeSopModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleCreateSOP(event)" class="modal-body">
+        <div class="form-group">
+          <label>SOP Title</label>
+          <input id="sop-title" placeholder="e.g. DM Triage & ICP Qualification SOP" required />
+        </div>
+        <div class="form-group">
+          <label>Target Engine</label>
+          <select id="sop-engine">
+            <option value="Attention">Engine 1 — Attention</option>
+            <option value="Conversion">Engine 2 — Conversion</option>
+            <option value="Delivery">Engine 3 — Delivery</option>
+            <option value="Intelligence">Engine 4 — Intelligence</option>
+            <option value="Operator">Engine 5 — Operator</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Execution Steps (One per line)</label>
+          <textarea id="sop-steps" rows="4" style="padding:10px;border-radius:8px;border:1px solid #E2E8F0;font:inherit;font-size:12.5px" placeholder="Step 1: Audit ICP score in DM Inbox&#10;Step 2: Apply Story Sequence trigger script&#10;Step 3: Route qualified lead to Calendly" required></textarea>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeSopModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Publish SOP</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ EVENT CREATION MODAL ══════════════ -->
+  <div id="event-modal" class="modal-overlay hidden" onclick="closeEventModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Schedule Growth Calendar Event</h3>
+          <p class="modal-sub">Site work, live calls, VSL launches & sprints</p>
+        </div>
+        <button class="btn-icon" onclick="closeEventModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleCreateEvent(event)" class="modal-body">
+        <div class="form-group">
+          <label>Event Title</label>
+          <input id="evt-title" placeholder="e.g. Sales Call — Enterprise Lead" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Day</label>
+            <select id="evt-day">
+              <option value="MON">MON (13)</option>
+              <option value="TUE">TUE (14)</option>
+              <option value="WED">WED (15)</option>
+              <option value="THU">THU (16)</option>
+              <option value="FRI">FRI (17)</option>
+              <option value="SAT">SAT (18)</option>
+              <option value="SUN">SUN (19)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Time</label>
+            <input id="evt-time" placeholder="e.g. 11:30" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Category Color</label>
+          <select id="evt-type">
+            <option value="green">Green — Discovery / Sales Call</option>
+            <option value="yellow">Yellow — Content Sprint / Scripting</option>
+            <option value="orange">Orange — Client Onboarding / Delivery</option>
+            <option value="grey">Grey — Weekly Directive Audit</option>
+          </select>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Schedule Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ MAIN FULLSCREEN VIEWPORT SHELL ══════════════ -->
+  <div class="app-shell">
+
+    <!-- ══════════════ LEFT SIDEBAR (ASENZO FINTECHX UI) ══════════════ -->
+    <aside class="sidebar" id="sidebar">
+      
+      <!-- Top Brand Header -->
+      <div class="sb-top">
+        <div class="sb-brand" onclick="go('overview', document.getElementById('nav-overview'))">
+          <div class="sb-logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="sb-title">ASENZO OS</span>
+        </div>
+        <button class="sb-collapse-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+      </div>
+
+      <!-- Sidebar Navigation Menu (5 ASENZO Engines + Overview + Calendar) -->
+      <nav class="sb-nav">
+        <div class="sb-item active" id="nav-overview" onclick="go('overview', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span class="sb-label">Overview</span>
+        </div>
+
+        <div class="sb-item" id="nav-attention" onclick="go('attention', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/></svg>
+          <span class="sb-label">1. Attention OS</span>
+          <span class="sb-badge">Engine 1</span>
+        </div>
+
+        <div class="sb-item" id="nav-conversion" onclick="go('conversion', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H3v5m18 0v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7m18 0H3m8-5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4"/></svg>
+          <span class="sb-label">2. Conversion OS</span>
+          <span class="sb-badge">Engine 2</span>
+        </div>
+
+        <div class="sb-item" id="nav-delivery" onclick="go('delivery', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          <span class="sb-label">3. Delivery OS</span>
+          <span class="sb-badge">Engine 3</span>
+        </div>
+
+        <div class="sb-item" id="nav-intelligence" onclick="go('intelligence', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span class="sb-label">4. Intelligence OS</span>
+          <span class="sb-badge green">AI</span>
+        </div>
+
+        <div class="sb-item" id="nav-operator" onclick="go('operator', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 15h.01M16 15h.01"/></svg>
+          <span class="sb-label">5. Operator OS</span>
+          <span class="sb-badge">Engine 5</span>
+        </div>
+
+        <div class="sb-item" id="nav-calendar" onclick="go('calendar', this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="sb-label">Growth Calendar</span>
+          <span class="sb-badge red">3</span>
+        </div>
+      </nav>
+
+      <!-- Sidebar FIS Score Card -->
+      <div class="sb-upgrade-card">
+        <div class="sb-upgrade-img-wrap">
+          <img src="gold_star_coin.png" alt="Star Coin" class="sb-upgrade-img"/>
+        </div>
+        <div class="sb-upgrade-text">Founder Independence:<br/><strong style="font-size:14px;color:#10B981">84 / 100 — High Systemization</strong></div>
+        <button class="sb-upgrade-btn" onclick="openPanel()">Ask AI Coach</button>
+      </div>
+
+    </aside>
+
+    <!-- ══════════════ MAIN CONTENT CANVAS ══════════════ -->
+    <div class="main-wrapper">
+      
+      <!-- Top Header Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-title" id="topbar-title">Overview Dashboard</div>
+
+        <!-- Score Badges in Topbar -->
+        <div style="display:flex;gap:10px;align-items:center;margin-left:14px">
+          <div style="background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700">
+            FIS Score: 84/100
+          </div>
+          <div style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700">
+            Health: 92/100
+          </div>
+        </div>
+
+        <!-- Search Bar Input -->
+        <div class="topbar-search" onclick="openPalette()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input placeholder="Search ASENZO engines (⌘K)..." readonly/>
+          <kbd>⌘K</kbd>
+        </div>
+
+        <!-- Top Right Actions & User Profile -->
+        <div class="topbar-right">
+          <div class="notif-wrap" onclick="toggleNotifs()">
+            <button class="notif-btn" title="Notifications">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+            <span class="notif-badge">2</span>
+          </div>
+
+          <div class="user-btn" onclick="openPanel()">
+            <div class="user-avatar">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Alex Morgan" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 32 32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%230284c7\'/><text x=\'50%\' y=\'55%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'white\' font-size=\'14\' font-weight=\'bold\'>A</text></svg>'"/>
+            </div>
+            <span class="user-name">Alex — Growth Operator</span>
+            <svg class="user-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+      </header>
+
+  <!-- ══════════════ AI HOOK & SCRIPT GENERATOR MODAL ══════════════ -->
+  <div id="script-generator-modal" class="modal-overlay hidden" onclick="closeScriptGeneratorModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">⚡ AI Hook + Script Generator</h3>
+          <p class="modal-sub">Structured Hook Frameworks (Pattern Interrupt, Question, Story, Contrarian) + Business DNA Context</p>
+        </div>
+        <button class="btn-icon" onclick="closeScriptGeneratorModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleGenerateScript(event)" class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Content Pillar</label>
+            <select id="gen-pillar">
+              <option value="Positioning">Positioning (ICP Pain)</option>
+              <option value="Mechanism">Mechanism (ASENZO Framework)</option>
+              <option value="Proof">Proof (Case Studies & Results)</option>
+              <option value="Authority">Authority (Industry Insights)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Hook Framework</label>
+            <select id="gen-hook-type">
+              <option value="Pattern Interrupt">1. Pattern Interrupt</option>
+              <option value="Question">2. Question / Qualification</option>
+              <option value="Story">3. Founder Story / Case Study</option>
+              <option value="Contrarian">4. Contrarian / Industry Myth</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Topic / Specific Pain Point</label>
+          <input id="gen-topic" placeholder="e.g. Why 90% of retainer agencies keep founders trapped in sales bottleneck" required />
+        </div>
+        
+        <div style="display:flex;justify-content:flex-end">
+          <button type="submit" class="btn btn-primary" id="btn-generate-script">⚡ Generate Structured Script</button>
+        </div>
+
+        <!-- Generated Result Output Area -->
+        <div id="gen-output-container" class="hidden" style="margin-top:16px;border-top:1px solid #E2E8F0;padding-top:16px">
+          
+          <div style="font-weight:700;color:#0F172A;margin-bottom:8px">1. Select Preferred Hook Variation:</div>
+          <div id="gen-hooks-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+
+          <div class="form-group">
+            <label>2. Full Body Script Draft (Editable)</label>
+            <textarea id="gen-body-script" rows="6" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>3. Tailored CTA (Call to Action)</label>
+            <input id="gen-cta" required />
+          </div>
+
+          <!-- Explainability Card -->
+          <div id="gen-explainability" style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;padding:12px;font-size:12px;color:#047857;margin-bottom:14px"></div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn btn-secondary" onclick="closeScriptGeneratorModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="handleSaveGeneratedScriptToKanban()">
+              🔒 Save to Kanban (Human Approved)
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ PRODUCTION WORKSPACE / SCRIPT DETAIL MODAL ══════════════ -->
+  <div id="production-workspace-modal" class="modal-overlay hidden" onclick="closeProductionWorkspaceModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="pw-title-heading">Production Workspace</h3>
+          <p class="modal-sub">Drafting, Teleprompter Tele-notes & Pipeline Stage Management</p>
+        </div>
+        <button class="btn-icon" onclick="closeProductionWorkspaceModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSaveProductionWorkspace(event)" class="modal-body">
+        <input type="hidden" id="pw-item-id" />
+        
+        <div class="form-group">
+          <label>Content Title</label>
+          <input id="pw-title" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pillar</label>
+            <select id="pw-pillar">
+              <option value="Positioning">Positioning</option>
+              <option value="Mechanism">Mechanism</option>
+              <option value="Proof">Proof</option>
+              <option value="Authority">Authority</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pipeline Lifecycle Stage</label>
+            <select id="pw-stage">
+              <option value="IDEA">1. IDEA</option>
+              <option value="DRAFT">2. DRAFT</option>
+              <option value="SCRIPT">3. SCRIPT</option>
+              <option value="REVIEW">4. REVIEW</option>
+              <option value="APPROVED">5. APPROVED</option>
+              <option value="PRODUCTION">6. PRODUCTION</option>
+              <option value="SCHEDULED">7. SCHEDULED</option>
+              <option value="PUBLISHED">8. PUBLISHED (Human Authorized)</option>
+              <option value="ANALYZING">9. ANALYZING</option>
+              <option value="REPURPOSED">10. REPURPOSED</option>
+              <option value="ARCHIVED">11. ARCHIVED</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Target Platform</label>
+            <select id="pw-platform">
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="X/Twitter">X / Twitter</option>
+              <option value="YouTube">YouTube</option>
+              <option value="Skool">Skool Community</option>
+              <option value="Newsletter">Newsletter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Hook Text</label>
+          <input id="pw-hook" placeholder="The primary pattern interrupt hook" />
+        </div>
+
+        <div class="form-group">
+          <label>Full Body Script / Teleprompter Text</label>
+          <textarea id="pw-body" rows="6" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Call to Action (CTA)</label>
+          <input id="pw-cta" placeholder="e.g. Comment OS below for the breakdown" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>DMs Generated</label>
+            <input type="number" id="pw-dms" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Qualified Leads</label>
+            <input type="number" id="pw-leads" value="0" />
+          </div>
+          <div class="form-group">
+            <label>Ad Candidate?</label>
+            <select id="pw-ad-candidate">
+              <option value="false">No — Organic Only</option>
+              <option value="true">Yes — Flagged for Paid Amplification</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-foot" style="justify-content:space-between">
+          <button type="button" class="btn btn-secondary" style="color:#EF4444;border-color:#FCA5A5" onclick="handleDeleteContentItem()">
+            🗑 Delete Asset
+          </button>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="btn btn-secondary" onclick="closeProductionWorkspaceModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Asset Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ KNOWLEDGE INGESTION PIPELINE MODAL ══════════════ -->
+  <div id="ingest-knowledge-modal" class="modal-overlay hidden" onclick="closeIngestModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:760px">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Ingest Founder Source Material</h3>
+          <p class="modal-sub">Engine 1 Pipeline: Source → Validation → Cleaning → Chunking → Metadata → Storage → Retrieval</p>
+        </div>
+        <button class="btn-icon" onclick="closeIngestModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleIngestSource(event)" class="modal-body">
+        <div class="form-group">
+          <label>Source Document Title</label>
+          <input id="ingest-title" placeholder="e.g. Call Transcript: 60hr Bottleneck Audit or Post: Retainer Agency Trap" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Source Material Type</label>
+            <select id="ingest-type">
+              <option value="ARTICLE">Article / Longform</option>
+              <option value="POST">Social Post (LinkedIn / X)</option>
+              <option value="TRANSCRIPT">Call / Video Transcript</option>
+              <option value="INTERVIEW">Podcast / Interview</option>
+              <option value="EMAIL">Newsletter / Client Email</option>
+              <option value="WRITTEN_EXAMPLE">Written Example / Framework</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Raw Source Content (Paste text to run through Ingestion Pipeline)</label>
+          <textarea id="ingest-content" rows="8" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Paste previous posts, articles, call transcripts, emails, or written examples..." required></textarea>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeIngestModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-run-ingestion">⚡ Run Ingestion Pipeline (Clean & Chunk)</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ FOUNDER & BRAND PROFILE MODAL ══════════════ -->
+  <div id="founder-profile-modal" class="modal-overlay hidden" onclick="closeFounderProfileModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:760px">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Founder & Brand Profile Specification</h3>
+          <p class="modal-sub">Define expertise, story, beliefs, tone, formality, directness, and vocabulary preferences</p>
+        </div>
+        <button class="btn-icon" onclick="closeFounderProfileModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSaveFounderProfile(event)" class="modal-body" style="max-height:70vh;overflow-y:auto">
+        <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:10px">Founder Persona & Story</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Founder Name</label>
+            <input id="fp-name" value="Alex Morgan" required />
+          </div>
+          <div class="form-group">
+            <label>Role / Title</label>
+            <input id="fp-title" value="Founder & Growth Operator" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Core Expertise (Comma separated)</label>
+          <input id="fp-expertise" value="B2B Positioning, Growth Operating Systems, Founder Autonomy" />
+        </div>
+        <div class="form-group">
+          <label>Origin Story & Background</label>
+          <textarea id="fp-story" rows="2" style="padding:8px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12px">Spent 6 years trapped in 60-hour workweeks running manual agency services before building the 5-Engine Growth OS framework.</textarea>
+        </div>
+
+        <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:16px;margin-bottom:10px">Brand Tone & Directness Controls</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tone</label>
+            <input id="bp-tone" value="Direct, Authoritative" />
+          </div>
+          <div class="form-group">
+            <label>Directness Level</label>
+            <select id="bp-directness">
+              <option value="High">High — Straight to the point, metric-driven</option>
+              <option value="Moderate">Moderate — Balanced context & action</option>
+              <option value="Soft">Soft — Educational & conversational</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Words & Phrases to Emphasize (Comma separated)</label>
+          <input id="bp-words-use" value="operating system, leverage, framework, bottleneck, compounding, FIS score" />
+        </div>
+        <div class="form-group">
+          <label>Words to Prohibit / Avoid (Comma separated)</label>
+          <input id="bp-words-avoid" value="hack, guru, overnight, secret, magic bullet, passive income" />
+        </div>
+
+        <div class="modal-foot" style="margin-top:16px">
+          <button type="button" class="btn btn-secondary" onclick="closeFounderProfileModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Founder & Brand Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ MARKET INTELLIGENCE MODAL ══════════════ -->
+  <div id="market-intel-modal" class="modal-overlay hidden" onclick="closeMarketIntelModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Log Niche Observation / Competitor Insight</h3>
+          <p class="modal-sub">Engine 1 — Market Intelligence Harvester</p>
+        </div>
+        <button class="btn-icon" onclick="closeMarketIntelModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleCreateMarketIntel(event)" class="modal-body">
+        <div class="form-group">
+          <label>Observation Title</label>
+          <input id="mi-title" placeholder="e.g. Competitor X VSL angle breakdown" required />
+        </div>
+        <div class="form-group">
+          <label>Source / Channel</label>
+          <input id="mi-source" placeholder="e.g. LinkedIn Comments / Twitter DM audit" />
+        </div>
+        <div class="form-group">
+          <label>Key Insight & Why It Matters</label>
+          <textarea id="mi-insight" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" required></textarea>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeMarketIntelModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Market Intel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
