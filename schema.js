@@ -26,8 +26,13 @@ const KnowledgeSourceType = z.enum([
 
 const ContentPillarType = z.enum(['POSITIONING', 'MECHANISM', 'PROOF', 'AUTHORITY']);
 const PlatformType = z.enum(['LINKEDIN', 'X_TWITTER', 'YOUTUBE', 'SKOOL', 'NEWSLETTER', 'PODCAST']);
-const DistributionStatus = z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHED', 'FAILED', 'CANCELLED']);
+const DistributionStatus = z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED', 'CANCELLED']);
 const LeadStatus = z.enum(['NEW', 'CONTACTED', 'QUALIFIED', 'DISQUALIFIED', 'CONVERTED']);
+const AccountStatus = z.enum(['ACTIVE', 'EXPIRED_TOKEN', 'RATE_LIMITED', 'DISCONNECTED', 'ERROR']);
+const CampaignStatus = z.enum(['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED']);
+const SurfaceType = z.enum(['LINKEDIN_POST', 'X_POST', 'LANDING_PAGE', 'BIO_LINK', 'NEWSLETTER', 'EMAIL', 'OTHER']);
+const LeadSourceType = z.enum(['COMMENT', 'DM', 'FORM', 'BIO_LINK', 'NEWSLETTER', 'AD', 'REFERRAL', 'OTHER']);
+const CtaType = z.enum(['COMMENT', 'DM', 'FORM', 'LINK', 'NEWSLETTER']);
 const OutreachStatus = z.enum(['QUEUED', 'SENT', 'DELIVERED', 'REPLIED', 'BOUNCED']);
 const RecommendationCategory = z.enum(['PILLAR_OPTIMIZATION', 'HOOK_IMPROVEMENT', 'AD_AMPLIFICATION', 'CADENCE_ADJUSTMENT', 'CONTENT_GAP']);
 const RecommendationStatus = z.enum(['PENDING', 'APPROVED', 'REJECTED', 'APPLIED', 'DISMISSED']);
@@ -321,6 +326,180 @@ const ContentVersionSaveSchema = z.object({
   approvalStatus: z.enum(['DRAFT', 'APPROVED', 'NEEDS_REVISION']).default('DRAFT')
 });
 
+// ── 14. DISTRIBUTION & PLATFORM ACCOUNT SCHEMAS ──────────────────────────────
+const PlatformRegisterSchema = z.object({
+  id: optStr,
+  name: z.string().min(2, 'Platform name is required'),
+  handle: optStr.default(''),
+  isConnected: z.boolean().optional().default(false)
+});
+
+const PlatformAccountConnectSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  platformId: optStr,
+  platform: optStr, // platform name, resolved to platform_id when platformId omitted
+  accountName: z.string().min(2, 'Account name is required'),
+  handle: optStr.default(''),
+  displayName: optStr.default(''),
+  profileImageUrl: optStr.default(''),
+  accessToken: optStr.default(''),
+  refreshToken: optStr.default(''),
+  tokenType: optStr.default('Bearer'),
+  scope: optStr.default(''),
+  tokenExpiresAt: optStr.default(''),
+  isPrimary: z.boolean().optional().default(false),
+  isActive: z.boolean().optional().default(true),
+  rateLimitResetAt: optStr.default('')
+});
+
+const PlatformAccountUpdateSchema = z.object({
+  accountName: optStr,
+  handle: optStr,
+  displayName: optStr,
+  profileImageUrl: optStr,
+  accessToken: optStr,
+  refreshToken: optStr,
+  tokenExpiresAt: optStr,
+  isPrimary: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  rateLimitResetAt: optStr,
+  tokenStatus: AccountStatus.optional()
+});
+
+const DistributionCreateSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  contentId: z.string().min(1, 'Content ID is required'),
+  contentVersionId: optStr,
+  platformId: optStr,
+  platform: optStr, // platform name, resolved to platform_id when platformId omitted
+  platformAccountId: optStr,
+  campaignId: optStr,
+  scheduledAt: optStr,
+  idempotencyKey: optStr.default(''),
+  note: optStr.default('')
+});
+
+const DistributionScheduleSchema = z.object({
+  scheduledAt: z.string().min(1, 'scheduledAt is required'),
+  platformAccountId: optStr,
+  campaignId: optStr,
+  idempotencyKey: optStr.default('')
+});
+
+const DistributionPublishSchema = z.object({
+  platformAccountId: optStr,
+  idempotencyKey: optStr.default('')
+});
+
+// ── 15. LEAD CAPTURE SCHEMAS ─────────────────────────────────────────────────
+const LeadMagnetSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  title: z.string().min(2, 'Lead magnet title is required'),
+  description: optStr.default(''),
+  assetUrl: optStr.default('#'),
+  fileType: optStr.default(''),
+  imageUrl: optStr.default(''),
+  isActive: z.boolean().optional().default(true),
+  isArchived: z.boolean().optional().default(false)
+});
+
+const LeadCampaignSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  name: z.string().min(2, 'Campaign name is required'),
+  description: optStr.default(''),
+  platform: PlatformType.default('LINKEDIN'),
+  status: CampaignStatus.default('ACTIVE'),
+  startAt: optStr.default(''),
+  endAt: optStr.default('')
+});
+
+const LandingSurfaceSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  name: z.string().min(2, 'Surface name is required'),
+  surfaceType: SurfaceType.default('LINKEDIN_POST'),
+  url: optStr.default(''),
+  contentId: optStr,
+  distributionId: optStr,
+  campaignId: optStr,
+  leadMagnetId: optStr,
+  isActive: z.boolean().optional().default(true)
+});
+
+const LandingFormSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  name: z.string().min(2, 'Form name is required'),
+  surfaceId: optStr,
+  leadMagnetId: optStr,
+  campaignId: optStr,
+  fieldsJson: z.record(z.any()).optional().default({}),
+  submitCta: optStr.default('Get the guide'),
+  successMessage: optStr.default('Thanks! Check your inbox.'),
+  isActive: z.boolean().optional().default(true)
+});
+
+const LeadCtaSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  name: z.string().min(2, 'CTA name is required'),
+  ctaType: CtaType.default('COMMENT'),
+  ctaText: optStr.default(''),
+  contentId: optStr,
+  distributionId: optStr,
+  surfaceId: optStr,
+  campaignId: optStr,
+  leadMagnetId: optStr,
+  targetUrl: optStr.default('')
+});
+
+const LeadCaptureSchema = z.object({
+  name: z.string().min(1, 'Lead name is required'),
+  email: z.string().email('Valid email is required'),
+  businessId: optStr.default('biz_default'),
+  leadMagnetId: optStr,
+  leadMagnetTitle: optStr,
+  campaignId: optStr,
+  campaignName: optStr,
+  landingSurfaceId: optStr,
+  surfaceName: optStr,
+  formId: optStr,
+  ctaId: optStr,
+  contentId: optStr,
+  distributionId: optStr,
+  platform: optStr.default('LINKEDIN'),
+  source: LeadSourceType.default('FORM'),
+  sourceUrl: optStr.default(''),
+  message: optStr.default(''),
+  intentScore: z.number().min(0).max(100).optional(),
+  utmSource: optStr.default(''),
+  utmMedium: optStr.default(''),
+  utmCampaign: optStr.default(''),
+  utmContent: optStr.default('')
+});
+
+const LeadUpdateSchema = z.object({
+  name: optStr,
+  email: optStr,
+  status: LeadStatus.optional(),
+  intentScore: z.number().min(0).max(100).optional(),
+  notes: optStr.default('')
+});
+
+const AttributionEventSchema = z.object({
+  leadId: optStr,
+  contentId: optStr,
+  distributionId: optStr,
+  campaignId: optStr,
+  eventType: z.string().min(1, 'eventType is required'),
+  revenueAmount: z.number().optional().default(0),
+  timestamp: optStr
+});
+
 module.exports = {
   // Enums
   ContentLifecycleStatus,
@@ -340,6 +519,11 @@ module.exports = {
   IdeaPriorityType,
   HookStyleEnum,
   ScriptPlatformEnum,
+  AccountStatus,
+  CampaignStatus,
+  SurfaceType,
+  LeadSourceType,
+  CtaType,
 
   // Entity Schemas
   FounderProfileFullSchema,
@@ -361,5 +545,23 @@ module.exports = {
   HookGenerationRequestSchema,
   ScriptGenerationFullRequestSchema,
   GuardrailValidationSchema,
-  ContentVersionSaveSchema
+  ContentVersionSaveSchema,
+
+  // Distribution & Platform Schemas
+  PlatformRegisterSchema,
+  PlatformAccountConnectSchema,
+  PlatformAccountUpdateSchema,
+  DistributionCreateSchema,
+  DistributionScheduleSchema,
+  DistributionPublishSchema,
+
+  // Lead Capture Schemas
+  LeadMagnetSchema,
+  LeadCampaignSchema,
+  LandingSurfaceSchema,
+  LandingFormSchema,
+  LeadCtaSchema,
+  LeadCaptureSchema,
+  LeadUpdateSchema,
+  AttributionEventSchema
 };

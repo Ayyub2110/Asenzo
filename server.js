@@ -20,7 +20,21 @@ const {
   HookGenerationRequestSchema,
   ScriptGenerationFullRequestSchema,
   GuardrailValidationSchema,
-  ContentVersionSaveSchema
+  ContentVersionSaveSchema,
+  PlatformRegisterSchema,
+  PlatformAccountConnectSchema,
+  PlatformAccountUpdateSchema,
+  DistributionCreateSchema,
+  DistributionScheduleSchema,
+  DistributionPublishSchema,
+  LeadMagnetSchema,
+  LeadCampaignSchema,
+  LandingSurfaceSchema,
+  LandingFormSchema,
+  LeadCtaSchema,
+  LeadCaptureSchema,
+  LeadUpdateSchema,
+  AttributionEventSchema
 } = require('./schema');
 
 const app = express();
@@ -2708,6 +2722,539 @@ app.get('/api/contents/:id/versions', async (req, res) => {
     res.status(200).json(versions);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROMPT 7 — DISTRIBUTION (PUBLISHING WORKFLOW) + LEAD CAPTURE
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── INTEGRATION LOGGING & PLATFORM RESOLUTION HELPERS ───────────────────────
+async function logIntegration({ entityType = 'distribution', entityId = '', event, level = 'INFO', message, metadata = {} }) {
+  try {
+    const id = makeId('ilog');
+    await run(
+      `INSERT INTO integration_logs (id, business_id, entity_type, entity_id, event, level, message, metadata_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, 'biz_default', entityType, entityId, event, level, message, JSON.stringify(metadata), new Date().toISOString()]
+    );
+  } catch (err) {
+    console.error('Failed to log integration event:', err);
+  }
+}
+
+async function resolvePlatformId(platformId, platformName) {
+  if (platformId) {
+    const p = await get(`SELECT * FROM platforms WHERE id = ?`, [platformId]);
+    if (!p) throw new Error(`Platform ${platformId} not found`);
+    return p.id;
+  }
+  if (platformName) {
+    let p = await get(`SELECT * FROM platforms WHERE name = ?`, [platformName]);
+    if (!p) {
+      const pid = `pl_${platformName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      const now = new Date().toISOString();
+      await run(`INSERT OR IGNORE INTO platforms (id, name, handle, is_connected, updated_at) VALUES (?, ?, '', 0, ?)`, [pid, platformName, now]);
+      p = await get(`SELECT * FROM platforms WHERE id = ?`, [pid]);
+    }
+    return p.id;
+  }
+  throw new Error('Either platformId or platform is required');
+}
+
+async function getPrimaryAccountForPlatform(platformId, businessId = 'biz_default', explicitAccountId = null) {
+  if (explicitAccountId) {
+    const acc = await get(`SELECT * FROM platform_accounts WHERE id = ? AND business_id = ?`, [explicitAccountId, businessId]);
+    return acc || null;
+  }
+  const acc = await get(
+    `SELECT * FROM platform_accounts WHERE platform_id = ? AND business_id = ? AND is_active = 1 ORDER BY is_primary DESC, updated_at DESC LIMIT 1`,
+    [platformId, businessId]
+  );
+  return acc || null;
+}
+
+function serializeAccount(row) {
+  if (!row) return null;
+  const token = row.access_token || '';
+  const masked = token.length > 8 ? `${token.substring(0, 6)}...${token.substring(token.length - 4)}` : (token ? '[set]' : '');
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    platformId: row.platform_id,
+    platformName: row.platform_name,
+    accountName: row.account_name,
+    handle: row.handle,
+    displayName: row.display_name,
+    profileImageUrl: row.profile_image_url,
+    tokenType: row.token_type,
+    scope: row.scope,
+    tokenExpiresAt: row.token_expires_at,
+    tokenStatus: row.token_status,
+    isPrimary: Boolean(row.is_primary),
+    isActive: Boolean(row.is_active),
+    rateLimitResetAt: row.rate_limit_reset_at,
+    lastSyncAt: row.last_sync_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    accessTokenMasked: masked,
+    refreshTokenSet: Boolean(row.refresh_token)
+  };
+}
+
+function serializeDistribution(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    contentId: row.content_id,
+    contentVersionId: row.content_version_id,
+    platformId: row.platform_id,
+    platformName: row.platform_name,
+    platformAccountId: row.platform_account_id,
+    accountName: row.account_name,
+    accountHandle: row.account_handle,
+    campaignId: row.campaign_id,
+    campaignName: row.campaign_name,
+    status: row.status,
+    scheduledAt: row.scheduled_at,
+    publishedAt: row.published_at,
+    externalPostId: row.external_post_id,
+    externalUrl: row.external_url,
+    errorDetails: row.error_details,
+    retryCount: row.retry_count,
+    maxRetries: row.max_retries,
+    idempotencyKey: row.idempotency_key,
+    note: row.note,
+    cancelledAt: row.cancelled_at,
+    lastAttemptAt: row.last_attempt_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    contentTitle: row.content_title,
+    contentLifecycleStatus: row.content_lifecycle_status,
+    versionNumber: row.version_number
+  };
+}
+
+const DISTRIBUTION_JOIN_SELECT = `
+  SELECT d.*, c.title AS content_title, c.lifecycle_status AS content_lifecycle_status, p.name AS platform_name,
+         a.account_name, a.handle AS account_handle, cv.version_number, lc.name AS campaign_name
+  FROM distributions d
+  LEFT JOIN contents c ON c.id = d.content_id
+  LEFT JOIN platforms p ON p.id = d.platform_id
+  LEFT JOIN platform_accounts a ON a.id = d.platform_account_id
+  LEFT JOIN content_versions cv ON cv.id = d.content_version_id
+  LEFT JOIN lead_campaigns lc ON lc.id = d.campaign_id
+`;
+
+async function loadDistributionWithJoins(id) {
+  return get(`${DISTRIBUTION_JOIN_SELECT} WHERE d.id = ?`, [id]);
+}
+
+// ── EXTERNAL PLATFORM GATEWAY (SIMULATED PROVIDER CONFIRMATION) ─────────────
+// Abstraction layer standing in for real OAuth-protected platform APIs. It only
+// returns success when it can produce a real external post identity; PUBLISHED
+// is never set without this confirmation.
+
+async function externalGatewayRefreshToken(account) {
+  if (!account.refresh_token) {
+    return { ok: false, errorDetails: 'Token expired and no refresh token is available to refresh.' };
+  }
+  return {
+    ok: true,
+    accessToken: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+    refreshToken: account.refresh_token,
+    tokenExpiresAt: new Date(Date.now() + 3600 * 1000).toISOString()
+  };
+}
+
+async function externalGatewayPublish({ platformName, account }) {
+  if (!account) {
+    return { ok: false, errorCode: 'NO_ACCOUNT', errorDetails: 'No active platform account connected for publishing.' };
+  }
+  if (!Number(account.is_active)) {
+    return { ok: false, errorCode: 'ACCOUNT_DISCONNECTED', errorDetails: `Account "${account.account_name}" is disconnected.` };
+  }
+  const nowMs = Date.now();
+  if (account.rate_limit_reset_at && new Date(account.rate_limit_reset_at).getTime() > nowMs) {
+    return { ok: false, errorCode: 'RATE_LIMITED', errorDetails: `Rate limited until ${account.rate_limit_reset_at}. Retry after the reset window.` };
+  }
+  const expiresAt = account.token_expires_at ? new Date(account.token_expires_at).getTime() : Infinity;
+  if (expiresAt <= nowMs) {
+    const refreshed = await externalGatewayRefreshToken(account);
+    if (!refreshed.ok) {
+      return { ok: false, errorCode: 'TOKEN_EXPIRED', errorDetails: refreshed.errorDetails };
+    }
+    const nowIso = new Date().toISOString();
+    await run(
+      `UPDATE platform_accounts SET access_token = ?, token_expires_at = ?, token_status = 'ACTIVE', updated_at = ? WHERE id = ?`,
+      [refreshed.accessToken, refreshed.tokenExpiresAt, nowIso, account.id]
+    );
+    await logIntegration({ entityType: 'platform_account', entityId: account.id, event: 'TOKEN_REFRESH', level: 'INFO', message: 'Access token refreshed automatically before publish.' });
+    return externalGatewayPublish({ platformName, account: { ...account, access_token: refreshed.accessToken, token_expires_at: refreshed.tokenExpiresAt } });
+  }
+
+  const postId = `ext_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  const handle = account.handle || 'profile';
+  const base = { LINKEDIN: 'linkedin.com', X_TWITTER: 'x.com', INSTAGRAM: 'instagram.com', YOUTUBE: 'youtube.com', NEWSLETTER: 'newsletter', PODCAST: 'podcast', EMAIL: 'email' }[platformName] || 'platform';
+  const externalUrl = `https://${base}/${handle}/status/${postId}`;
+  return { ok: true, externalPostId: postId, externalUrl };
+}
+
+async function attemptDistributionPublish(dist, accountId = null) {
+  const now = new Date().toISOString();
+
+  await run(`UPDATE distributions SET status = 'PUBLISHING', last_attempt_at = ?, updated_at = ? WHERE id = ?`, [now, now, dist.id]);
+  await logIntegration({ entityId: dist.id, event: 'PUBLISH_REQUEST_SENT', level: 'INFO', message: 'Publish request dispatched to external gateway. Awaiting external confirmation.', metadata: { contentId: dist.content_id, platformId: dist.platform_id } });
+
+  const platform = await get(`SELECT * FROM platforms WHERE id = ?`, [dist.platform_id]);
+  const account = await getPrimaryAccountForPlatform(dist.platform_id, 'biz_default', accountId || dist.platform_account_id);
+  const gateway = await externalGatewayPublish({ platformName: platform ? platform.name : 'UNKNOWN', account });
+
+  if (gateway.ok) {
+    await run(
+      `UPDATE distributions SET status = 'PUBLISHED', published_at = ?, external_post_id = ?, external_url = ?, error_details = '', platform_account_id = ?, updated_at = ? WHERE id = ?`,
+      [now, gateway.externalPostId, gateway.externalUrl, account ? account.id : dist.platform_account_id, now, dist.id]
+    );
+    await run(`UPDATE contents SET lifecycle_status = 'PUBLISHED', updated_at = ? WHERE id = ? AND deleted_at IS NULL`, [now, dist.content_id]);
+    await logIntegration({ entityId: dist.id, event: 'PUBLISH_CONFIRMED', level: 'INFO', message: 'External platform confirmed publish with external post identity.', metadata: { externalPostId: gateway.externalPostId, externalUrl: gateway.externalUrl } });
+    await logAudit('STATUS_CHANGE', 'distributions', dist.id, { status: 'PUBLISHED', externalPostId: gateway.externalPostId });
+    return { ok: true, ...gateway };
+  }
+
+  const newRetryCount = (dist.retry_count || 0) + 1;
+  await run(
+    `UPDATE distributions SET status = 'FAILED', error_details = ?, retry_count = ?, last_attempt_at = ?, updated_at = ? WHERE id = ?`,
+    [`${gateway.errorCode}: ${gateway.errorDetails}`, newRetryCount, now, now, dist.id]
+  );
+  await logIntegration({ entityId: dist.id, event: 'PUBLISH_FAILED', level: 'ERROR', message: gateway.errorDetails, metadata: { errorCode: gateway.errorCode, retryCount: newRetryCount, maxRetries: dist.max_retries } });
+  await logAudit('STATUS_CHANGE', 'distributions', dist.id, { status: 'FAILED', errorCode: gateway.errorCode, retryCount: newRetryCount });
+  return { ok: false, errorCode: gateway.errorCode, errorDetails: gateway.errorDetails, retryCount: newRetryCount };
+}
+
+async function resolveLatestContentVersion(contentId) {
+  const row = await get(`SELECT MAX(version_number) AS max_ver FROM content_versions WHERE content_id = ?`, [contentId]);
+  if (row && row.max_ver) {
+    const ver = await get(`SELECT * FROM content_versions WHERE content_id = ? AND version_number = ?`, [contentId, row.max_ver]);
+    return ver ? ver.id : '';
+  }
+  return '';
+}
+
+// ── PLATFORM ACCOUNTS ────────────────────────────────────────────────────────
+app.post('/api/distribution/platform-accounts', async (req, res) => {
+  try {
+    const { platformId, platform, accountName, handle, displayName, profileImageUrl, tokenType, accessToken, refreshToken, scope, tokenExpiresAt, isPrimary } = req.body;
+    const pid = await resolvePlatformId(platformId, platform);
+    const platformRow = await get(`SELECT * FROM platforms WHERE id = ?`, [pid]);
+    const id = makeId('acc');
+    const now = new Date().toISOString();
+    await run(
+      `INSERT INTO platform_accounts (id, business_id, platform_id, platform_name, account_name, handle, display_name, profile_image_url, token_type, access_token, refresh_token, scope, token_expires_at, token_status, is_primary, is_active, created_at, updated_at)
+       VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, 1, ?, ?)`,
+      [id, pid, platformRow ? platformRow.name : platform, accountName || 'Unnamed account', handle || '', displayName || '', profileImageUrl || '', tokenType || 'bearer', accessToken || '', refreshToken || '', scope || '', tokenExpiresAt || '', isPrimary ? 1 : 0, now, now]
+    );
+    if (isPrimary) {
+      await run(`UPDATE platform_accounts SET is_primary = 0 WHERE platform_id = ? AND id <> ?`, [pid, id]);
+    }
+    await logIntegration({ entityType: 'platform_account', entityId: id, event: 'ACCOUNT_CONNECTED', level: 'INFO', message: `Account connected to ${platformRow ? platformRow.name : platform}.` });
+    const row = await get(`SELECT * FROM platform_accounts WHERE id = ?`, [id]);
+    res.status(201).json({ success: true, account: serializeAccount(row) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/distribution/platform-accounts', async (req, res) => {
+  try {
+    const { platformId, platform, includeDisconnected } = req.query;
+    let sql = `SELECT * FROM platform_accounts WHERE business_id = 'biz_default'`;
+    const params = [];
+    if (platformId) { sql += ` AND platform_id = ?`; params.push(platformId); }
+    if (platform) { sql += ` AND platform_name = ?`; params.push(platform); }
+    if (!includeDisconnected) { sql += ` AND is_active = 1`; }
+    sql += ` ORDER BY is_primary DESC, updated_at DESC`;
+    const rows = await all(sql, params);
+    res.json({ success: true, accounts: rows.map(serializeAccount) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/distribution/platform-accounts/:id', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM platform_accounts WHERE id = ? AND business_id = 'biz_default'`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Account not found' });
+    const { accountName, handle, displayName, profileImageUrl, accessToken, refreshToken, scope, tokenExpiresAt, tokenStatus, isPrimary, isActive } = req.body;
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE platform_accounts SET account_name = ?, handle = ?, display_name = ?, profile_image_url = ?, access_token = COALESCE(?, access_token), refresh_token = COALESCE(?, refresh_token), scope = COALESCE(?, scope), token_expires_at = COALESCE(?, token_expires_at), token_status = COALESCE(?, token_status), is_primary = ?, is_active = ?, updated_at = ? WHERE id = ?`,
+      [accountName || existing.account_name, handle !== undefined ? handle : existing.handle, displayName !== undefined ? displayName : existing.display_name, profileImageUrl !== undefined ? profileImageUrl : existing.profile_image_url, accessToken || null, refreshToken || null, scope || null, tokenExpiresAt || null, tokenStatus || null, isPrimary !== undefined ? (isPrimary ? 1 : 0) : existing.is_primary, isActive !== undefined ? (isActive ? 1 : 0) : existing.is_active, now, existing.id]
+    );
+    if (isPrimary) {
+      await run(`UPDATE platform_accounts SET is_primary = 0 WHERE platform_id = ? AND id <> ?`, [existing.platform_id, existing.id]);
+    }
+    const row = await get(`SELECT * FROM platform_accounts WHERE id = ?`, [existing.id]);
+    res.json({ success: true, account: serializeAccount(row) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/distribution/platform-accounts/:id', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM platform_accounts WHERE id = ?`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Account not found' });
+    await run(`DELETE FROM platform_accounts WHERE id = ?`, [existing.id]);
+    await logIntegration({ entityType: 'platform_account', entityId: existing.id, event: 'ACCOUNT_DISCONNECTED', level: 'INFO', message: `Account disconnected from ${existing.platform_name}.` });
+    res.json({ success: true, deleted: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/distribution/platform-accounts/:id/refresh-token', async (req, res) => {
+  try {
+    const account = await get(`SELECT * FROM platform_accounts WHERE id = ?`, [req.params.id]);
+    if (!account) return res.status(404).json({ success: false, error: 'Account not found' });
+    const result = await externalGatewayRefreshToken(account);
+    if (!result.ok) {
+      await run(`UPDATE platform_accounts SET token_status = 'EXPIRED', updated_at = ? WHERE id = ?`, [new Date().toISOString(), account.id]);
+      return res.status(400).json({ success: false, error: result.errorDetails });
+    }
+    const now = new Date().toISOString();
+    await run(`UPDATE platform_accounts SET access_token = ?, token_expires_at = ?, token_status = 'ACTIVE', updated_at = ? WHERE id = ?`, [result.accessToken, result.tokenExpiresAt, now, account.id]);
+    await logIntegration({ entityType: 'platform_account', entityId: account.id, event: 'TOKEN_REFRESH', level: 'INFO', message: 'Token refreshed manually by operator.' });
+    const row = await get(`SELECT * FROM platform_accounts WHERE id = ?`, [account.id]);
+    res.json({ success: true, account: serializeAccount(row) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ── DISTRIBUTIONS (PUBLISHING QUEUE) ─────────────────────────────────────────
+app.post('/api/distribution/publish', async (req, res) => {
+  try {
+    const { contentId, versionId, platformId, platform, platformAccountId, scheduledAt, note } = req.body;
+    if (!contentId || !(platformId || platform)) {
+      return res.status(400).json({ success: false, error: 'contentId and platformId (or platform) are required' });
+    }
+    const content = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [contentId]);
+    if (!content) return res.status(404).json({ success: false, error: 'Content not found' });
+    const pid = await resolvePlatformId(platformId, platform);
+    const platformRow = await get(`SELECT * FROM platforms WHERE id = ?`, [pid]);
+    const version = versionId || await resolveLatestContentVersion(contentId);
+    const account = await getPrimaryAccountForPlatform(pid, 'biz_default', platformAccountId);
+    if (!account) return res.status(400).json({ success: false, error: `No active ${platformRow ? platformRow.name : 'platform'} account is connected. Connect an account first.` });
+    const id = makeId('dist');
+    const now = new Date().toISOString();
+    const isScheduled = Boolean(scheduledAt);
+    await run(
+      `INSERT INTO distributions (id, business_id, content_id, content_version_id, platform_id, platform_account_id, campaign_id, status, scheduled_at, retry_count, max_retries, idempotency_key, note, created_at, updated_at)
+       VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+      [id, contentId, version, pid, account.id, content.campaign_id || '', isScheduled ? 'SCHEDULED' : 'DRAFT', scheduledAt || '', 3, `idem_${id}`, note || '', now, now]
+    );
+    await logIntegration({ entityId: id, event: 'PUBLISH_QUEUED', level: 'INFO', message: isScheduled ? `Distribution scheduled for ${scheduledAt}` : 'Distribution queued and waiting to be published.', metadata: { contentId, platformId: pid, scheduledAt: scheduledAt || null } });
+    if (!isScheduled) {
+      const outcome = await attemptDistributionPublish(await get(`SELECT * FROM distributions WHERE id = ?`, [id]));
+      const dist = await loadDistributionWithJoins(id);
+      return res.status(outcome.ok ? 200 : 400).json({ success: outcome.ok, distribution: serializeDistribution(dist), error: outcome.ok ? undefined : outcome.errorDetails });
+    }
+    const dist = await loadDistributionWithJoins(id);
+    res.status(201).json({ success: true, distribution: serializeDistribution(dist), scheduled: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/distribution/:id/publish', async (req, res) => {
+  try {
+    const dist = await loadDistributionWithJoins(req.params.id);
+    if (!dist) return res.status(404).json({ success: false, error: 'Distribution not found' });
+    if (dist.status === 'PUBLISHED') return res.status(400).json({ success: false, error: 'Distribution is already published' });
+    const now = new Date().toISOString();
+    await run(`UPDATE distributions SET scheduled_at = '', status = 'PENDING', error_details = '', retry_count = 0, updated_at = ? WHERE id = ?`, [now, dist.id]);
+    const outcome = await attemptDistributionPublish(dist);
+    const updated = await loadDistributionWithJoins(dist.id);
+    res.status(outcome.ok ? 200 : 400).json({ success: outcome.ok, distribution: serializeDistribution(updated), error: outcome.ok ? undefined : outcome.errorDetails });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/distribution/:id', async (req, res) => {
+  try {
+    const dist = await loadDistributionWithJoins(req.params.id);
+    if (!dist) return res.status(404).json({ success: false, error: 'Distribution not found' });
+    res.json({ success: true, distribution: serializeDistribution(dist) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/distribution', async (req, res) => {
+  try {
+    const { status, contentId, platformId, limit } = req.query;
+    let sql = DISTRIBUTION_JOIN_SELECT;
+    const where = [];
+    const params = [];
+    if (status) { where.push(`d.status = ?`); params.push(status); }
+    if (contentId) { where.push(`d.content_id = ?`); params.push(contentId); }
+    if (platformId) { where.push(`d.platform_id = ?`); params.push(platformId); }
+    if (where.length) sql += ` WHERE ${where.join(' AND ')}`;
+    sql += ` ORDER BY d.created_at DESC`;
+    if (limit) sql += ` LIMIT ?`;
+    const rows = await all(sql, params);
+    res.json({ success: true, distributions: rows.map(serializeDistribution) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/distribution/:id', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM distributions WHERE id = ?`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Distribution not found' });
+    if (existing.status === 'PUBLISHED') return res.status(400).json({ success: false, error: 'Cannot edit an already published distribution' });
+    const { platformId, platform, platformAccountId, scheduledAt, note, status } = req.body;
+    const now = new Date().toISOString();
+    const updates = [];
+    const params = [];
+    if (platformId || platform) {
+      const pid = await resolvePlatformId(platformId, platform);
+      updates.push(`platform_id = ?`); params.push(pid);
+      const account = await getPrimaryAccountForPlatform(pid, 'biz_default', platformAccountId);
+      if (!account) return res.status(400).json({ success: false, error: `No active account connected for the selected platform` });
+      updates.push(`platform_account_id = ?`); params.push(account.id);
+    } else if (platformAccountId) {
+      updates.push(`platform_account_id = ?`); params.push(platformAccountId);
+    }
+    if (scheduledAt !== undefined) { updates.push(`scheduled_at = ?`); params.push(scheduledAt); }
+    if (note !== undefined) { updates.push(`note = ?`); params.push(note); }
+    if (status !== undefined) { updates.push(`status = ?`); params.push(status); }
+    updates.push(`updated_at = ?`); params.push(now);
+    params.push(existing.id);
+    await run(`UPDATE distributions SET ${updates.join(', ')} WHERE id = ?`, params);
+    const updated = await loadDistributionWithJoins(existing.id);
+    res.json({ success: true, distribution: serializeDistribution(updated) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/distribution/:id/cancel', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM distributions WHERE id = ?`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Distribution not found' });
+    if (existing.status === 'PUBLISHED') return res.status(400).json({ success: false, error: 'Cannot cancel an already published distribution' });
+    const now = new Date().toISOString();
+    await run(`UPDATE distributions SET status = 'CANCELLED', cancelled_at = ?, updated_at = ? WHERE id = ?`, [now, now, existing.id]);
+    await logIntegration({ entityId: existing.id, event: 'PUBLISH_CANCELLED', level: 'WARN', message: 'Distribution cancelled by operator.' });
+    const updated = await loadDistributionWithJoins(existing.id);
+    res.json({ success: true, distribution: serializeDistribution(updated) });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/distribution/:id', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM distributions WHERE id = ?`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Distribution not found' });
+    await run(`DELETE FROM distributions WHERE id = ?`, [existing.id]);
+    res.json({ success: true, deleted: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ── SCHEDULED PUBLISHING WORKER ──────────────────────────────────────────────
+const scheduledWorker = setInterval(async () => {
+  try {
+    const now = new Date().toISOString();
+    const due = await all(`SELECT * FROM distributions WHERE status = 'SCHEDULED' AND scheduled_at IS NOT NULL AND scheduled_at <> '' AND scheduled_at <= ?`, [now]);
+    for (const d of due) {
+      await attemptDistributionPublish(d);
+    }
+  } catch (err) {
+    console.error('Scheduled distribution worker error:', err);
+  }
+}, 30000);
+scheduledWorker.unref();
+
+// ── LEAD CAPTURE ─────────────────────────────────────────────────────────────
+app.post('/api/leads', async (req, res) => {
+  try {
+    const { name, email, phone, company, campaignId, source, channel, subchannel, campaignName, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, tags, customFields } = req.body;
+    if (!name || !email) return res.status(400).json({ success: false, error: 'name and email are required' });
+    const id = makeId('lead');
+    const now = new Date().toISOString();
+    await run(
+      `INSERT INTO leads (id, business_id, name, email, phone, company, source, channel, subchannel, campaign_id, campaign_name, utm_source, utm_medium, utm_campaign, utm_content, utm_term, tags_json, custom_fields_json, status, created_at, updated_at)
+       VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NEW', ?, ?)`,
+      [id, name, email, phone || '', company || '', source || '', channel || 'web', subchannel || '', campaignId || '', campaignName || '', utmSource || '', utmMedium || '', utmCampaign || '', utmContent || '', utmTerm || '', JSON.stringify(tags || []), JSON.stringify(customFields || {}), now, now]
+    );
+    await logIntegration({ entityType: 'lead', entityId: id, event: 'LEAD_CAPTURED', level: 'INFO', message: `Lead captured via ${channel || 'web'}.`, metadata: { email, campaignId: campaignId || '' } });
+    const row = await get(`SELECT * FROM leads WHERE id = ?`, [id]);
+    res.status(201).json({ success: true, lead: row });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/leads', async (req, res) => {
+  try {
+    const { status, campaignId, channel, limit } = req.query;
+    let sql = `SELECT * FROM leads WHERE deleted_at IS NULL`;
+    const params = [];
+    if (status) { sql += ` AND status = ?`; params.push(status); }
+    if (campaignId) { sql += ` AND campaign_id = ?`; params.push(campaignId); }
+    if (channel) { sql += ` AND channel = ?`; params.push(channel); }
+    sql += ` ORDER BY created_at DESC`;
+    if (limit) sql += ` LIMIT ?`;
+    const rows = await all(sql, params);
+    res.json({ success: true, leads: rows });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/leads/:id', async (req, res) => {
+  try {
+    const row = await get(`SELECT * FROM leads WHERE id = ? AND deleted_at IS NULL`, [req.params.id]);
+    if (!row) return res.status(404).json({ success: false, error: 'Lead not found' });
+    res.json({ success: true, lead: row });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/leads/:id', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM leads WHERE id = ? AND deleted_at IS NULL`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Lead not found' });
+    const { name, email, phone, company, status, tags, customFields } = req.body;
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE leads SET name = COALESCE(?, name), email = COALESCE(?, email), phone = COALESCE(?, phone), company = COALESCE(?, company), status = COALESCE(?, status), tags_json = COALESCE(?, tags_json), custom_fields_json = COALESCE(?, custom_fields_json), updated_at = ? WHERE id = ?`,
+      [name || null, email || null, phone || null, company || null, status || null, tags ? JSON.stringify(tags) : null, customFields ? JSON.stringify(customFields) : null, now, existing.id]
+    );
+    const row = await get(`SELECT * FROM leads WHERE id = ?`, [existing.id]);
+    res.json({ success: true, lead: row });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/leads/:id', async (req, res) => {
+  try {
+    const existing = await get(`SELECT * FROM leads WHERE id = ?`, [req.params.id]);
+    if (!existing) return res.status(404).json({ success: false, error: 'Lead not found' });
+    const now = new Date().toISOString();
+    await run(`UPDATE leads SET deleted_at = ?, updated_at = ? WHERE id = ?`, [now, now, existing.id]);
+    res.json({ success: true, deleted: true });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

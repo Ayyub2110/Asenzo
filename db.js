@@ -57,9 +57,10 @@ async function initDb() {
           'businesses', 'founders', 'icps', 'positionings', 'positioning_versions', 'offers', 'brand_profiles',
           'brand_voices', 'founder_knowledge_sources', 'founder_knowledge_chunks', 'founder_voice_profiles',
           'content_pillars', 'content_ideas', 'contents', 'content_versions', 'content_assets', 'platforms',
-          'distributions', 'lead_magnets', 'leads', 'outreach_prospects', 'outreach_messages', 'outreach_replies',
-          'authority_assets', 'content_performances', 'attribution_events', 'ai_interactions',
-          'recommendations', 'market_intel', 'audit_logs'
+          'platform_accounts', 'distributions', 'integration_logs', 'lead_magnets', 'leads', 'outreach_prospects',
+          'outreach_messages', 'outreach_replies', 'authority_assets', 'content_performances', 'attribution_events',
+          'ai_interactions', 'recommendations', 'market_intel', 'audit_logs', 'lead_campaigns', 'landing_surfaces',
+          'landing_forms', 'lead_ctas'
         ];
 
         for (const tbl of tablesToDrop) {
@@ -151,24 +152,54 @@ async function initDb() {
           id TEXT PRIMARY KEY, content_id TEXT NOT NULL, asset_type TEXT NOT NULL, file_url TEXT NOT NULL, caption TEXT DEFAULT '', created_at TEXT
         )`);
 
-        // 17. Platform
+        // 17. Platform (Distribution Platform Catalog)
         await run(`CREATE TABLE IF NOT EXISTS platforms (
-          id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, handle TEXT DEFAULT '', is_connected INTEGER DEFAULT 1, updated_at TEXT
+          id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, handle TEXT DEFAULT '', is_connected INTEGER DEFAULT 0, updated_at TEXT
         )`);
 
-        // 18. Distribution
+        // 17b. PlatformAccount (OAuth/Token-Managed Social Account Connection)
+        await run(`CREATE TABLE IF NOT EXISTS platform_accounts (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, platform_id TEXT NOT NULL, platform_name TEXT DEFAULT '', account_name TEXT NOT NULL, handle TEXT DEFAULT '', display_name TEXT DEFAULT '', profile_image_url TEXT DEFAULT '', access_token TEXT DEFAULT '', refresh_token TEXT DEFAULT '', token_type TEXT DEFAULT 'Bearer', scope TEXT DEFAULT '', token_expires_at TEXT DEFAULT '', token_status TEXT DEFAULT 'ACTIVE', is_primary INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1, rate_limit_reset_at TEXT DEFAULT '', last_sync_at TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 18. Distribution (Publishing Workflow — Content → Version → Platform → External Post)
         await run(`CREATE TABLE IF NOT EXISTS distributions (
-          id TEXT PRIMARY KEY, content_id TEXT NOT NULL, platform_id TEXT NOT NULL, status TEXT DEFAULT 'DRAFT', scheduled_at TEXT DEFAULT '', published_at TEXT DEFAULT '', post_url TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL DEFAULT 'biz_default', content_id TEXT NOT NULL, content_version_id TEXT DEFAULT '', platform_id TEXT NOT NULL, platform_account_id TEXT DEFAULT '', campaign_id TEXT DEFAULT '', status TEXT DEFAULT 'DRAFT', scheduled_at TEXT DEFAULT '', published_at TEXT DEFAULT '', external_post_id TEXT DEFAULT '', external_url TEXT DEFAULT '', error_details TEXT DEFAULT '', retry_count INTEGER DEFAULT 0, max_retries INTEGER DEFAULT 3, idempotency_key TEXT DEFAULT '', note TEXT DEFAULT '', cancelled_at TEXT DEFAULT '', last_attempt_at TEXT DEFAULT '', created_at TEXT, updated_at TEXT
         )`);
 
-        // 19. LeadMagnet
+        // 18b. IntegrationLog (Auditable trail for external gateway calls)
+        await run(`CREATE TABLE IF NOT EXISTS integration_logs (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, entity_type TEXT DEFAULT 'distribution', entity_id TEXT DEFAULT '', event TEXT NOT NULL, level TEXT DEFAULT 'INFO', message TEXT DEFAULT '', metadata_json TEXT DEFAULT '{}', created_at TEXT
+        )`);
+
+        // 19. LeadMagnet (Lead Magnet Library)
         await run(`CREATE TABLE IF NOT EXISTS lead_magnets (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, asset_url TEXT DEFAULT '#', optin_count INTEGER DEFAULT 0, qualified_lead_count INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', asset_url TEXT DEFAULT '#', file_type TEXT DEFAULT '', image_url TEXT DEFAULT '', optin_count INTEGER DEFAULT 0, qualified_lead_count INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1, is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
         )`);
 
-        // 20. Lead
+        // 19b. LeadCampaign (Campaign Tracking for Distribution & Lead Attribution)
+        await run(`CREATE TABLE IF NOT EXISTS lead_campaigns (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', platform TEXT DEFAULT 'LINKEDIN', status TEXT DEFAULT 'ACTIVE', start_at TEXT DEFAULT '', end_at TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 19c. LandingSurface (Where attention converts — content/distribution/campaign metadata)
+        await run(`CREATE TABLE IF NOT EXISTS landing_surfaces (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, surface_type TEXT DEFAULT 'LINKEDIN_POST', url TEXT DEFAULT '', content_id TEXT DEFAULT '', distribution_id TEXT DEFAULT '', campaign_id TEXT DEFAULT '', lead_magnet_id TEXT DEFAULT '', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 19d. LandingForm (Capture form bound to a surface + lead magnet)
+        await run(`CREATE TABLE IF NOT EXISTS landing_forms (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, surface_id TEXT DEFAULT '', lead_magnet_id TEXT DEFAULT '', campaign_id TEXT DEFAULT '', fields_json TEXT DEFAULT '{}', submit_cta TEXT DEFAULT 'Get the guide', success_message TEXT DEFAULT 'Thanks! Check your inbox.', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 19e. LeadCta (Trackable CTAs pointing content → capture surface)
+        await run(`CREATE TABLE IF NOT EXISTS lead_ctas (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, cta_type TEXT DEFAULT 'COMMENT', cta_text TEXT DEFAULT '', content_id TEXT DEFAULT '', distribution_id TEXT DEFAULT '', surface_id TEXT DEFAULT '', campaign_id TEXT DEFAULT '', lead_magnet_id TEXT DEFAULT '', target_url TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 20. Lead (Attribution-Rich Lead Capture — strictly Attention OS scoped)
         await run(`CREATE TABLE IF NOT EXISTS leads (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, lead_magnet_id TEXT, source_content_id TEXT, name TEXT NOT NULL, email TEXT NOT NULL, status TEXT DEFAULT 'NEW', intent_score INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, lead_magnet_id TEXT DEFAULT '', campaign_id TEXT DEFAULT '', campaign_name TEXT DEFAULT '', landing_surface_id TEXT DEFAULT '', form_id TEXT DEFAULT '', cta_id TEXT DEFAULT '', content_id TEXT DEFAULT '', distribution_id TEXT DEFAULT '', platform TEXT DEFAULT 'LINKEDIN', channel TEXT DEFAULT 'web', subchannel TEXT DEFAULT '', source TEXT DEFAULT 'FORM', source_url TEXT DEFAULT '', name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT DEFAULT '', company TEXT DEFAULT '', message TEXT DEFAULT '', intent_score INTEGER DEFAULT 0, status TEXT DEFAULT 'NEW', notes TEXT DEFAULT '', tags_json TEXT DEFAULT '[]', custom_fields_json TEXT DEFAULT '{}', utm_source TEXT DEFAULT '', utm_medium TEXT DEFAULT '', utm_campaign TEXT DEFAULT '', utm_content TEXT DEFAULT '', utm_term TEXT DEFAULT '', captured_at TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT
         )`);
 
         // 21. OutreachProspect
@@ -220,6 +251,9 @@ async function initDb() {
         await run(`CREATE INDEX IF NOT EXISTS idx_chunks_source ON founder_knowledge_chunks (source_id)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_chunks_biz ON founder_knowledge_chunks (business_id)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_contents_biz_status ON contents (business_id, lifecycle_status)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_distributions_content ON distributions (content_id)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_distributions_status ON distributions (status)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_leads_biz_attr ON leads (business_id, campaign_id, landing_surface_id, lead_magnet_id)`);
 
         const now = new Date().toISOString();
 
@@ -507,6 +541,23 @@ When you replace random agency retainers with a production-grade Growth Operatin
             `INSERT OR IGNORE INTO market_intel (id, business_id, title, source, insight, viral_factor, is_archived, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
             [(`mi_seed_${Date.now()}_${miIdx}`), 'biz_default', mi.title, mi.source, mi.insight, mi.viralFactor, now, now]
+          );
+        }
+
+        // Seed Platform Catalog (Distribution configuration — not production data)
+        const platformSeeds = [
+          { id: 'pl_linkedin', name: 'LINKEDIN', handle: 'linkedin.com/feed' },
+          { id: 'pl_x', name: 'X_TWITTER', handle: 'x.com/home' },
+          { id: 'pl_instagram', name: 'INSTAGRAM', handle: 'instagram.com' },
+          { id: 'pl_youtube', name: 'YOUTUBE', handle: 'youtube.com' },
+          { id: 'pl_newsletter', name: 'NEWSLETTER', handle: 'newsletter' },
+          { id: 'pl_podcast', name: 'PODCAST', handle: 'podcast' },
+          { id: 'pl_email', name: 'EMAIL', handle: 'email' }
+        ];
+        for (const p of platformSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO platforms (id, name, handle, is_connected, updated_at) VALUES (?, ?, ?, 0, ?)`,
+            [p.id, p.name, p.handle, now]
           );
         }
 
