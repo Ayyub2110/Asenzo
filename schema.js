@@ -33,6 +33,12 @@ const RecommendationCategory = z.enum(['PILLAR_OPTIMIZATION', 'HOOK_IMPROVEMENT'
 const RecommendationStatus = z.enum(['PENDING', 'APPROVED', 'REJECTED', 'APPLIED', 'DISMISSED']);
 const AuditActionType = z.enum(['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'VERSION_CREATE', 'AI_GENERATE']);
 
+const ContentPillarStatus = z.enum(['ACTIVE', 'PAUSED', 'ARCHIVED']);
+const ContentIdeaSource = z.enum(['MANUAL', 'AI_GENERATED', 'CUSTOMER_QUESTION', 'OBJECTION', 'SALES_CONVERSATION', 'CASE_STUDY', 'MARKET_INTEL', 'SUCCESSFUL_CONTENT']);
+const ContentIdeaStatus = z.enum(['NEW', 'PRIORITIZED', 'PLANNED', 'IN_PRODUCTION', 'PUBLISHED', 'CONVERTED', 'ARCHIVED']);
+const ContentFormatType = z.enum(['POST', 'CAROUSEL', 'VIDEO', 'NEWSLETTER', 'CASE_STUDY', 'THREAD', 'LEAD_MAGNET']);
+const IdeaPriorityType = z.enum(['LOW', 'MEDIUM', 'HIGH']);
+
 const optStr = z.string().nullable().optional();
 const arrayStr = z.array(z.string()).default([]);
 
@@ -168,6 +174,57 @@ const ScriptGenerationRequestSchema = z.object({
   targetPain: optStr
 });
 
+// ── 10. CONTENT PILLAR (CONTENT STRATEGY) SCHEMA ─────────────────────────────
+const ContentPillarFullSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  name: z.string().min(2, 'Pillar name is required'),
+  pillarType: optStr,
+  description: optStr.default(''),
+  targetAudience: optStr.default(''),
+  objective: optStr.default(''),
+  pain: optStr.default(''),
+  desiredResult: optStr.default(''),
+  contentFormats: arrayStr,
+  supportedPlatforms: z.array(PlatformType).default([]),
+  status: ContentPillarStatus.default('ACTIVE'),
+  targetPercentage: z.number().min(0).max(100).optional().default(25)
+});
+
+// ── 11. CONTENT IDEA (IDEA ENGINE) SCHEMA ────────────────────────────────────
+const ContentIdeaSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  pillarId: optStr,
+  icpId: optStr,
+  source: ContentIdeaSource.default('MANUAL'),
+  title: z.string().min(5, 'Idea title must be at least 5 characters'),
+  premise: optStr.default(''),
+  icp: optStr.default(''),
+  pain: optStr.default(''),
+  desiredResult: optStr.default(''),
+  contentFormat: ContentFormatType.default('POST'),
+  platform: PlatformType.default('LINKEDIN'),
+  objective: optStr.default(''),
+  cta: optStr.default(''),
+  score: z.number().min(0).max(100).optional().default(0),
+  scoreBreakdown: z.record(z.any()).optional().default({}),
+  priority: IdeaPriorityType.default('LOW'),
+  status: ContentIdeaStatus.default('NEW'),
+  notes: optStr.default(''),
+  isArchived: z.boolean().optional().default(false),
+  convertedContentId: optStr
+});
+
+// ── 12. CONTENT IDEA AI GENERATION REQUEST SCHEMA ────────────────────────────
+const ContentIdeaGenerateRequestSchema = z.object({
+  businessId: optStr.default('biz_default'),
+  source: ContentIdeaSource.default('AI_GENERATED'),
+  count: z.number().int().min(1).max(8).optional().default(4),
+  pillarId: optStr,
+  seedPrompt: optStr.default('')
+});
+
 module.exports = {
   // Enums
   ContentLifecycleStatus,
@@ -180,6 +237,11 @@ module.exports = {
   RecommendationCategory,
   RecommendationStatus,
   AuditActionType,
+  ContentPillarStatus,
+  ContentIdeaSource,
+  ContentIdeaStatus,
+  ContentFormatType,
+  IdeaPriorityType,
 
   // Entity Schemas
   FounderProfileFullSchema,
@@ -190,5 +252,8 @@ module.exports = {
   PositioningFullSchema,
   OfferFullSchema,
   ContentSchema,
-  ScriptGenerationRequestSchema
+  ScriptGenerationRequestSchema,
+  ContentPillarFullSchema,
+  ContentIdeaSchema,
+  ContentIdeaGenerateRequestSchema
 };

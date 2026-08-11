@@ -415,6 +415,25 @@
         </div>
       </header>
 
+    <div id="content-area" class="content-area"></div>
+
+    <div id="right-panel" class="right-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-label">ASENZO AI Coach</div>
+          <div class="panel-sub">Ask questions, route tasks, and review intelligence output.</div>
+        </div>
+        <button class="btn-icon" onclick="closePanel()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="chat-panel" id="chat-messages"></div>
+      <div class="panel-input">
+        <input id="coach-input" placeholder="Ask the AI coach..." autocomplete="off" />
+        <button class="btn btn-primary" type="button" onclick="sendMsg()">Send</button>
+      </div>
+    </div>
+
   <!-- ══════════════ AI HOOK & SCRIPT GENERATOR MODAL ══════════════ -->
   <div id="script-generator-modal" class="modal-overlay hidden" onclick="closeScriptGeneratorModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()">
@@ -726,6 +745,252 @@
         <div class="modal-foot">
           <button type="button" class="btn btn-secondary" onclick="closeMarketIntelModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Market Intel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ CONTENT PILLAR MODAL (CONTENT STRATEGY) ══════════════ -->
+  <div id="pillar-modal" class="modal-overlay hidden" onclick="closePillarModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="pillar-modal-title">Create Content Pillar</h3>
+          <p class="modal-sub">Content Strategy — define the strategic lane this pillar owns</p>
+        </div>
+        <button class="btn-icon" onclick="closePillarModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSavePillar(event)" class="modal-body" style="max-height:70vh;overflow-y:auto">
+        <input type="hidden" id="pillar-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pillar Name *</label>
+            <input id="pillar-name" placeholder="e.g. Unique Mechanism" required />
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="pillar-status">
+              <option value="ACTIVE">Active</option>
+              <option value="PAUSED">Paused</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="pillar-description" rows="2" style="padding:10px;border-radius:8px;border:1px solid #E2E8F0;font:inherit;font-size:12.5px" placeholder="What strategic job does this pillar do in the content engine?"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Target Audience</label>
+          <input id="pillar-audience" placeholder="e.g. Bootstrapped B2B Founders doing $15k–$50k/mo" />
+        </div>
+        <div class="form-group">
+          <label>Objective</label>
+          <input id="pillar-objective" placeholder="e.g. Build proprietary leverage & make the mechanism memorable" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Associated Pain</label>
+            <input id="pillar-pain" placeholder="The specific friction this pillar attacks" />
+          </div>
+          <div class="form-group">
+            <label>Desired Result</label>
+            <input id="pillar-result" placeholder="The outcome this pillar drives toward" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Content Formats (comma separated)</label>
+            <input id="pillar-formats" placeholder="Hook Post, Framework Breakdown, Case Study" />
+          </div>
+          <div class="form-group">
+            <label>Supported Platforms (comma separated)</label>
+            <input id="pillar-platforms" placeholder="LinkedIn, X / Twitter, YouTube" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Mix %</label>
+            <input id="pillar-pct" type="number" min="0" max="100" value="20" />
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closePillarModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Pillar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ CONTENT IDEA MODAL (IDEA ENGINE) ══════════════ -->
+  <div id="idea-modal" class="modal-overlay hidden" onclick="closeIdeaModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:720px">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="idea-modal-title">New Content Idea</h3>
+          <p class="modal-sub">Content Idea Engine — score, prioritize, convert to pipeline</p>
+        </div>
+        <button class="btn-icon" onclick="closeIdeaModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSaveIdea(event)" class="modal-body" style="max-height:74vh;overflow-y:auto">
+        <input type="hidden" id="idea-id" />
+        <div class="form-group">
+          <label>Idea Title *</label>
+          <input id="idea-title" placeholder="e.g. The 60-hour workweek is a pricing error" required />
+        </div>
+        <div class="form-group">
+          <label>Premise</label>
+          <textarea id="idea-premise" rows="2" style="padding:10px;border-radius:8px;border:1px solid #E2E8F0;font:inherit;font-size:12.5px" placeholder="The core argument / angle in one or two sentences"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Content Pillar</label>
+            <select id="idea-pillar"></select>
+          </div>
+          <div class="form-group">
+            <label>Source</label>
+            <select id="idea-source">
+              <option value="MANUAL">Manual</option>
+              <option value="AI_GENERATED">AI Generated</option>
+              <option value="CUSTOMER_QUESTION">Customer Question</option>
+              <option value="OBJECTION">Objection</option>
+              <option value="SALES_CONVERSATION">Sales Conversation</option>
+              <option value="CASE_STUDY">Case Study</option>
+              <option value="MARKET_INTEL">Market Intelligence</option>
+              <option value="SUCCESSFUL_CONTENT">Successful Content</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target ICP</label>
+            <input id="idea-icp" placeholder="e.g. Bootstrapped B2B Founders doing $15k–$50k/mo" />
+          </div>
+          <div class="form-group">
+            <label>Pain</label>
+            <input id="idea-pain" placeholder="The specific pain this idea attacks" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Desired Result</label>
+            <input id="idea-result" placeholder="The outcome the reader should see" />
+          </div>
+          <div class="form-group">
+            <label>Objective</label>
+            <input id="idea-objective" placeholder="e.g. Generate qualified inbound DMs" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Content Format</label>
+            <select id="idea-format">
+              <option value="POST">Post</option>
+              <option value="CAROUSEL">Carousel</option>
+              <option value="VIDEO">Video</option>
+              <option value="NEWSLETTER">Newsletter</option>
+              <option value="CASE_STUDY">Case Study</option>
+              <option value="THREAD">Thread</option>
+              <option value="LEAD_MAGNET">Lead Magnet</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Platform</label>
+            <select id="idea-platform">
+              <option value="LINKEDIN">LinkedIn</option>
+              <option value="X_TWITTER">X / Twitter</option>
+              <option value="YOUTUBE">YouTube</option>
+              <option value="SKOOL">Skool</option>
+              <option value="NEWSLETTER">Newsletter</option>
+              <option value="PODCAST">Podcast</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select id="idea-status">
+              <option value="NEW">New</option>
+              <option value="PRIORITIZED">Prioritized</option>
+              <option value="PLANNED">Planned</option>
+              <option value="IN_PRODUCTION">In Production</option>
+              <option value="PUBLISHED">Published</option>
+              <option value="CONVERTED">Converted</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>CTA</label>
+            <input id="idea-cta" placeholder="e.g. DM me to run this audit" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="idea-notes" rows="2" style="padding:10px;border-radius:8px;border:1px solid #E2E8F0;font:inherit;font-size:12.5px" placeholder="AI rationale, duplicate warnings, proof anchors"></textarea>
+        </div>
+        <div id="idea-duplicate-warning" class="hidden" style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px;font-size:12px;color:#B91C1C"></div>
+        <div class="modal-foot" style="justify-content:space-between">
+          <div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="handleDeleteIdea()" id="idea-delete-btn" style="color:#EF4444;border-color:#FCA5A5">🗑 Delete</button>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="btn btn-secondary" onclick="closeIdeaModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Idea</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ AI IDEA GENERATOR MODAL ══════════════ -->
+  <div id="idea-generator-modal" class="modal-overlay hidden" onclick="closeIdeaGeneratorModal()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">⚡ AI Content Idea Generator</h3>
+          <p class="modal-sub">Grounds ideas in Business DNA, Positioning, Brand Voice, Pillars & Founder Knowledge</p>
+        </div>
+        <button class="btn-icon" onclick="closeIdeaGeneratorModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleGenerateIdeas(event)" class="modal-body">
+        <div class="form-group">
+          <label>Idea Source (what triggers the idea)</label>
+          <select id="gen-idea-source">
+            <option value="AI_GENERATED">⚡ AI-Generated (all DNA signals)</option>
+            <option value="CUSTOMER_QUESTION">💬 From Customer Questions</option>
+            <option value="OBJECTION">🛡 From Objections</option>
+            <option value="SALES_CONVERSATION">🎧 From Sales Conversations</option>
+            <option value="CASE_STUDY">📊 From Case Studies & Proof</option>
+            <option value="MARKET_INTEL">🔍 From Market Intelligence</option>
+            <option value="SUCCESSFUL_CONTENT">🚀 From Previous Successful Content</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Target Pillar</label>
+            <select id="gen-idea-pillar">
+              <option value="">All Active Pillars</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Number of Ideas</label>
+            <select id="gen-idea-count">
+              <option value="2">2</option>
+              <option value="4" selected>4</option>
+              <option value="6">6</option>
+              <option value="8">8</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeIdeaGeneratorModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">⚡ Generate & Score Ideas</button>
         </div>
       </form>
     </div>

@@ -59,7 +59,7 @@ async function initDb() {
           'content_pillars', 'content_ideas', 'contents', 'content_versions', 'content_assets', 'platforms',
           'distributions', 'lead_magnets', 'leads', 'outreach_prospects', 'outreach_messages', 'outreach_replies',
           'authority_assets', 'content_performances', 'attribution_events', 'ai_interactions',
-          'recommendations', 'audit_logs'
+          'recommendations', 'market_intel', 'audit_logs'
         ];
 
         for (const tbl of tablesToDrop) {
@@ -121,14 +121,19 @@ async function initDb() {
           id TEXT PRIMARY KEY, business_id TEXT NOT NULL, sentence_patterns TEXT DEFAULT '[]', recurring_phrases TEXT DEFAULT '[]', vocabulary TEXT DEFAULT '[]', writing_structure TEXT DEFAULT '', directness_level TEXT DEFAULT 'High', communication_style TEXT DEFAULT 'Direct, Systems-driven, Metric-backed', sample_chunks TEXT DEFAULT '[]', updated_at TEXT
         )`);
 
-        // 12. ContentPillar
+        // 12. ContentPillar (Content Strategy Pillars)
         await run(`CREATE TABLE IF NOT EXISTS content_pillars (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, pillar_type TEXT NOT NULL, target_percentage INTEGER DEFAULT 25, description TEXT, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, pillar_type TEXT, description TEXT DEFAULT '', target_audience TEXT DEFAULT '', objective TEXT DEFAULT '', pain TEXT DEFAULT '', desired_result TEXT DEFAULT '', content_formats TEXT DEFAULT '[]', supported_platforms TEXT DEFAULT '[]', status TEXT DEFAULT 'ACTIVE', target_percentage INTEGER DEFAULT 25, created_at TEXT, updated_at TEXT, deleted_at TEXT
         )`);
 
-        // 13. ContentIdea
+        // 13. ContentIdea (Content Idea Engine)
         await run(`CREATE TABLE IF NOT EXISTS content_ideas (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pillar_id TEXT, icp_id TEXT, title TEXT NOT NULL, raw_concept TEXT, status TEXT DEFAULT 'IDEA', created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pillar_id TEXT, icp_id TEXT, source TEXT DEFAULT 'MANUAL', title TEXT NOT NULL, premise TEXT DEFAULT '', icp TEXT DEFAULT '', pain TEXT DEFAULT '', desired_result TEXT DEFAULT '', content_format TEXT DEFAULT 'POST', platform TEXT DEFAULT 'LINKEDIN', objective TEXT DEFAULT '', cta TEXT DEFAULT '', score INTEGER DEFAULT 0, score_breakdown TEXT DEFAULT '{}', priority TEXT DEFAULT 'LOW', status TEXT DEFAULT 'NEW', notes TEXT DEFAULT '', is_archived INTEGER DEFAULT 0, converted_content_id TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT
+        )`);
+
+        // 13b. Market Intelligence (Niche & Competitor Observations → Idea Source)
+        await run(`CREATE TABLE IF NOT EXISTS market_intel (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, source TEXT DEFAULT 'Niche Observation', insight TEXT DEFAULT '', viral_factor TEXT DEFAULT 'Medium', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
         )`);
 
         // 14. Content (11-Stage Lifecycle)
@@ -429,11 +434,53 @@ When you replace random agency retainers with a production-grade Growth Operatin
 
         // Content Pillars & Seed Contents
         const pillars = [
-          { id: 'pil_pos', name: 'Positioning & ICP Pain', type: 'POSITIONING', pct: 30, desc: 'Targeting specific founder bottlenecks' },
-          { id: 'pil_mech', name: 'Unique Mechanism', type: 'MECHANISM', pct: 35, desc: 'Proving ASENZO 5-Engine framework leverage' }
+          {
+            id: 'pil_pos', name: 'Positioning & ICP Pain', type: 'POSITIONING', pct: 30,
+            desc: 'Put the specific ICP bottleneck on the table and frame the category so the founder stops buying activity and starts buying outcomes.',
+            audience: 'Bootstrapped B2B Founders doing $15k–$50k/mo trapped as the single bottleneck',
+            objective: 'Qualify prospects who recognize the painful bottleneck and install desire for the quantified result',
+            pain: 'Trapped in 60-hr workweeks serving as the single bottleneck for marketing & sales',
+            desired: 'Scale to $100k/mo while raising Founder Independence Score from 30 to 85+',
+            formats: ['Hook Post', 'Contrarian Post', 'Story Post', 'Carousel'],
+            platforms: ['LINKEDIN', 'X_TWITTER', 'NEWSLETTER']
+          },
+          {
+            id: 'pil_mech', name: 'Unique Mechanism', type: 'MECHANISM', pct: 35,
+            desc: 'Prove the ASENZO 5-Engine Growth OS framework is the only repeatable route from bottleneck to operating system owner.',
+            audience: 'Founders already aware of the pain but skeptical of agency/SaaS stopgaps',
+            objective: 'Build proprietary leverage and make the mechanism the memorable category-defining asset',
+            pain: 'Retainer agency dependency, scattered SaaS tools and no single operating source of truth',
+            desired: 'Founders can describe and reapply the mechanism in under 60 seconds',
+            formats: ['Framework Breakdown', 'Step-by-Step', 'Walkthrough Video', 'Carousel'],
+            platforms: ['LINKEDIN', 'X_TWITTER', 'YOUTUBE', 'NEWSLETTER']
+          },
+          {
+            id: 'pil_proof', name: 'Proof & Case Studies', type: 'PROOF', pct: 20,
+            desc: 'Show real before/after outcomes (FIS scores, pipeline multipliers, revenue) to convert attention into qualified inbound conversations.',
+            audience: 'Decision-stage founders comparing installers or rebuilding internal capability',
+            objective: 'Dramatically reduce perceived risk so qualified founders DM or book a call',
+            pain: 'Past agency/SaaS investments produced activity but no measurable founder independence',
+            desired: 'Prospects request the same quantified transformation for their own business',
+            formats: ['Case Study', 'Client Breakdown', 'Testimonial', 'Screen-recording'],
+            platforms: ['LINKEDIN', 'YOUTUBE', 'NEWSLETTER']
+          },
+          {
+            id: 'pil_auth', name: 'Authority & Industry Insight', type: 'AUTHORITY', pct: 15,
+            desc: 'Publish sharp macro-observations and data-driven opinions on agency retainers, FIS and founder leverage to establish category authority.',
+            audience: 'Niche audiences & adjacent founders who amplify contrarian evidence-backed views',
+            objective: 'Become the default trusted voice so attention compounds beyond individual posts',
+            pain: 'Unpredictable reach and zero compounding because nobody owns a defensible point of view',
+            desired: 'Consistent inbound from people who repost, quote and mail the founder',
+            formats: ['POV Post', 'Data Deep Dive', 'Industry Insight', 'Manifesto'],
+            platforms: ['X_TWITTER', 'LINKEDIN', 'NEWSLETTER']
+          }
         ];
         for (const p of pillars) {
-          await run(`INSERT INTO content_pillars (id, business_id, name, pillar_type, target_percentage, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [p.id, 'biz_default', p.name, p.type, p.pct, p.desc, now, now]);
+          await run(
+            `INSERT INTO content_pillars (id, business_id, name, pillar_type, description, target_audience, objective, pain, desired_result, content_formats, supported_platforms, status, target_percentage, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?)`,
+            [p.id, 'biz_default', p.name, p.type, p.desc, p.audience, p.objective, p.pain, p.desired, JSON.stringify(p.formats), JSON.stringify(p.platforms), p.pct, now, now]
+          );
         }
 
         const initialContents = [
@@ -445,6 +492,20 @@ When you replace random agency retainers with a production-grade Growth Operatin
             `INSERT INTO contents (id, business_id, pillar_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, is_ad_candidate, is_archived, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
             [item.id, 'biz_default', item.pillar_id, item.title, item.lifecycle_status, item.primary_platform, item.hook_text, item.body_script, item.cta, now, now]
+          );
+        }
+
+        // Market Intelligence Seeds (Idea Sources)
+        const marketIntelSeeds = [
+          { title: 'Competitor X VSL angle leans hard on time-savings, not independence', source: 'YouTube Competitor Audit', insight: 'Gurus monetize save-time promises with zero underlying operating system — leaves a clear independence & mechanism gap to own.', viralFactor: 'High' },
+          { title: 'LinkedIn comments show founders burned after agency retainers', source: 'LinkedIn Comments', insight: 'Recurring pattern: "spent $5k/mo on retainers, still doing every sales call myself." Strong proof-gap content opportunity.', viralFactor: 'High' }
+        ];
+        for (let miIdx = 0; miIdx < marketIntelSeeds.length; miIdx++) {
+          const mi = marketIntelSeeds[miIdx];
+          await run(
+            `INSERT INTO market_intel (id, business_id, title, source, insight, viral_factor, is_archived, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+            [(`mi_seed_${Date.now()}_${miIdx}`), 'biz_default', mi.title, mi.source, mi.insight, mi.viralFactor, now, now]
           );
         }
 

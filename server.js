@@ -11,7 +11,10 @@ const {
   PositioningFullSchema,
   OfferFullSchema,
   ContentSchema,
-  ScriptGenerationRequestSchema
+  ScriptGenerationRequestSchema,
+  ContentPillarFullSchema,
+  ContentIdeaSchema,
+  ContentIdeaGenerateRequestSchema
 } = require('./schema');
 
 const app = express();
@@ -250,6 +253,584 @@ function calculatePositioningScore(icpSummary, problem, result, mechanism) {
     explanation,
     suggestions
   };
+}
+
+// ── CONTENT IDEA SCORING ENGINE ────────────────────────────────────────────
+// Evaluates 7 dimensions grounded in Business DNA, Positioning, Brand Voice &
+// Founder Knowledge so scores reflect the actual business (never generic).
+function tokenize(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9$%+\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2);
+}
+
+function overlapRatio(aWords, bWords) {
+  if (!aWords.length || !bWords.length) return 0;
+  const setB = new Set(bWords);
+  const hits = aWords.filter(w => setB.has(w));
+  return hits.length / Math.max(1, Math.min(aWords.length, bWords.length));
+}
+
+function normIdeaKey(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function buildIdeaScoringContext() {
+  const [pos, icp, offer, founder, vp] = await Promise.all([
+    get(`SELECT * FROM positionings WHERE business_id = 'biz_default' AND is_active = 1`),
+    get(`SELECT * FROM icps WHERE business_id = 'biz_default' AND is_active = 1`),
+    get(`SELECT * FROM offers WHERE business_id = 'biz_default'`),
+    get(`SELECT * FROM founders WHERE business_id = 'biz_default'`),
+    get(`SELECT * FROM founder_voice_profiles WHERE business_id = 'biz_default'`)
+  ]);
+  const existingIdeas = await all(`SELECT title, premise FROM content_ideas WHERE business_id = 'biz_default' AND deleted_at IS NULL AND is_archived = 0`);
+  const existingContents = await all(`SELECT title FROM contents WHERE business_id = 'biz_default' AND deleted_at IS NULL`);
+  const chunks = await all(`SELECT chunk_text FROM founder_knowledge_chunks WHERE business_id = 'biz_default'`);
+  return { pos, icp, offer, founder, vp, existingIdeas, existingContents, chunks };
+}
+
+function scoreContentIdea(idea, ctx) {
+  const text = `${idea.title || ''} ${idea.premise || ''} ${idea.pain || ''}`;
+  const textWords = tokenize(text);
+  const t = text.toLowerCase();
+  let b = {};
+  const suggestions = [];
+
+  // 1. ICP Relevance (0-20) — how squarely it targets the documented ICP
+  const icpText = [ctx.icp && ctx.icp.target_customer, ctx.icp && ctx.icp.industry, ctx.icp && ctx.icp.founder_role, ctx.pos && ctx.pos.icp_summary].filter(Boolean).join(' ');
+  const icpWords = tokenize(icpText);
+  const icpOverlap = overlapRatio(textWords, icpWords);
+  b.icpRelevance = Math.min(20, Math.round(4 + icpOverlap * 16));
+  if (idea.icp && tokenize(idea.icp).length > 3) b.icpRelevance = Math.min(20, b.icpRelevance + 4);
+  if (!icpOverlap) suggestions.push('Reference the specific ICP (revenue tier, entity type, role) so the idea can only belong to this audience.');
+
+  // 2. Pain Intensity (0-15) — overlaps documented ICP pains & positioning problem
+  const painKeywords = [];
+  const pains = (ctx.icp ? ctx.icp.primary_pains : null) || (ctx.pos ? ctx.pos.problem : '');
+  painKeywords.push(...tokenize(pains));
+  if (ctx.icp) painKeywords.push(...tokenize(ctx.icp.objections || ''));
+  const painOverlap = overlapRatio(textWords, [...new Set(painKeywords)]);
+  b.painIntensity = Math.min(15, Math.round(3 + painOverlap * 12));
+  if (/(60.hr|bottleneck|trapped|workweek|burnout|overwhelmed|retainer|unpredictable|manual|chaos|stuck)/.test(t)) b.painIntensity = Math.min(15, b.painIntensity + 2);
+  if (painOverlap < 0.15) suggestions.push('Anchor the idea in a specific, painful friction (e.g. 60-hr workweeks, retainer dependency).');
+
+  // 3. Novelty (0-15) — distance from previously generated ideas & published content
+  const ideaKey = normIdeaKey(idea.title);
+  const knownKeys = [
+    ...(ctx.existingIdeas || []).map(i => `${i.title} ${i.premise}`),
+    ...(ctx.existingContents || []).map(c => c.title)
+  ].map(normIdeaKey);
+  const knownWords = tokenize(knownKeys.join(' '));
+  const noveltyOverlap = overlapRatio(tokenize(ideaKey), knownWords);
+  b.novelty = Math.max(4, Math.min(15, 15 - Math.round(noveltyOverlap * 14)));
+  if (idea.noviceMarker) b.novelty = Math.min(15, b.novelty + 2);
+
+  // 4. Authority Potential (0-15) — mechanism framing, quantified claims, contrarian edge
+  let authority = 3;
+  const mech = (ctx.pos && ctx.pos.mechanism) || '';
+  if (mech && t.includes(tokenize(mech)[0] || 'framework')) authority += 3;
+  if (/(fis|framework|engine|operating system|mechanism|sop|independent)/.test(t)) authority += 4;
+  if (/[0-9]|%|\$|x[2-9]/.test(idea.premise)) authority += 3;
+  if (/(contrarian|unpopular|myth|stop |don't|without)/.test(t)) authority += 3;
+  b.authorityPotential = Math.min(15, authority);
+
+  // 5. Proof Availability (0-15) — does founder knowledge/offer proof substantiate it?
+  const proofPool = [
+    ctx.offer && ctx.offer.proof,
+    ...((ctx.founder && (JSON.parse(ctx.founder.achievements || '[]') || []))),
+    ...(ctx.chunks || []).map(c => c.chunk_text)
+  ].filter(Boolean).join(' ');
+  const proofKeywords = tokenize(proofPool);
+  const proofOverlap = overlapRatio(textWords, proofKeywords);
+  b.proofAvailability = Math.min(15, Math.round(3 + proofOverlap * 12));
+  if (/(case study|2\.4x|3\.4x|90 days|90-day|scaled|raised .* score|dms? tripl)/.test(proofPool.toLowerCase()) && /(proof|case|result|grew|scaled|tripled|doubled|x[2-9]|number|metric)/.test(t)) b.proofAvailability = Math.min(15, b.proofAvailability + 2);
+  if (proofOverlap < 0.1) suggestions.push('Pair the idea with a proof anchor (case study, metric, or knowledge chunk) to make it credible.');
+
+  // 6. Commercial Relevance (0-10) — links back to offer, promise & revenue outcome
+  let commercial = 2;
+  const offerText = [ctx.offer && ctx.offer.offer_name, ctx.offer && ctx.offer.promise, ctx.pos && ctx.pos.result].filter(Boolean).join(' ');
+  const commercialOverlap = overlapRatio(textWords, tokenize(offerText));
+  commercial += Math.round(commercialOverlap * 6);
+  if (/(cta|dm|book|install|audit|consult)/.test(t)) commercial += 2;
+  b.commercialRelevance = Math.min(10, commercial);
+
+  // 7. Founder Expertise (0-10) — overlaps founder expertise, story, beliefs
+  const founderText = [
+    ctx.founder && (JSON.parse(ctx.founder.expertise || '[]') || []).join(' '),
+    ctx.founder && ctx.founder.story,
+    ctx.founder && (JSON.parse(ctx.founder.beliefs || '[]') || []).join(' ')
+  ].filter(Boolean).join(' ');
+  const founderOverlap = overlapRatio(textWords, tokenize(founderText));
+  b.founderExpertise = Math.min(10, Math.round(2 + founderOverlap * 8));
+
+  const totalScore = Math.min(100, Math.round(
+    b.icpRelevance + b.painIntensity + b.novelty + b.authorityPotential + b.proofAvailability + b.commercialRelevance + b.founderExpertise
+  ));
+  const priority = totalScore >= 80 ? 'HIGH' : totalScore >= 60 ? 'MEDIUM' : 'LOW';
+
+  let explanation = `Scored ${totalScore}/100 against active Business DNA. `;
+  if (b.painIntensity >= 10) explanation += 'High-pain, ICP-specific angle. ';
+  if (b.novelty >= 11) explanation += 'Novel versus existing pipeline. ';
+  if (b.proofAvailability >= 10) explanation += 'Backed by available proof. ';
+  if (b.authorityPotential >= 10) explanation += 'Strong mechanism/authority framing. ';
+
+  return { totalScore, priority, breakdown: b, explanation, suggestions };
+}
+
+// ── CONTENT IDEA DUPLICATE DETECTION ────────────────────────────────────────
+// Uses Jaccard similarity over distinct, stop-word-filtered tokens so that
+// common filler words ("the", "for", "founder") never trigger false positives.
+const DUP_STOP_WORDS = new Set([
+  'the', 'and', 'for', 'are', 'you', 'your', 'with', 'from', 'that', 'this',
+  'they', 'them', 'was', 'were', 'has', 'have', 'had', 'not', 'but', 'all',
+  'can', 'just', 'into', 'about', 'out', 'what', 'when', 'where', 'which',
+  'will', 'there', 'their', 'how', 'why', 'its', 'get', 'got', 'one', 'two',
+  'new', 'make', 'made', 'like', 'know', 'want', 'need', 'use', 'used',
+  'would', 'could', 'should', 'very', 'really', 'good', 'great', 'best',
+  'every', 'more', 'than', 'then', 'because', 'been', 'being', 'other',
+  'some', 'such', 'only', 'own', 'also', 'over', 'under', 'between',
+  'against', 'during', 'without', 'after', 'before', 'while', 'through',
+  'across', 'again', 'once', 'here', 'our', 'his', 'her', 'him', 'she',
+  'who', 'whom', 'said', 'say', 'see', 'do', 'does', 'did', 'don', 'can'
+]);
+
+function tokenizeDistinct(text) {
+  return [...new Set(tokenize(text).filter(w => !DUP_STOP_WORDS.has(w)))];
+}
+
+function jaccardSimilarity(a, b) {
+  if (!a.length || !b.length) return 0;
+  const setB = new Set(b);
+  const intersection = a.filter(w => setB.has(w)).length;
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function detectDuplicateIdeas(title, premise, existingIdeas, existingContents, threshold = 0.5) {
+  const targetWords = tokenizeDistinct(`${title} ${premise}`);
+  const pool = [
+    ...(existingIdeas || []).map(i => ({ type: 'idea', id: i.id, title: i.title, text: `${i.title} ${i.premise || ''}` })),
+    ...(existingContents || []).map(c => ({ type: 'content', id: c.id, title: c.title, text: c.title }))
+  ];
+  const matches = pool
+    .map(p => ({ ...p, similarity: jaccardSimilarity(targetWords, tokenizeDistinct(p.text)) }))
+    .filter(p => p.similarity >= threshold)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 5);
+  const isDuplicate = matches.length > 0;
+  return { isDuplicate, matches };
+}
+
+// ── AI CONTENT IDEA GENERATION ENGINE ───────────────────────────────────────
+// Uses Business DNA + Positioning + Brand Voice + Content Pillars + Founder
+// Knowledge to generate grounded, non-generic ideas (never hardcoded boilerplate).
+
+async function loadIdeaContext() {
+  const [pos, icp, offer, founder, bp, vp] = await Promise.all([
+    get(`SELECT * FROM positionings WHERE business_id = 'biz_default' AND is_active = 1`),
+    get(`SELECT * FROM icps WHERE business_id = 'biz_default' AND is_active = 1`),
+    get(`SELECT * FROM offers WHERE business_id = 'biz_default'`),
+    get(`SELECT * FROM founders WHERE business_id = 'biz_default'`),
+    get(`SELECT * FROM brand_profiles WHERE business_id = 'biz_default'`),
+    get(`SELECT * FROM founder_voice_profiles WHERE business_id = 'biz_default'`)
+  ]);
+  const pillars = await all(`SELECT * FROM content_pillars WHERE business_id = 'biz_default' AND status = 'ACTIVE' AND deleted_at IS NULL ORDER BY target_percentage DESC`);
+  const sources = await all(`SELECT * FROM founder_knowledge_sources WHERE business_id = 'biz_default' AND is_archived = 0`);
+  const intel = await all(`SELECT * FROM market_intel WHERE business_id = 'biz_default' AND is_archived = 0 ORDER BY created_at DESC`);
+  const successful = await all(`SELECT * FROM contents WHERE business_id = 'biz_default' AND deleted_at IS NULL AND lifecycle_status IN ('PUBLISHED', 'ANALYZING', 'REPURPOSED') ORDER BY updated_at DESC LIMIT 12`);
+  const ideas = await all(`SELECT * FROM content_ideas WHERE business_id = 'biz_default' AND deleted_at IS NULL AND is_archived = 0`);
+
+  return {
+    pos: pos || {},
+    icp: icp || {},
+    offer: offer || {},
+    founder: founder || {},
+    bp: bp || {},
+    vp: vp || {},
+    pillars,
+    knowledge: sources,
+    intel,
+    successful,
+    ideas
+  };
+}
+
+function icpShort(ctx) {
+  const raw = (ctx.pos && ctx.pos.icp_summary) || (ctx.icp && ctx.icp.target_customer) || 'B2B Founders';
+  const m = raw.match(/([A-Z][^,]*Founders|[A-Z][^,]*Agencies|[A-Z][^,]*SaaS|B2B [A-Za-z]+)/);
+  return (m && m[1]) ? m[1] : raw.split(',')[0];
+}
+
+function phraseHighlight(ctx) {
+  try {
+    const vp = ctx.vp || {};
+    const recurring = (typeof vp.recurring_phrases === 'string') ? JSON.parse(vp.recurring_phrases || '[]') : (vp.recurring_phrases || []);
+    if (recurring.length) return recurring[0];
+  } catch (e) { /* ignore */ }
+  return 'operating system problem';
+}
+
+function mechanismName(ctx) {
+  return (ctx.pos && ctx.pos.mechanism) || 'The ASENZO 5-Engine Growth OS Framework';
+}
+
+function painPhrase(ctx) {
+  return (ctx.pos && ctx.pos.problem) || (ctx.icp && Array.isArray(ctx.icp.primary_pains) && ctx.icp.primary_pains[0]) || 'single-founder bottleneck';
+}
+
+function resultPhrase(ctx) {
+  return (ctx.pos && ctx.pos.result) || (ctx.icp && Array.isArray(ctx.icp.desired_outcomes) && ctx.icp.desired_outcomes[0]) || 'scaling revenue without founder burnout';
+}
+
+const FORMAT_SETS = {
+  POSITIONING: ['POST', 'CAROUSEL', 'VIDEO'],
+  MECHANISM: ['POST', 'CAROUSEL', 'THREAD'],
+  PROOF: ['CASE_STUDY', 'VIDEO', 'NEWSLETTER'],
+  AUTHORITY: ['POST', 'NEWSLETTER', 'THREAD'],
+  CUSTOM: ['POST', 'CAROUSEL']
+};
+
+const PLATFORM_SETS = {
+  POSITIONING: ['LINKEDIN', 'X_TWITTER'],
+  MECHANISM: ['LINKEDIN', 'X_TWITTER', 'YOUTUBE'],
+  PROOF: ['LINKEDIN', 'YOUTUBE'],
+  AUTHORITY: ['X_TWITTER', 'NEWSLETTER'],
+  CUSTOM: ['LINKEDIN', 'NEWSLETTER']
+};
+
+function pickFormat(ctx, pillar, idx) {
+  const arr = FORMAT_SETS[(pillar && pillar.pillar_type) || 'CUSTOM'] || FORMAT_SETS.CUSTOM;
+  return arr[idx % arr.length];
+}
+
+function pickPlatform(ctx, pillar, idx) {
+  const arr = PLATFORM_SETS[(pillar && pillar.pillar_type) || 'CUSTOM'] || PLATFORM_SETS.CUSTOM;
+  const stored = pillar && JSON.parse(pillar.supported_platforms || '[]');
+  const source = (stored && stored.length) ? stored : arr;
+  return source[idx % source.length];
+}
+
+function pickObjective(ctx, pillar) {
+  return (pillar && pillar.objective) || 'Generate qualified inbound attention';
+}
+
+function pickPillar(ctx, requestedPillarId, idx) {
+  const active = ctx.pillars || [];
+  if (requestedPillarId) {
+    const p = active.find(x => x.id === requestedPillarId);
+    if (p) return { pillar: p, idx };
+  }
+  if (!active.length) return { pillar: null, idx };
+  return { pillar: active[idx % active.length], idx };
+}
+
+async function finalizeIdeaDraft(ctx, draft, pillar) {
+  // Ground the idea in founder knowledge (retrieval with provenance) — never generic.
+  const retrieval = await retrieveRelevantKnowledgeChunks(draft.title, 'biz_default', 1);
+  const proofSnippet = retrieval.chunks && retrieval.chunks[0] ? retrieval.chunks[0].chunk_text : '';
+  const notes = [
+    `Generated from ${draft.sourceSource || 'Business DNA'} context.`,
+    draft.explain,
+    proofSnippet ? `Knowledge anchor: "${proofSnippet.substring(0, 140)}..."` : 'Tip: capture a proof metric before production.'
+  ].filter(Boolean).join(' ');
+
+  const ideaRecord = {
+    businessId: 'biz_default',
+    pillarId: pillar ? pillar.id : null,
+    source: draft.source,
+    title: draft.title,
+    premise: draft.premise,
+    icp: draft.icp || icpShort(ctx),
+    pain: draft.pain || painPhrase(ctx),
+    desiredResult: draft.desiredResult || resultPhrase(ctx),
+    contentFormat: draft.contentFormat || 'POST',
+    platform: draft.platform || 'LINKEDIN',
+    objective: draft.objective || pickObjective(ctx, pillar),
+    cta: draft.cta || 'DM me to run this audit.',
+    notes
+  };
+  const scoringCtx = await buildIdeaScoringContext();
+  const scored = scoreContentIdea(ideaRecord, scoringCtx);
+  ideaRecord.score = scored.totalScore;
+  ideaRecord.scoreBreakdown = scored.breakdown;
+  ideaRecord.priority = scored.priority;
+  ideaRecord.status = scored.priority === 'HIGH' ? 'PRIORITIZED' : 'NEW';
+  ideaRecord.explanation = scored.explanation;
+  ideaRecord.suggestions = scored.suggestions;
+  ideaRecord.isDuplicate = null;
+  return ideaRecord;
+}
+
+// Generator factories keyed by source; each draws on real stored data.
+const IDEA_GENERATORS = {
+  AI_GENERATED(ctx, needle) {
+    const mech = mechanismName(ctx);
+    const pain = painPhrase(ctx);
+    const icpS = icpShort(ctx);
+    const hl = phraseHighlight(ctx);
+    return [
+      {
+        title: `The ${hl} nobody is actually solving for ${icpS}`,
+        premise: `Most advisors surface symptoms (${pain.substring(0, 60)}), then stop — leaving the root mechanism gap untouched.`,
+        source: 'AI_GENERATED',
+        sourceSource: 'Positioning + Brand Voice',
+        explain: `Frames ${icpS}'s real pain as a category gap.`,
+        objective: pickObjective(ctx)
+      },
+      {
+        title: `Stop measuring engage-ment. Measure ${mech.split(' ').slice(0, 2).join(' ')} adoption instead`,
+        premise: `Vanity reach is not leverage. ${mech} turns content into installable capability that compounds qualified DMs.`,
+        source: 'AI_GENERATED',
+        sourceSource: 'Business DNA + Mechanism',
+        explain: `Mechanism-forward contrarian angle drawn from Business DNA.`,
+        objective: pickObjective(ctx)
+      },
+      {
+        title: `3 engine-level fixes for ${painPhrase(ctx).substring(0, 58)}`,
+        premise: `Break the bottleneck across Attention, Conversion and Delivery using ${mech}.`,
+        source: 'AI_GENERATED',
+        sourceSource: 'Positioning + Pillars',
+        explain: `Three-engine breakdown mapped to the documented founder pain.`,
+        objective: pickObjective(ctx)
+      },
+      {
+        title: `What an 85+ Founder Independence Score actually unlocks for ${icpS}`,
+        premise: `${resultPhrase(ctx)} — and the mechanism ${mech} uses to get there.`,
+        source: 'AI_GENERATED',
+        sourceSource: 'Positioning Result + Mechanism',
+        explain: `Outcome-led idea tied to quantified result.`,
+        objective: pickObjective(ctx)
+      }
+    ];
+  },
+
+  CUSTOMER_QUESTION(ctx, needle) {
+    const buyingTriggers = (ctx.icp && (JSON.parse(ctx.icp.buying_triggers || '[]') || [])) || [];
+    const pains = (ctx.icp && (JSON.parse(ctx.icp.primary_pains || '[]') || [])) || [];
+    const questions = [
+      ...buyingTriggers.map(q => ({ q, type: 'buying trigger' })),
+      ...(pains[0] ? [{ q: pains[0], type: 'primary pain' }] : [])
+    ];
+    const mech = mechanismName(ctx);
+    const out = questions.slice(0, 4).map((item, i) => ({
+      title: `Answering the question founders ask us most: "${(item.q || '').substring(0, 48)}..."`,
+      premise: `A real inbound customer question about ${item.type} — answered honestly with ${mech}.`,
+      source: 'CUSTOMER_QUESTION',
+      sourceSource: `Customer questions (${item.type})`,
+      explain: `Directly pulled from ICP buying triggers / primary pains.`,
+      objective: 'Authentically answer the exact question your ICP is asking'
+    }));
+    if (out.length === 0) {
+      out.push({
+        title: `What bootstrapped founders ask before the first call: "Will this actually remove me from the loop?"`,
+        premise: `Answer the pricing/effort objection with ${mech}, grounded in a real kickoff story.`,
+        source: 'CUSTOMER_QUESTION',
+        sourceSource: 'Customer questions (fallback)',
+        explain: `No stored triggers — used positioning-derived customer question.`,
+        objective: 'Address the pre-call skepticism head on'
+      });
+    }
+    return out;
+  },
+
+  OBJECTION(ctx, needle) {
+    const objections = (ctx.icp && (JSON.parse(ctx.icp.objections || '[]') || [])) || [];
+    const mech = mechanismName(ctx);
+    const icpS = icpShort(ctx);
+    const out = objections.slice(0, 4).map((o, i) => ({
+      title: `The objection we hear from ${icpS} every week: "${(o || '').substring(0, 46)}..."`,
+      premise: `Reframe the objection with ${mech} and turn it into a qualification question for the reader.`,
+      source: 'OBJECTION',
+      sourceSource: 'ICP objections',
+      explain: `Based on documented objection: ${o}`,
+      objective: 'Disarm the #1 sales objection with proof + mechanism'
+    }));
+    if (out.length === 0) {
+      out.push({
+        title: `"Will this take more of my time?" — No, it replaces the time you don't have`,
+        premise: `How ${mech} converts founder hours into installed operating capability instead of new deliverables.`,
+        source: 'OBJECTION',
+        sourceSource: 'ICP objections (fallback)',
+        explain: `Fallback objection framed from positioning pain.`,
+        objective: 'Overcome the time-investment objection'
+      });
+    }
+    return out;
+  },
+
+  SALES_CONVERSATION(ctx, needle) {
+    const convos = [
+      ...(ctx.icp && (JSON.parse(ctx.icp.objections || '[]') || []).map(o => ({ source: 'pipeline deal', pain: o }))),
+      ...(ctx.icp && (JSON.parse(ctx.icp.buying_triggers || '[]') || []).map(t => ({ source: 'discovery call', pain: t })))
+    ].filter(c => c.pain);
+    const mech = mechanismName(ctx);
+    const pain = painPhrase(ctx);
+    const out = convos.slice(0, 4).map((c, i) => ({
+      title: `Inside the call: the moment a founder realizes they own a job, not a business`,
+      premise: `A recurring ${c.source} pattern — "${(c.pain || pain).substring(0, 55)}..." — escalated into a teachable argument for ${mech}.`,
+      source: 'SALES_CONVERSATION',
+      sourceSource: `Sales conversation (${c.source})`,
+      explain: `Distilled from real discovery/pipeline conversation themes.`,
+      objective: 'Turn live sales friction into authority content'
+    }));
+    if (out.length === 0) {
+      out.push({
+        title: `What actually gets booked after our discovery calls — and what gets disqualified`,
+        premise: `The qualification pattern behind ${mech} that filters low-fit founders early.`,
+        source: 'SALES_CONVERSATION',
+        sourceSource: 'Sales conversation (fallback)',
+        explain: `Fallback derived from positioning pain.`,
+        objective: 'Teach the qualification framework so ICP self-selects'
+      });
+    }
+    return out;
+  },
+
+  CASE_STUDY(ctx, needle) {
+    const achievements = (ctx.founder && (JSON.parse(ctx.founder.achievements || '[]') || [])) || [];
+    const proof = (ctx.offer && ctx.offer.proof) || '';
+    const mech = mechanismName(ctx);
+    const out = [];
+    if (proof) {
+      out.push({
+        title: `Proof, not promises: ${proof.substring(0, 62)}`,
+        premise: `Breaking down a real client transformation delivered by ${mech} — what was done, measured and delegated.`,
+        source: 'CASE_STUDY',
+        sourceSource: 'Offer proof',
+        explain: `Built from stored offer proof: ${proof}`,
+        objective: 'Use a named outcome to de-risk the offer'
+      });
+    }
+    achievements.slice(0, 3).forEach((a, i) => {
+      out.push({
+        title: `How ${(a || '').substring(0, 55)} changes the leverage math for a founder`,
+        premise: `A documented achievement translated into a repeatable lesson about ${mech}.`,
+        source: 'CASE_STUDY',
+        sourceSource: 'Founder achievements',
+        explain: `Built from founder achievement: ${a}`,
+        objective: 'Prove the mechanism produces real outcomes'
+      });
+    });
+    return out;
+  },
+
+  MARKET_INTEL(ctx, needle) {
+    const mech = mechanismName(ctx);
+    const out = (ctx.intel || []).slice(0, 4).map((mi, i) => ({
+      title: `Niche signal: ${mi.title.substring(0, 72)}`,
+      premise: `${mi.insight.substring(0, 160)} — and the argument for ${mech} riding that wave.`,
+      source: 'MARKET_INTEL',
+      sourceSource: `Market intel (${mi.source || 'observation'})`,
+      explain: `Grounded in logged market intelligence observation.`,
+      objective: 'Own an emerging niche pattern before competitors notice'
+    }));
+    if (out.length === 0) {
+      out.push({
+        title: `The competitor gap we keep finding in niche founder content`,
+        premise: `Nobody in the category bridges ${painPhrase(ctx)} to a repeatable mechanism like ${mech}.`,
+        source: 'MARKET_INTEL',
+        sourceSource: 'Market intel (fallback)',
+        explain: `Fallback from positioning category gap.`,
+        objective: 'Claim the undefended category territory'
+      });
+    }
+    return out;
+  },
+
+  SUCCESSFUL_CONTENT(ctx, needle) {
+    const mech = mechanismName(ctx);
+    const out = (ctx.successful || []).slice(0, 4).map((c, i) => ({
+      title: `The follow-up to "${c.title.substring(0, 52)}" — the deeper layer`,
+      premise: `Your readers engaged with ${c.title.substring(0, 40)}; now take them one level deeper into ${mech}.`,
+      source: 'SUCCESSFUL_CONTENT',
+      sourceSource: `Successful content repurposing`,
+      explain: `Derived from previously successful asset: ${c.title}`,
+      objective: 'Sequencing follow-up content off proven winners'
+    }));
+    if (out.length === 0) {
+      out.push({
+        title: `The mechanism post people DMed us about most`,
+        premise: `⟹ ${mech} explained with the exact framework breakdown that earned the most qualified replies.`,
+        source: 'SUCCESSFUL_CONTENT',
+        sourceSource: 'Successful content (fallback)',
+        explain: `Fallback based on mechanism pillar strength.`,
+        objective: 'Double-down on the highest-performing angle'
+      });
+    }
+    return out;
+  }
+};
+
+// Grounded angle variants used when a source generator has fewer unique drafts
+// than the requested count. Variants stay anchored to the base (grounded) idea
+// so they never become generic boilerplate.
+const ANGLE_VARIANTS = [
+  (base) => ({
+    ...base,
+    title: `The deeper layer behind "${base.title}"`,
+    premise: `${base.premise} This angle goes one level deeper than the surface take.`
+  }),
+  (base) => ({
+    ...base,
+    title: `What founders miss when they hear "${base.title}"`,
+    premise: `${base.premise} Most readers nod along without applying it — here is the practical trigger that changes behavior.`
+  }),
+  (base) => ({
+    ...base,
+    title: `Why "${base.title}" keeps coming up in real conversations`,
+    premise: `${base.premise} A recurring pattern from actual calls, turned into a teachable argument the ICP can reuse.`
+  })
+];
+
+async function generateContentIdeas(source, count, pillarId) {
+  const ctx = await loadIdeaContext();
+  const picker = IDEA_GENERATORS[source] || IDEA_GENERATORS.AI_GENERATED;
+  const drafts = picker(ctx, null);
+  const ideas = [];
+
+  // Skip drafts whose title already exists in the DB or in this batch so a
+  // single generation never produces near-identical repeats.
+  const usedTitles = new Set(ctx.ideas.map(i => normIdeaKey(i.title)));
+  const baseUsage = {};
+  let cursor = 0;
+
+  for (let i = 0; i < count; i++) {
+    let draft = null;
+    let attempts = 0;
+    while (attempts < drafts.length * 3 && !draft) {
+      const candidate = drafts[cursor % drafts.length];
+      cursor++;
+      attempts++;
+      const key = normIdeaKey(candidate.title);
+      if (!usedTitles.has(key)) {
+        draft = candidate;
+        baseUsage[key] = (baseUsage[key] || 0) + 1;
+      }
+    }
+    if (!draft) {
+      // Pool of unique grounded drafts exhausted -> rotate angle variants.
+      const base = drafts[(cursor - 1) % drafts.length];
+      const usedCount = baseUsage[normIdeaKey(base.title)] || 0;
+      draft = ANGLE_VARIANTS[usedCount % ANGLE_VARIANTS.length](base);
+    }
+
+    const { pillar, idx } = pickPillar(ctx, pillarId, i);
+    const ideaRecord = await finalizeIdeaDraft(ctx, { ...draft, contentFormat: pickFormat(ctx, pillar, idx), platform: pickPlatform(ctx, pillar, idx) }, pillar);
+
+    // Duplicate check against existing ideas + content
+    const dup = detectDuplicateIdeas(ideaRecord.title, ideaRecord.premise, ctx.ideas.map(x => ({ id: x.id, title: x.title, premise: x.premise })), ctx.successful);
+    ideaRecord.duplicate = dup.isDuplicate ? dup : null;
+
+    usedTitles.add(normIdeaKey(ideaRecord.title));
+    ideas.push(ideaRecord);
+  }
+  return ideas;
 }
 
 // ── HEALTH CHECK ────────────────────────────────────────────────────────────
@@ -940,6 +1521,433 @@ app.get('/api/audit-logs', async (req, res) => {
   try {
     const logs = await all(`SELECT * FROM audit_logs WHERE business_id = 'biz_default' ORDER BY id DESC LIMIT 50`);
     res.json(logs.map(l => ({ ...l, changes: JSON.parse(l.changes_json || '{}') })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── CONTENT STRATEGY — PILLAR ENDPOINTS ──────────────────────────────────────
+function serializePillar(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    contentFormats: JSON.parse(row.content_formats || '[]'),
+    supportedPlatforms: JSON.parse(row.supported_platforms || '[]')
+  };
+}
+
+app.get('/api/pillars', async (req, res) => {
+  try {
+    let sql = `SELECT * FROM content_pillars WHERE business_id = 'biz_default' AND deleted_at IS NULL`;
+    const params = [];
+    if (req.query.status) {
+      sql += ` AND status = ?`;
+      params.push(req.query.status);
+    }
+    if (!req.query.includeArchived || req.query.includeArchived !== 'true') {
+      sql += ` AND status != 'ARCHIVED'`;
+    }
+    sql += ` ORDER BY target_percentage DESC, created_at ASC`;
+    const rows = await all(sql, params);
+    res.json(rows.map(serializePillar));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/pillars', async (req, res) => {
+  try {
+    const parsed = ContentPillarFullSchema.parse(req.body);
+    const id = parsed.id || makeId('pil');
+    const now = new Date().toISOString();
+
+    await run(
+      `INSERT INTO content_pillars (id, business_id, name, pillar_type, description, target_audience, objective, pain, desired_result, content_formats, supported_platforms, status, target_percentage, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, parsed.businessId, parsed.name, parsed.pillarType || 'CUSTOM', parsed.description,
+        parsed.targetAudience, parsed.objective, parsed.pain, parsed.desiredResult,
+        JSON.stringify(parsed.contentFormats), JSON.stringify(parsed.supportedPlatforms),
+        parsed.status, parsed.targetPercentage, now, now
+      ]
+    );
+    await logAudit('CREATE', 'content_pillars', id, parsed);
+    res.status(201).json(serializePillar(await get(`SELECT * FROM content_pillars WHERE id = ?`, [id])));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/pillars/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM content_pillars WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Pillar not found' });
+
+    const merged = {
+      name: req.body.name !== undefined ? req.body.name : existing.name,
+      pillarType: req.body.pillarType !== undefined ? req.body.pillarType : (existing.pillar_type || 'CUSTOM'),
+      description: req.body.description !== undefined ? req.body.description : existing.description,
+      targetAudience: req.body.targetAudience !== undefined ? req.body.targetAudience : existing.target_audience,
+      objective: req.body.objective !== undefined ? req.body.objective : existing.objective,
+      pain: req.body.pain !== undefined ? req.body.pain : existing.pain,
+      desiredResult: req.body.desiredResult !== undefined ? req.body.desiredResult : existing.desired_result,
+      contentFormats: req.body.contentFormats !== undefined ? req.body.contentFormats : JSON.parse(existing.content_formats || '[]'),
+      supportedPlatforms: req.body.supportedPlatforms !== undefined ? req.body.supportedPlatforms : JSON.parse(existing.supported_platforms || '[]'),
+      status: req.body.status !== undefined ? req.body.status : existing.status,
+      targetPercentage: req.body.targetPercentage !== undefined ? req.body.targetPercentage : existing.target_percentage
+    };
+    const parsed = ContentPillarFullSchema.parse({ ...merged, businessId: 'biz_default' });
+    const now = new Date().toISOString();
+
+    await run(
+      `UPDATE content_pillars SET name = ?, pillar_type = ?, description = ?, target_audience = ?, objective = ?, pain = ?, desired_result = ?, content_formats = ?, supported_platforms = ?, status = ?, target_percentage = ?, updated_at = ? WHERE id = ?`,
+      [
+        parsed.name, parsed.pillarType, parsed.description, parsed.targetAudience, parsed.objective,
+        parsed.pain, parsed.desiredResult, JSON.stringify(parsed.contentFormats),
+        JSON.stringify(parsed.supportedPlatforms), parsed.status, parsed.targetPercentage, now, id
+      ]
+    );
+    await logAudit('UPDATE', 'content_pillars', id, parsed);
+    res.json(serializePillar(await get(`SELECT * FROM content_pillars WHERE id = ?`, [id])));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/pillars/:id/archive', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM content_pillars WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Pillar not found' });
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE content_pillars SET status = 'ARCHIVED', updated_at = ? WHERE id = ?`,
+      [now, id]
+    );
+    await logAudit('STATUS_CHANGE', 'content_pillars', id, { status: 'ARCHIVED' });
+    res.json({ message: 'Pillar archived', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/pillars/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    await run(`UPDATE content_pillars SET status = 'ARCHIVED', deleted_at = ?, updated_at = ? WHERE id = ?`, [now, now, id]);
+    await logAudit('DELETE', 'content_pillars', id, { deletedAt: now });
+    res.json({ message: 'Pillar soft-deleted', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── CONTENT IDEA ENGINE — ENDPOINTS ──────────────────────────────────────────
+function serializeIdea(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    scoreBreakdown: JSON.parse(row.score_breakdown || '{}')
+  };
+}
+
+app.get('/api/ideas', async (req, res) => {
+  try {
+    let sql = `SELECT * FROM content_ideas WHERE business_id = 'biz_default' AND deleted_at IS NULL`;
+    const params = [];
+    if (!req.query.includeArchived || req.query.includeArchived !== 'true') {
+      sql += ` AND is_archived = 0`;
+    }
+    if (req.query.status) { sql += ` AND status = ?`; params.push(req.query.status); }
+    if (req.query.priority) { sql += ` AND priority = ?`; params.push(req.query.priority); }
+    if (req.query.source) { sql += ` AND source = ?`; params.push(req.query.source); }
+    if (req.query.pillarId) { sql += ` AND pillar_id = ?`; params.push(req.query.pillarId); }
+    if (req.query.q) {
+      sql += ` AND (title LIKE ? OR premise LIKE ? OR pain LIKE ? OR icp LIKE ?)`;
+      const like = `%${req.query.q}%`;
+      params.push(like, like, like, like);
+    }
+
+    const sort = req.query.sort || 'updated_at';
+    const allowedSorts = {
+      updated_at: 'updated_at DESC',
+      newest: 'created_at DESC',
+      score_desc: 'score DESC, priority DESC',
+      score_asc: 'score ASC',
+      priority: "CASE priority WHEN 'HIGH' THEN 0 WHEN 'MEDIUM' THEN 1 ELSE 2 END, score DESC"
+    };
+    sql += ` ORDER BY ${allowedSorts[sort] || allowedSorts.updated_at}`;
+
+    const rows = await all(sql, params);
+    res.json(rows.map(serializeIdea));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ideas', async (req, res) => {
+  try {
+    const parsed = ContentIdeaSchema.parse(req.body);
+    const id = parsed.id || makeId('idea');
+    const now = new Date().toISOString();
+
+    // Auto-score against Business DNA unless a score was explicitly supplied.
+    let score = 0;
+    let scoreBreakdown = {};
+    let priority = 'LOW';
+    if (parsed.score) {
+      score = parsed.score;
+      scoreBreakdown = parsed.scoreBreakdown || {};
+      priority = parsed.priority || 'LOW';
+    } else {
+      const ctx = await buildIdeaScoringContext();
+      const scored = scoreContentIdea(parsed, ctx);
+      score = scored.totalScore;
+      scoreBreakdown = scored.breakdown;
+      priority = scored.priority;
+    }
+
+    await run(
+      `INSERT INTO content_ideas (id, business_id, pillar_id, icp_id, source, title, premise, icp, pain, desired_result, content_format, platform, objective, cta, score, score_breakdown, priority, status, notes, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [
+        id, parsed.businessId, parsed.pillarId || null, parsed.icpId || null, parsed.source,
+        parsed.title, parsed.premise, parsed.icp, parsed.pain, parsed.desiredResult,
+        parsed.contentFormat, parsed.platform, parsed.objective, parsed.cta,
+        score, JSON.stringify(scoreBreakdown), priority, parsed.status, parsed.notes, now, now
+      ]
+    );
+    await logAudit('CREATE', 'content_ideas', id, { title: parsed.title, score, priority });
+    res.status(201).json(serializeIdea(await get(`SELECT * FROM content_ideas WHERE id = ?`, [id])));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/ideas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM content_ideas WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Idea not found' });
+
+    const merged = {
+      pillarId: req.body.pillarId !== undefined ? req.body.pillarId : existing.pillar_id,
+      source: req.body.source !== undefined ? req.body.source : existing.source,
+      title: req.body.title !== undefined ? req.body.title : existing.title,
+      premise: req.body.premise !== undefined ? req.body.premise : existing.premise,
+      icp: req.body.icp !== undefined ? req.body.icp : existing.icp,
+      pain: req.body.pain !== undefined ? req.body.pain : existing.pain,
+      desiredResult: req.body.desiredResult !== undefined ? req.body.desiredResult : existing.desired_result,
+      contentFormat: req.body.contentFormat !== undefined ? req.body.contentFormat : existing.content_format,
+      platform: req.body.platform !== undefined ? req.body.platform : existing.platform,
+      objective: req.body.objective !== undefined ? req.body.objective : existing.objective,
+      cta: req.body.cta !== undefined ? req.body.cta : existing.cta,
+      score: req.body.score !== undefined ? req.body.score : existing.score,
+      scoreBreakdown: req.body.scoreBreakdown !== undefined ? req.body.scoreBreakdown : JSON.parse(existing.score_breakdown || '{}'),
+      priority: req.body.priority !== undefined ? req.body.priority : existing.priority,
+      status: req.body.status !== undefined ? req.body.status : existing.status,
+      notes: req.body.notes !== undefined ? req.body.notes : existing.notes
+    };
+
+    // Re-score when the substance (title/premise/pain) changes.
+    if (req.body.reScore || (req.body.title !== undefined || req.body.premise !== undefined || req.body.pain !== undefined)) {
+      const ctx = await buildIdeaScoringContext();
+      const scored = scoreContentIdea(merged, ctx);
+      merged.score = scored.totalScore;
+      merged.scoreBreakdown = scored.breakdown;
+      merged.priority = scored.priority;
+    }
+
+    const parsed = ContentIdeaSchema.parse({ ...merged, businessId: 'biz_default' });
+    const now = new Date().toISOString();
+
+    await run(
+      `UPDATE content_ideas SET pillar_id = ?, source = ?, title = ?, premise = ?, icp = ?, pain = ?, desired_result = ?, content_format = ?, platform = ?, objective = ?, cta = ?, score = ?, score_breakdown = ?, priority = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
+      [
+        parsed.pillarId, parsed.source, parsed.title, parsed.premise, parsed.icp, parsed.pain,
+        parsed.desiredResult, parsed.contentFormat, parsed.platform, parsed.objective, parsed.cta,
+        parsed.score, JSON.stringify(parsed.scoreBreakdown), parsed.priority, parsed.status, parsed.notes, now, id
+      ]
+    );
+    await logAudit('UPDATE', 'content_ideas', id, { title: parsed.title, score: parsed.score, priority: parsed.priority });
+    res.json(serializeIdea(await get(`SELECT * FROM content_ideas WHERE id = ?`, [id])));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/ideas/:id/score', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM content_ideas WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Idea not found' });
+
+    const ctx = await buildIdeaScoringContext();
+    const scored = scoreContentIdea(existing, ctx);
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE content_ideas SET score = ?, score_breakdown = ?, priority = ?, updated_at = ? WHERE id = ?`,
+      [scored.totalScore, JSON.stringify(scored.breakdown), scored.priority, now, id]
+    );
+    await logAudit('UPDATE', 'content_ideas', id, { reScore: scored.totalScore, priority: scored.priority });
+    res.json({ ...serializeIdea(await get(`SELECT * FROM content_ideas WHERE id = ?`, [id])), explanation: scored.explanation, suggestions: scored.suggestions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ideas/check-duplicate', async (req, res) => {
+  try {
+    const { title = '', premise = '', excludeId } = req.body;
+    const existingIdeas = await all(`SELECT id, title, premise FROM content_ideas WHERE business_id = 'biz_default' AND deleted_at IS NULL AND is_archived = 0`);
+    const existingContents = await all(`SELECT id, title FROM contents WHERE business_id = 'biz_default' AND deleted_at IS NULL`);
+    const filteredIdeas = excludeId ? existingIdeas.filter(i => String(i.id) !== String(excludeId)) : existingIdeas;
+    const result = detectDuplicateIdeas(title, premise, filteredIdeas, existingContents, 0.5);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ideas/:id/archive', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM content_ideas WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Idea not found' });
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE content_ideas SET is_archived = 1, status = 'ARCHIVED', updated_at = ? WHERE id = ?`,
+      [now, id]
+    );
+    await logAudit('STATUS_CHANGE', 'content_ideas', id, { status: 'ARCHIVED' });
+    res.json({ message: 'Idea archived', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/ideas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    await run(`UPDATE content_ideas SET is_archived = 1, deleted_at = ?, updated_at = ? WHERE id = ?`, [now, now, id]);
+    await logAudit('DELETE', 'content_ideas', id, { deletedAt: now });
+    res.json({ message: 'Idea soft-deleted', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── CONTENT IDEA CONVERSION → PRODUCTION CONTENT ─────────────────────────────
+app.post('/api/ideas/:id/convert', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM content_ideas WHERE id = ? AND deleted_at IS NULL AND is_archived = 0`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Idea not found' });
+
+    const contentId = makeId('cnt');
+    const now = new Date().toISOString();
+    const platform = req.body.platform || existing.platform || 'LINKEDIN';
+    const lifecycleStatus = 'IDEA';
+
+    await run(
+      `INSERT INTO contents (id, business_id, pillar_id, idea_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, is_ad_candidate, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
+      [
+        contentId, 'biz_default', existing.pillar_id || null, id, existing.title, lifecycleStatus,
+        platform, existing.title, existing.premise, existing.cta || '', now, now
+      ]
+    );
+    await run(
+      `INSERT INTO content_versions (id, content_id, version_number, hook_text, body_script, cta, created_by, created_at) VALUES (?, ?, 1, ?, ?, ?, 'IDEA_ENGINE', ?)`,
+      [makeId('ver'), contentId, existing.title, existing.premise, existing.cta || '', now]
+    );
+    await run(
+      `UPDATE content_ideas SET status = 'CONVERTED', converted_content_id = ?, updated_at = ? WHERE id = ?`,
+      [contentId, now, id]
+    );
+    await logAudit('STATUS_CHANGE', 'content_ideas', id, { status: 'CONVERTED', contentId });
+    res.status(201).json({
+      message: 'Idea converted to content pipeline asset',
+      content: await get(`SELECT * FROM contents WHERE id = ?`, [contentId]),
+      idea: serializeIdea(await get(`SELECT * FROM content_ideas WHERE id = ?`, [id]))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── CONTENT IDEA AI GENERATION ENDPOINT ──────────────────────────────────────
+app.post('/api/ideas/generate', async (req, res) => {
+  try {
+    const parsed = ContentIdeaGenerateRequestSchema.parse(req.body);
+    const ideas = await generateContentIdeas(parsed.source, parsed.count, parsed.pillarId);
+
+    // Persist generated ideas to database.
+    const now = new Date().toISOString();
+    const persisted = [];
+    for (const idea of ideas) {
+      const ideaId = makeId('idea');
+      const pillarId = idea.pillarId || null;
+      await run(
+        `INSERT INTO content_ideas (id, business_id, pillar_id, source, title, premise, icp, pain, desired_result, content_format, platform, objective, cta, score, score_breakdown, priority, status, notes, is_archived, created_at, updated_at)
+         VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+        [
+          ideaId, pillarId, idea.source, idea.title, idea.premise, idea.icp,
+          idea.pain, idea.desiredResult, idea.contentFormat, idea.platform,
+          idea.objective, idea.cta, idea.score, JSON.stringify(idea.scoreBreakdown),
+          idea.priority, idea.status, idea.notes, now, now
+        ]
+      );
+      const record = serializeIdea(await get(`SELECT * FROM content_ideas WHERE id = ?`, [ideaId]));
+      record.explanation = idea.explanation;
+      record.suggestions = idea.suggestions;
+      record.duplicate = idea.duplicate;
+      persisted.push(record);
+    }
+    await logAudit('AI_GENERATE', 'content_ideas', `${parsed.source}:${now}`, { count: persisted.length });
+    res.status(201).json({ ideas: persisted, source: parsed.source, count: persisted.length });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── MARKET INTELLIGENCE ENDPOINTS ────────────────────────────────────────────
+app.get('/api/market-intel', async (req, res) => {
+  try {
+    const rows = await all(`SELECT * FROM market_intel WHERE business_id = 'biz_default' AND is_archived = 0 ORDER BY created_at DESC`);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/market-intel', async (req, res) => {
+  try {
+    const { title, source = 'Niche Observation', insight = '', viralFactor = 'Medium' } = req.body || {};
+    if (!title || !title.trim()) return res.status(400).json({ error: 'Observation title is required' });
+    const id = makeId('mi');
+    const now = new Date().toISOString();
+    await run(
+      `INSERT INTO market_intel (id, business_id, title, source, insight, viral_factor, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [id, 'biz_default', title.trim(), source, insight, viralFactor, now, now]
+    );
+    await logAudit('CREATE', 'market_intel', id, { title, source });
+    res.status(201).json(await get(`SELECT * FROM market_intel WHERE id = ?`, [id]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/market-intel/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    await run(`UPDATE market_intel SET is_archived = 1, updated_at = ? WHERE id = ?`, [now, id]);
+    res.json({ message: 'Market intel archived', id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

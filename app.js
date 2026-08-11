@@ -6,7 +6,12 @@
 
 let CURRENT_PAGE = 'overview';
 let CHART_TIMEFRAME = 'Monthly';
-let ATTENTION_SUB_TAB = 'pipeline'; // 'pipeline', 'attribution', 'knowledge', 'market', 'recommendations'
+let ATTENTION_SUB_TAB = 'strategy'; // 'strategy', 'ideas', 'pipeline', 'attribution', 'knowledge', 'market', 'recommendations'
+
+// Content Strategy & Idea Engine State
+let CONTENT_PILLARS = [];
+let CONTENT_IDEAS = [];
+let IDEA_FILTERS = { q: '', status: '', priority: '', pillarId: '', source: '', sort: 'priority' };
 
 // ── BUSINESS DNA & POSITIONING ──────────────────────────────────────────────
 let POSITIONING = {
@@ -342,6 +347,8 @@ async function renderAttention() {
       KNOWLEDGE_ITEMS = await window.ASENZO_API.getKnowledge();
       MARKET_INTEL_ITEMS = await window.ASENZO_API.getMarketIntel();
       AI_RECOMMENDATIONS = await window.ASENZO_API.getRecommendations();
+      CONTENT_PILLARS = await window.ASENZO_API.getPillars();
+      CONTENT_IDEAS = await window.ASENZO_API.getIdeas({ sort: IDEA_FILTERS.sort });
     } catch (e) {
       console.warn('API sync warning:', e.message);
     }
@@ -363,6 +370,12 @@ async function renderAttention() {
 
     <!-- Engine 1 Sub-System Tab Bar -->
     <div class="engine-tab-bar">
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'strategy' ? 'active' : ''}" onclick="switchAttentionTab('strategy')">
+        🎯 Content Strategy (${CONTENT_PILLARS.length})
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'ideas' ? 'active' : ''}" onclick="switchAttentionTab('ideas')">
+        💡 Content Ideas (${CONTENT_IDEAS.length})
+      </div>
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'pipeline' ? 'active' : ''}" onclick="switchAttentionTab('pipeline')">
         📋 Content Pipeline & Workspace (${CONTENT_ITEMS.length})
       </div>
@@ -393,7 +406,11 @@ function switchAttentionTab(tab) {
 }
 
 function renderAttentionSubTabContent() {
-  if (ATTENTION_SUB_TAB === 'attribution') {
+  if (ATTENTION_SUB_TAB === 'strategy') {
+    return renderContentStrategyTab();
+  } else if (ATTENTION_SUB_TAB === 'ideas') {
+    return renderContentIdeasTab();
+  } else if (ATTENTION_SUB_TAB === 'attribution') {
     return renderAttributionTab();
   } else if (ATTENTION_SUB_TAB === 'knowledge') {
     return renderKnowledgeTab();
@@ -406,7 +423,453 @@ function renderAttentionSubTabContent() {
   }
 }
 
-// ── ATTENTION SUB-TAB 1: PIPELINE & WORKSPACE ──────────────────────────────
+// ── ATTENTION SUB-TAB 0: CONTENT STRATEGY (PILLARS) ─────────────────────────
+function renderContentStrategyTab() {
+  const active = CONTENT_PILLARS.filter(p => p.status !== 'ARCHIVED');
+  const totalPct = active.reduce((s, p) => s + (Number(p.target_percentage) || 0), 0);
+
+  return `
+    <div class="dash-card" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFF">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Content Strategy Engine</div>
+          <div style="font-size:16px;font-weight:800;color:#F8FAFC;margin-top:2px">${active.length} Active Pillars • ${totalPct}% Target Mix Allocated</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="openPillarModal()">+ New Pillar</button>
+          <button class="btn btn-secondary btn-sm" style="background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.2)" onclick="go('ideas', document.getElementById('nav-attention'))">💡 Open Idea Engine</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#CBD5E1;margin-top:6px">Each pillar is a strategic lane with its own audience, pain, objective and proof of success. Ideas inherit these pillars as their strategic home.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px">
+      ${active.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No content pillars yet. Click "+ New Pillar" to define your first strategic lane.</div>` : ''}
+      ${active.map((p, i) => `
+        <div class="dash-card" style="border-top:3px solid ${['#8B5CF6','#10B981','#F97316','#06B6D4'][i % 4]}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="font-size:15px;font-weight:800;color:#0F172A">${p.name}</div>
+            <div style="display:flex;gap:6px">
+              <span class="sb-badge green" style="font-size:9px">${p.pillar_type || 'CUSTOM'}</span>
+              <span class="sb-badge" style="background:#E2E8F0;color:#334155;font-size:9px">${p.target_percentage || 0}% Mix</span>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#64748B;margin-top:6px;line-height:1.45">${p.description || 'No description set.'}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
+              <div style="font-size:10px;font-weight:700;color:#64748B">TARGET AUDIENCE</div>
+              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.target_audience || '—'}</div>
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
+              <div style="font-size:10px;font-weight:700;color:#64748B">ASSOCIATED PAIN</div>
+              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.pain || '—'}</div>
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
+              <div style="font-size:10px;font-weight:700;color:#64748B">OBJECTIVE</div>
+              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.objective || '—'}</div>
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
+              <div style="font-size:10px;font-weight:700;color:#64748B">DESIRED RESULT</div>
+              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.desired_result || '—'}</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+            ${(p.contentFormats || []).map(f => `<span style="font-size:10px;font-weight:600;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:10px">${f}</span>`).join('')}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+            ${(p.supportedPlatforms || []).map(pl => `<span style="font-size:10px;font-weight:600;background:#F0FDF4;color:#047857;padding:2px 8px;border-radius:10px">${pl.replace(/_/g,' ')}</span>`).join('')}
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid #F1F5F9">
+            <button class="btn btn-secondary btn-sm" onclick="openPillarModal('${p.id}')">✏️ Edit</button>
+            <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleArchivePillar('${p.id}')">🗑 Archive</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── ATTENTION SUB-TAB 1: CONTENT IDEA ENGINE ────────────────────────────────
+function renderContentIdeasTab() {
+  let ideas = CONTENT_IDEAS.slice();
+  const f = IDEA_FILTERS;
+
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    ideas = ideas.filter(i => (i.title + ' ' + (i.premise || '') + ' ' + (i.pain || '')).toLowerCase().includes(q));
+  }
+  if (f.status) ideas = ideas.filter(i => i.status === f.status);
+  if (f.priority) ideas = ideas.filter(i => i.priority === f.priority);
+  if (f.source) ideas = ideas.filter(i => i.source === f.source);
+  if (f.pillarId) ideas = ideas.filter(i => String(i.pillar_id) === String(f.pillarId));
+
+  const high = ideas.filter(i => i.priority === 'HIGH').length;
+  const med = ideas.filter(i => i.priority === 'MEDIUM').length;
+
+  return `
+    <!-- Idea Engine Header Card -->
+    <div class="dash-card" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFF">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Content Idea Engine</div>
+          <div style="font-size:16px;font-weight:800;color:#F8FAFC;margin-top:2px">${ideas.length} Ideas • ${high} High Priority • ${med} Medium Priority</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" style="background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.2)" onclick="openIdeaGeneratorModal()">⚡ AI Generate</button>
+          <button class="btn btn-primary btn-sm" onclick="openIdeaModal()">+ New Idea</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#CBD5E1;margin-top:6px">Ideas are scored against your Business DNA (ICP relevance, pain intensity, novelty, authority, proof, commercial relevance, founder expertise), prioritized, then converted into pipeline content.</p>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
+      <input id="idea-search-input" value="${f.q}" placeholder="🔍 Search ideas, premises, pains..." style="padding:9px 14px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px;flex:1;min-width:220px" oninput="setIdeaFilter('q', this.value)" />
+      <select style="padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" onchange="setIdeaFilter('status', this.value)">
+        <option value="">All Statuses</option>
+        ${['NEW','PRIORITIZED','PLANNED','IN_PRODUCTION','PUBLISHED','CONVERTED'].map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`).join('')}
+      </select>
+      <select style="padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" onchange="setIdeaFilter('priority', this.value)">
+        <option value="">All Priorities</option>
+        ${['HIGH','MEDIUM','LOW'].map(p => `<option value="${p}" ${f.priority === p ? 'selected' : ''}>${p}</option>`).join('')}
+      </select>
+      <select style="padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" onchange="setIdeaFilter('source', this.value)">
+        <option value="">All Sources</option>
+        ${['MANUAL','AI_GENERATED','CUSTOMER_QUESTION','OBJECTION','SALES_CONVERSATION','CASE_STUDY','MARKET_INTEL','SUCCESSFUL_CONTENT'].map(s => `<option value="${s}" ${f.source === s ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`).join('')}
+      </select>
+      <select style="padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" onchange="setIdeaFilter('pillarId', this.value)">
+        <option value="">All Pillars</option>
+        ${CONTENT_PILLARS.filter(p => p.status !== 'ARCHIVED').map(p => `<option value="${p.id}" ${f.pillarId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+      </select>
+      <select style="padding:9px 12px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" onchange="setIdeaFilter('sort', this.value)">
+        <option value="priority" ${f.sort === 'priority' ? 'selected' : ''}>Sort: Priority</option>
+        <option value="score_desc" ${f.sort === 'score_desc' ? 'selected' : ''}>Sort: Score ↓</option>
+        <option value="score_asc" ${f.sort === 'score_asc' ? 'selected' : ''}>Sort: Score ↑</option>
+        <option value="newest" ${f.sort === 'newest' ? 'selected' : ''}>Sort: Newest</option>
+      </select>
+    </div>
+
+    <!-- Ideas Grid -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px">
+      ${ideas.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No ideas match. Try "⚡ AI Generate" or clear filters.</div>` : ''}
+      ${ideas.map(i => `
+        <div class="dash-card" style="border-left:4px solid ${i.priority === 'HIGH' ? '#10B981' : i.priority === 'MEDIUM' ? '#F97316' : '#94A3B8'}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="font-size:13.5px;font-weight:800;color:#0F172A;line-height:1.35">${i.title}</div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+              <div style="width:40px;height:40px;border-radius:50%;background:${i.score >= 80 ? '#10B981' : i.score >= 60 ? '#F97316' : '#E2E8F0'};color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">${i.score || '–'}</div>
+              <span style="font-size:9px;font-weight:700;color:#64748B;margin-top:2px">${i.priority || 'LOW'}</span>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#475569;line-height:1.45;margin-top:6px">${(i.premise || '').substring(0, 150)}${(i.premise || '').length > 150 ? '…' : ''}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+            <span class="sb-badge" style="background:#EFF6FF;color:#1D4ED8">${i.pillar_id ? (CONTENT_PILLARS.find(p => p.id === i.pillar_id)?.name || 'Pillar') : 'Unassigned'}</span>
+            <span class="sb-badge" style="background:#F5F3FF;color:#6D28D9">${(i.content_format || 'POST').replace(/_/g,' ')}</span>
+            <span class="sb-badge" style="background:#ECFDF5;color:#047857">${(i.platform || 'LINKEDIN').replace(/_/g,' ')}</span>
+            <span class="sb-badge" style="background:#FFF7ED;color:#9A3412">${(i.source || 'MANUAL').replace(/_/g,' ')}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+            <span style="font-size:10.5px;font-weight:700;color:${i.status === 'CONVERTED' ? '#047857' : '#64748B'}">● ${(i.status || 'NEW').replace(/_/g,' ')}</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="btn btn-secondary btn-sm" onclick="handleScoreIdea('${i.id}')">🔢 Re-score</button>
+              <button class="btn btn-secondary btn-sm" onclick="handleCheckIdeaDuplicate('${i.id}')">🔍 Dup Check</button>
+              <button class="btn btn-secondary btn-sm" onclick="openIdeaModal('${i.id}')">✏️ Edit</button>
+              <button class="btn btn-primary btn-sm" onclick="handleConvertIdea('${i.id}')">➡️ Convert</button>
+              <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleArchiveIdea('${i.id}')">🗑 Archive</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── CONTENT STRATEGY — PILLAR MODAL LOGIC ───────────────────────────────────
+function openPillarModal(id) {
+  document.getElementById('pillar-modal-title').textContent = id ? 'Edit Content Pillar' : 'Create Content Pillar';
+  document.getElementById('pillar-id').value = id || '';
+  document.getElementById('pillar-name').value = '';
+  document.getElementById('pillar-status').value = 'ACTIVE';
+  document.getElementById('pillar-description').value = '';
+  document.getElementById('pillar-audience').value = '';
+  document.getElementById('pillar-objective').value = '';
+  document.getElementById('pillar-pain').value = '';
+  document.getElementById('pillar-result').value = '';
+  document.getElementById('pillar-formats').value = '';
+  document.getElementById('pillar-platforms').value = '';
+  document.getElementById('pillar-pct').value = 20;
+
+  if (id) {
+    const p = CONTENT_PILLARS.find(x => String(x.id) === String(id));
+    if (p) {
+      document.getElementById('pillar-name').value = p.name;
+      document.getElementById('pillar-status').value = p.status || 'ACTIVE';
+      document.getElementById('pillar-description').value = p.description || '';
+      document.getElementById('pillar-audience').value = p.target_audience || '';
+      document.getElementById('pillar-objective').value = p.objective || '';
+      document.getElementById('pillar-pain').value = p.pain || '';
+      document.getElementById('pillar-result').value = p.desired_result || '';
+      document.getElementById('pillar-formats').value = (p.contentFormats || []).join(', ');
+      document.getElementById('pillar-platforms').value = (p.supportedPlatforms || []).join(', ');
+      document.getElementById('pillar-pct').value = p.target_percentage || 20;
+    }
+  }
+  document.getElementById('pillar-modal').classList.remove('hidden');
+}
+
+function closePillarModal() {
+  document.getElementById('pillar-modal').classList.add('hidden');
+}
+
+async function handleSavePillar(e) {
+  e.preventDefault();
+  const id = document.getElementById('pillar-id').value;
+  const payload = {
+    name: document.getElementById('pillar-name').value.trim(),
+    status: document.getElementById('pillar-status').value,
+    description: document.getElementById('pillar-description').value.trim(),
+    targetAudience: document.getElementById('pillar-audience').value.trim(),
+    objective: document.getElementById('pillar-objective').value.trim(),
+    pain: document.getElementById('pillar-pain').value.trim(),
+    desiredResult: document.getElementById('pillar-result').value.trim(),
+    contentFormats: document.getElementById('pillar-formats').value.split(',').map(s => s.trim()).filter(Boolean),
+    supportedPlatforms: document.getElementById('pillar-platforms').value.split(',').map(s => s.trim().replace(/\s*\/\s*|\s+/, '_').toUpperCase()).filter(Boolean),
+    targetPercentage: Number(document.getElementById('pillar-pct').value) || 20
+  };
+
+  try {
+    let saved;
+    if (id) {
+      saved = await window.ASENZO_API.updatePillar(id, payload);
+    } else {
+      saved = await window.ASENZO_API.createPillar(payload);
+    }
+    const idx = CONTENT_PILLARS.findIndex(p => String(p.id) === String(saved.id));
+    if (idx !== -1) CONTENT_PILLARS[idx] = saved; else CONTENT_PILLARS.push(saved);
+    closePillarModal();
+    showToast(id ? 'Pillar updated' : 'Pillar created');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Pillar Error: ${err.message}`);
+  }
+}
+
+async function handleArchivePillar(id) {
+  if (!confirm('Archive this content pillar?')) return;
+  try {
+    await window.ASENZO_API.archivePillar(id);
+    showToast('Pillar archived');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Archive Error: ${err.message}`);
+  }
+}
+
+// ── CONTENT IDEA ENGINE — MODAL LOGIC ───────────────────────────────────────
+function populatePillarSelects() {
+  const opts = CONTENT_PILLARS.filter(p => p.status !== 'ARCHIVED').map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  const sel1 = document.getElementById('idea-pillar');
+  const sel2 = document.getElementById('gen-idea-pillar');
+  if (sel1) sel1.innerHTML = `<option value="">— Unassigned —</option>` + opts;
+  if (sel2) sel2.innerHTML = `<option value="">All Active Pillars</option>` + opts;
+}
+
+function openIdeaModal(id) {
+  populatePillarSelects();
+  document.getElementById('idea-modal-title').textContent = id ? 'Edit Content Idea' : 'New Content Idea';
+  document.getElementById('idea-id').value = id || '';
+  document.getElementById('idea-title').value = '';
+  document.getElementById('idea-premise').value = '';
+  document.getElementById('idea-pillar').value = '';
+  document.getElementById('idea-source').value = 'MANUAL';
+  document.getElementById('idea-icp').value = POSITIONING.icp_summary || POSITIONING.icp || '';
+  document.getElementById('idea-pain').value = '';
+  document.getElementById('idea-result').value = '';
+  document.getElementById('idea-objective').value = '';
+  document.getElementById('idea-format').value = 'POST';
+  document.getElementById('idea-platform').value = 'LINKEDIN';
+  document.getElementById('idea-status').value = 'NEW';
+  document.getElementById('idea-cta').value = '';
+  document.getElementById('idea-notes').value = '';
+  document.getElementById('idea-duplicate-warning').classList.add('hidden');
+  document.getElementById('idea-delete-btn').style.display = 'none';
+
+  if (id) {
+    const i = CONTENT_IDEAS.find(x => String(x.id) === String(id));
+    if (i) {
+      document.getElementById('idea-title').value = i.title;
+      document.getElementById('idea-premise').value = i.premise || '';
+      document.getElementById('idea-pillar').value = i.pillar_id || '';
+      document.getElementById('idea-source').value = i.source || 'MANUAL';
+      document.getElementById('idea-icp').value = i.icp || '';
+      document.getElementById('idea-pain').value = i.pain || '';
+      document.getElementById('idea-result').value = i.desired_result || '';
+      document.getElementById('idea-objective').value = i.objective || '';
+      document.getElementById('idea-format').value = i.content_format || 'POST';
+      document.getElementById('idea-platform').value = i.platform || 'LINKEDIN';
+      document.getElementById('idea-status').value = i.status || 'NEW';
+      document.getElementById('idea-cta').value = i.cta || '';
+      document.getElementById('idea-notes').value = i.notes || '';
+      document.getElementById('idea-delete-btn').style.display = 'inline-flex';
+    }
+  }
+  document.getElementById('idea-modal').classList.remove('hidden');
+}
+
+function closeIdeaModal() {
+  document.getElementById('idea-modal').classList.add('hidden');
+}
+
+async function handleSaveIdea(e) {
+  e.preventDefault();
+  const id = document.getElementById('idea-id').value;
+  const payload = {
+    title: document.getElementById('idea-title').value.trim(),
+    premise: document.getElementById('idea-premise').value.trim(),
+    pillarId: document.getElementById('idea-pillar').value || null,
+    source: document.getElementById('idea-source').value,
+    icp: document.getElementById('idea-icp').value.trim(),
+    pain: document.getElementById('idea-pain').value.trim(),
+    desiredResult: document.getElementById('idea-result').value.trim(),
+    objective: document.getElementById('idea-objective').value.trim(),
+    contentFormat: document.getElementById('idea-format').value,
+    platform: document.getElementById('idea-platform').value,
+    status: document.getElementById('idea-status').value,
+    cta: document.getElementById('idea-cta').value.trim(),
+    notes: document.getElementById('idea-notes').value.trim(),
+    reScore: true
+  };
+
+  try {
+    if (window.ASENZO_API) {
+      let saved;
+      if (id) {
+        saved = await window.ASENZO_API.updateIdea(id, payload);
+      } else {
+        saved = await window.ASENZO_API.createIdea(payload);
+      }
+      const idx = CONTENT_IDEAS.findIndex(x => String(x.id) === String(saved.id));
+      if (idx !== -1) CONTENT_IDEAS[idx] = saved; else CONTENT_IDEAS.push(saved);
+    }
+    closeIdeaModal();
+    showToast(id ? 'Idea updated & re-scored' : 'Idea created & scored');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Idea Error: ${err.message}`);
+  }
+}
+
+async function handleDeleteIdea() {
+  const id = document.getElementById('idea-id').value;
+  if (!id) return;
+  if (!confirm('Delete this idea?')) return;
+  try {
+    await window.ASENZO_API.deleteIdea(id);
+    CONTENT_IDEAS = CONTENT_IDEAS.filter(x => String(x.id) !== String(id));
+    closeIdeaModal();
+    showToast('Idea deleted');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Delete Error: ${err.message}`);
+  }
+}
+
+async function handleScoreIdea(id) {
+  try {
+    const res = await window.ASENZO_API.scoreIdea(id);
+    const idx = CONTENT_IDEAS.findIndex(x => String(x.id) === String(id));
+    if (idx !== -1) CONTENT_IDEAS[idx] = res;
+    showToast(`Re-scored: ${res.score}/100 (${res.priority})`);
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Score Error: ${err.message}`);
+  }
+}
+
+async function handleCheckIdeaDuplicate(id) {
+  const idea = CONTENT_IDEAS.find(x => String(x.id) === String(id));
+  if (!idea) return;
+  try {
+    const res = await window.ASENZO_API.checkIdeaDuplicate({ title: idea.title, premise: idea.premise || '', excludeId: id });
+    if (res.isDuplicate) {
+      showToast(`⚠️ Duplicate! ${res.matches.length} similar item(s) in pipeline`);
+    } else {
+      showToast('✅ No duplicates detected');
+    }
+  } catch (err) {
+    showToast(`Dup Check Error: ${err.message}`);
+  }
+}
+
+async function handleConvertIdea(id) {
+  const idea = CONTENT_IDEAS.find(x => String(x.id) === String(id));
+  if (!idea) return;
+  if (!confirm(`Convert idea "${idea.title}" into a Content Pipeline asset?`)) return;
+  try {
+    const res = await window.ASENZO_API.convertIdeaToContent(id, { platform: idea.platform || 'LINKEDIN' });
+    const idx = CONTENT_IDEAS.findIndex(x => String(x.id) === String(id));
+    if (idx !== -1) CONTENT_IDEAS[idx] = res.idea;
+    if (res.content && !CONTENT_ITEMS.find(c => String(c.id) === String(res.content.id))) {
+      CONTENT_ITEMS.unshift(res.content);
+    }
+    showToast('Idea converted to Content Pipeline (IDEA stage)');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Convert Error: ${err.message}`);
+  }
+}
+
+async function handleArchiveIdea(id) {
+  if (!confirm('Archive this idea?')) return;
+  try {
+    await window.ASENZO_API.archiveIdea(id);
+    showToast('Idea archived');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Archive Error: ${err.message}`);
+  }
+}
+
+function setIdeaFilter(key, value) {
+  IDEA_FILTERS[key] = value;
+  if (CURRENT_PAGE === 'attention') renderAttention();
+}
+
+// ── AI CONTENT IDEA GENERATOR MODAL ─────────────────────────────────────────
+function openIdeaGeneratorModal() {
+  populatePillarSelects();
+  document.getElementById('idea-generator-modal').classList.remove('hidden');
+}
+
+function closeIdeaGeneratorModal() {
+  document.getElementById('idea-generator-modal').classList.add('hidden');
+}
+
+async function handleGenerateIdeas(e) {
+  e.preventDefault();
+  const source = document.getElementById('gen-idea-source').value;
+  const count = Number(document.getElementById('gen-idea-count').value);
+  const pillarId = document.getElementById('gen-idea-pillar').value;
+  const btn = document.querySelector('#idea-generator-modal button[type="submit"]');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⚡ Generating & Scoring Ideas...';
+
+  try {
+    const res = await window.ASENZO_API.generateIdeas({ source, count, pillarId });
+    CONTENT_IDEAS = await window.ASENZO_API.getIdeas({ sort: IDEA_FILTERS.sort });
+    closeIdeaGeneratorModal();
+    showToast(`Generated ${res.count} scored idea(s)`);
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Generate Error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+// ── ATTENTION SUB-TAB 2: PIPELINE & WORKSPACE ──────────────────────────────
 function renderPipelineTab() {
   return `
     <!-- Active Positioning Summary Card (Business DNA Source of Truth) -->

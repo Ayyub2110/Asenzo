@@ -56,6 +56,7 @@ window.ASENZO_API = {
   // Knowledge Ingestion Pipeline & Vault
   async ingestKnowledgeSource(data) { return apiFetch('/knowledge-sources/ingest', { method: 'POST', body: data }); },
   async getKnowledgeSources() { return apiFetch('/knowledge-sources'); },
+  async getKnowledge() { return apiFetch('/knowledge-sources'); },
   async getKnowledgeSourceById(id) { return apiFetch(`/knowledge-sources/${id}`); },
   async searchKnowledgeChunks(query) { return apiFetch(`/knowledge-sources/search?q=${encodeURIComponent(query)}`); },
   async deleteKnowledgeSource(id) { return apiFetch(`/knowledge-sources/${id}`, { method: 'DELETE' }); },
@@ -65,6 +66,38 @@ window.ASENZO_API = {
   async createContent(data) { return apiFetch('/contents', { method: 'POST', body: data }); },
   async updateContent(id, data) { return apiFetch(`/contents/${id}`, { method: 'PUT', body: data }); },
   async deleteContent(id) { return apiFetch(`/contents/${id}`, { method: 'DELETE' }); },
+
+  // Legacy aliases used by existing UI
+  async getContentItems() { return this.getContents(); },
+  async createContentItem(data) { return this.createContent(data); },
+
+  // Content Strategy — Pillars
+  async getPillars(params) {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch(`/pillars${qs}`);
+  },
+  async createPillar(data) { return apiFetch('/pillars', { method: 'POST', body: data }); },
+  async updatePillar(id, data) { return apiFetch(`/pillars/${id}`, { method: 'PUT', body: data }); },
+  async archivePillar(id) { return apiFetch(`/pillars/${id}/archive`, { method: 'POST' }); },
+  async deletePillar(id) { return apiFetch(`/pillars/${id}`, { method: 'DELETE' }); },
+
+  // Content Idea Engine
+  async getIdeas(params) {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch(`/ideas${qs}`);
+  },
+  async createIdea(data) { return apiFetch('/ideas', { method: 'POST', body: data }); },
+  async updateIdea(id, data) { return apiFetch(`/ideas/${id}`, { method: 'PUT', body: data }); },
+  async scoreIdea(id) { return apiFetch(`/ideas/${id}/score`, { method: 'POST' }); },
+  async archiveIdea(id) { return apiFetch(`/ideas/${id}/archive`, { method: 'POST' }); },
+  async deleteIdea(id) { return apiFetch(`/ideas/${id}`, { method: 'DELETE' }); },
+  async checkIdeaDuplicate(data) { return apiFetch('/ideas/check-duplicate', { method: 'POST', body: data }); },
+  async generateIdeas(data) { return apiFetch('/ideas/generate', { method: 'POST', body: data }); },
+  async convertIdeaToContent(id, data) { return apiFetch(`/ideas/${id}/convert`, { method: 'POST', body: data || {} }); },
+
+  // Market Intelligence
+  async getMarketIntel() { return apiFetch('/market-intel'); },
+  async addMarketIntel(data) { return apiFetch('/market-intel', { method: 'POST', body: data }); },
 
   // Analytics & Script Generation
   async getAnalytics() { return apiFetch('/attention/analytics'); },
