@@ -1597,7 +1597,7 @@ app.post('/api/contents/:id/publish', async (req, res) => {
 
     const distId = makeId('dist');
     await run(
-      `INSERT INTO distributions (id, content_id, platform_id, status, published_at, post_url, created_at, updated_at) VALUES (?, ?, ?, 'PUBLISHED', ?, ?, ?, ?)`,
+      `INSERT INTO distributions (id, content_id, platform_id, status, published_at, external_url, created_at, updated_at) VALUES (?, ?, ?, 'PUBLISHED', ?, ?, ?, ?)`,
       [distId, id, platform, now, postUrl, now, now]
     );
 
