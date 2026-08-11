@@ -25,7 +25,7 @@ const KnowledgeSourceType = z.enum([
 ]);
 
 const ContentPillarType = z.enum(['POSITIONING', 'MECHANISM', 'PROOF', 'AUTHORITY']);
-const PlatformType = z.enum(['LINKEDIN', 'X_TWITTER', 'YOUTUBE', 'SKOOL', 'NEWSLETTER', 'PODCAST']);
+const PlatformType = z.enum(['LINKEDIN', 'X', 'X_TWITTER', 'YOUTUBE', 'SKOOL', 'NEWSLETTER', 'PODCAST', 'EMAIL']);
 const DistributionStatus = z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED', 'CANCELLED']);
 const LeadStatus = z.enum(['NEW', 'CONTACTED', 'QUALIFIED', 'DISQUALIFIED', 'CONVERTED']);
 const AccountStatus = z.enum(['ACTIVE', 'EXPIRED_TOKEN', 'RATE_LIMITED', 'DISCONNECTED', 'ERROR']);
@@ -43,6 +43,42 @@ const ContentIdeaSource = z.enum(['MANUAL', 'AI_GENERATED', 'CUSTOMER_QUESTION',
 const ContentIdeaStatus = z.enum(['NEW', 'PRIORITIZED', 'PLANNED', 'IN_PRODUCTION', 'PUBLISHED', 'CONVERTED', 'ARCHIVED']);
 const ContentFormatType = z.enum(['POST', 'CAROUSEL', 'VIDEO', 'NEWSLETTER', 'CASE_STUDY', 'THREAD', 'LEAD_MAGNET']);
 const IdeaPriorityType = z.enum(['LOW', 'MEDIUM', 'HIGH']);
+
+// Attention OS Acquisition Support Systems Enums
+const AuthorityAssetTypeEnum = z.enum([
+  'TESTIMONIAL',
+  'CASE_STUDY',
+  'CLIENT_RESULT',
+  'METRIC',
+  'SCREENSHOT',
+  'MEDIA_MENTION',
+  'AWARD',
+  'CREDENTIAL',
+  'PROOF_ASSET'
+]);
+
+const PermissionStatusEnum = z.enum(['APPROVED', 'PENDING', 'EXPIRED', 'DENIED']);
+
+const MarketSignalTypeEnum = z.enum([
+  'INDUSTRY_DEVELOPMENT',
+  'COMPETITOR_ACTIVITY',
+  'CUSTOMER_QUESTION',
+  'EMERGING_PAIN_POINT',
+  'MARKET_CONVERSATION',
+  'TREND'
+]);
+
+const ReplyClassificationEnum = z.enum([
+  'POSITIVE',
+  'NEGATIVE',
+  'NEUTRAL',
+  'QUESTION',
+  'INTERESTED',
+  'NOT_NOW',
+  'REFERRAL',
+  'UNSUBSCRIBE',
+  'UNKNOWN'
+]);
 
 const optStr = z.string().nullable().optional();
 const arrayStr = z.array(z.string()).default([]);
@@ -500,6 +536,65 @@ const AttributionEventSchema = z.object({
   timestamp: optStr
 });
 
+const AuthorityAssetFullSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  title: z.string().min(2, 'Title is required'),
+  assetType: AuthorityAssetTypeEnum.default('CASE_STUDY'),
+  source: optStr.default('Client Case Study'),
+  assetDate: optStr.default(''),
+  clientName: optStr.default(''),
+  problem: optStr.default(''),
+  result: optStr.default(''),
+  metric: optStr.default(''),
+  tags: z.array(z.string()).optional().default([]),
+  permissionStatus: PermissionStatusEnum.default('APPROVED'),
+  expirationDate: optStr.default(''),
+  proofSummary: optStr.default(''),
+  fileUrl: optStr.default('#'),
+  isArchived: z.boolean().optional().default(false)
+});
+
+const MarketSignalFullSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  title: z.string().min(2, 'Signal title is required'),
+  signalType: MarketSignalTypeEnum.default('MARKET_CONVERSATION'),
+  source: optStr.default('Niche Observation'),
+  signalDate: optStr.default(''),
+  relevance: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('HIGH'),
+  icpRelevance: optStr.default(''),
+  topic: optStr.default(''),
+  summary: optStr.default(''),
+  potentialContentAngle: optStr.default(''),
+  isConvertedToIdea: z.boolean().optional().default(false),
+  convertedIdeaId: optStr.default(''),
+  isArchived: z.boolean().optional().default(false)
+});
+
+const OutreachProspectFullSchema = z.object({
+  id: optStr,
+  businessId: optStr.default('biz_default'),
+  prospectName: z.string().min(2, 'Prospect name is required'),
+  source: optStr.default('LinkedIn Search'),
+  platform: PlatformType.default('LINKEDIN'),
+  initialMessage: optStr.default(''),
+  contactDate: optStr.default(''),
+  followUpDate: optStr.default(''),
+  latestReply: optStr.default(''),
+  replyClassification: ReplyClassificationEnum.default('UNKNOWN'),
+  conversationHistory: z.array(z.record(z.any())).optional().default([]),
+  qualifiedStatus: z.enum(['UNQUALIFIED', 'QUALIFIED', 'BOOKED', 'CLOSED']).default('UNQUALIFIED'),
+  icpScore: z.number().int().min(0).max(100).optional().default(85),
+  status: optStr.default('NEW'),
+  isArchived: z.boolean().optional().default(false)
+});
+
+const ReplyClassificationRequestSchema = z.object({
+  replyText: z.string().min(1, 'Reply text is required'),
+  prospectId: optStr
+});
+
 module.exports = {
   // Enums
   ContentLifecycleStatus,
@@ -524,6 +619,10 @@ module.exports = {
   SurfaceType,
   LeadSourceType,
   CtaType,
+  AuthorityAssetTypeEnum,
+  PermissionStatusEnum,
+  MarketSignalTypeEnum,
+  ReplyClassificationEnum,
 
   // Entity Schemas
   FounderProfileFullSchema,
@@ -563,5 +662,11 @@ module.exports = {
   LeadCtaSchema,
   LeadCaptureSchema,
   LeadUpdateSchema,
-  AttributionEventSchema
+  AttributionEventSchema,
+
+  // Acquisition Support Systems Schemas
+  AuthorityAssetFullSchema,
+  MarketSignalFullSchema,
+  OutreachProspectFullSchema,
+  ReplyClassificationRequestSchema
 };

@@ -829,11 +829,11 @@
 
   <!-- ══════════════ MARKET INTELLIGENCE MODAL ══════════════ -->
   <div id="market-intel-modal" class="modal-overlay hidden" onclick="closeMarketIntelModal()">
-    <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:680px">
       <div class="modal-head">
         <div>
-          <h3 class="modal-title">Log Niche Observation / Competitor Insight</h3>
-          <p class="modal-sub">Engine 1 — Market Intelligence Harvester</p>
+          <h3 class="modal-title">Log Market Intelligence Signal</h3>
+          <p class="modal-sub">Engine 1 — External Signal Harvester & ICP Friction Radar</p>
         </div>
         <button class="btn-icon" onclick="closeMarketIntelModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -841,20 +841,227 @@
       </div>
       <form onsubmit="handleCreateMarketIntel(event)" class="modal-body">
         <div class="form-group">
-          <label>Observation Title</label>
-          <input id="mi-title" placeholder="e.g. Competitor X VSL angle breakdown" required />
+          <label>Signal Title *</label>
+          <input id="mi-title" placeholder="e.g. Competitor X VSL angle leans hard on time-savings" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Signal Type</label>
+            <select id="mi-type">
+              <option value="MARKET_CONVERSATION">Market Conversation</option>
+              <option value="INDUSTRY_DEVELOPMENT">Industry Development</option>
+              <option value="COMPETITOR_ACTIVITY">Competitor Activity</option>
+              <option value="CUSTOMER_QUESTION">Customer Question</option>
+              <option value="EMERGING_PAIN_POINT">Emerging Pain Point</option>
+              <option value="TREND">Trend</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Relevance</label>
+            <select id="mi-relevance">
+              <option value="HIGH">HIGH — Critical ICP overlap</option>
+              <option value="MEDIUM">MEDIUM — Moderate interest</option>
+              <option value="LOW">LOW — Background noise</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Source / Channel</label>
+            <input id="mi-source" placeholder="e.g. LinkedIn Comments / YouTube Audit" />
+          </div>
+          <div class="form-group">
+            <label>Topic Category</label>
+            <input id="mi-topic" placeholder="e.g. Agency Retainer Trap" />
+          </div>
         </div>
         <div class="form-group">
-          <label>Source / Channel</label>
-          <input id="mi-source" placeholder="e.g. LinkedIn Comments / Twitter DM audit" />
+          <label>ICP Relevance & Context</label>
+          <input id="mi-icp-relevance" placeholder="e.g. Direct overlap with bootstrapped B2B founders" />
         </div>
         <div class="form-group">
-          <label>Key Insight & Why It Matters</label>
-          <textarea id="mi-insight" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" required></textarea>
+          <label>Signal Summary *</label>
+          <textarea id="mi-summary" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Describe the market signal and underlying friction..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Potential Content Angle</label>
+          <input id="mi-angle" placeholder="e.g. Why software promises leave founders trapped as single bottleneck" />
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-secondary" onclick="closeMarketIntelModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Market Intel</button>
+          <button type="submit" class="btn btn-primary">Save Market Signal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ AUTHORITY PROOF ASSET MODAL ══════════════ -->
+  <div id="authority-asset-modal" class="modal-overlay hidden" onclick="closeAuthorityAssetModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:720px">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="authority-modal-title">New Authority Proof Asset</h3>
+          <p class="modal-sub">Approved Proof Vault — Strict source of truth for AI generation & anti-fabrication rules</p>
+        </div>
+        <button class="btn-icon" onclick="closeAuthorityAssetModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSaveAuthorityAsset(event)" class="modal-body" style="max-height:74vh;overflow-y:auto">
+        <input type="hidden" id="auth-id" />
+        <div class="form-group">
+          <label>Asset Title *</label>
+          <input id="auth-title" placeholder="e.g. Apex Logistics 2.4x Pipeline Growth Case Study" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Asset Type *</label>
+            <select id="auth-type">
+              <option value="CASE_STUDY">Case Study</option>
+              <option value="TESTIMONIAL">Testimonial</option>
+              <option value="CLIENT_RESULT">Client Result</option>
+              <option value="METRIC">Metric</option>
+              <option value="SCREENSHOT">Screenshot</option>
+              <option value="MEDIA_MENTION">Media Mention</option>
+              <option value="AWARD">Award</option>
+              <option value="CREDENTIAL">Credential</option>
+              <option value="PROOF_ASSET">Proof Asset</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Permission Status *</label>
+            <select id="auth-permission">
+              <option value="APPROVED">APPROVED — Active for AI Prompts</option>
+              <option value="PENDING">PENDING — Pending Client Signoff</option>
+              <option value="EXPIRED">EXPIRED — Past NDA / Permission Date</option>
+              <option value="DENIED">DENIED — Do Not Use</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Client Name</label>
+            <input id="auth-client" placeholder="e.g. Apex Logistics" />
+          </div>
+          <div class="form-group">
+            <label>Source</label>
+            <input id="auth-source" placeholder="e.g. Client Case Study / DM Audit" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quantified Metric Tag</label>
+            <input id="auth-metric" placeholder="e.g. 2.4x Pipeline Growth" />
+          </div>
+          <div class="form-group">
+            <label>Proof Link / Asset URL</label>
+            <input id="auth-url" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Problem Addressed</label>
+            <input id="auth-problem" placeholder="e.g. Single bottleneck founder working 65 hrs/wk" />
+          </div>
+          <div class="form-group">
+            <label>Result Delivered</label>
+            <input id="auth-result" placeholder="e.g. Scaled pipeline 2.4x in 90 days" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Proof Summary *</label>
+          <textarea id="auth-summary" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Verified narrative summary of proof asset..." required></textarea>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeAuthorityAssetModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Authority Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ ATTENTION OUTREACH PROSPECT MODAL ══════════════ -->
+  <div id="outreach-prospect-modal" class="modal-overlay hidden" onclick="closeOutreachProspectModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:720px">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="outreach-modal-title">Attention Outreach Tracker Prospect</h3>
+          <p class="modal-sub">Lightweight Attention OS Prospect Tracker with AI Reply Classification & Human Control</p>
+        </div>
+        <button class="btn-icon" onclick="closeOutreachProspectModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSaveOutreachProspect(event)" class="modal-body" style="max-height:74vh;overflow-y:auto">
+        <input type="hidden" id="prosp-id" />
+        <div class="form-group">
+          <label>Prospect Name & Title *</label>
+          <input id="prosp-name" placeholder="e.g. Mark Vance (Founder @ SaaSify)" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Platform *</label>
+            <select id="prosp-platform">
+              <option value="LINKEDIN">LinkedIn</option>
+              <option value="X">X / Twitter</option>
+              <option value="EMAIL">Email</option>
+              <option value="SKOOL">Skool</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Qualified Status</label>
+            <select id="prosp-qualified">
+              <option value="UNQUALIFIED">UNQUALIFIED</option>
+              <option value="QUALIFIED">QUALIFIED</option>
+              <option value="BOOKED">BOOKED</option>
+              <option value="CLOSED">CLOSED</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Source / Channel</label>
+            <input id="prosp-source" placeholder="e.g. LinkedIn Post Comment" />
+          </div>
+          <div class="form-group">
+            <label>Contact Date</label>
+            <input type="date" id="prosp-date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Initial Message Sent</label>
+          <textarea id="prosp-initial" rows="2" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Initial conversation starter message..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Latest Inbound Reply</label>
+          <textarea id="prosp-reply" rows="2" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Latest response received from prospect..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>AI Reply Classification (Human Override Available)</label>
+            <select id="prosp-classification">
+              <option value="INTERESTED">INTERESTED — High Intent</option>
+              <option value="POSITIVE">POSITIVE — Positive Affinity</option>
+              <option value="QUESTION">QUESTION — Asking Details</option>
+              <option value="NEUTRAL">NEUTRAL — General Reply</option>
+              <option value="NOT_NOW">NOT_NOW — Delayed Followup</option>
+              <option value="REFERRAL">REFERRAL — Pointed to Team</option>
+              <option value="UNSUBSCRIBE">UNSUBSCRIBE — Opt-Out</option>
+              <option value="NEGATIVE">NEGATIVE — Declined</option>
+              <option value="UNKNOWN">UNKNOWN</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Follow-Up Date</label>
+            <input type="date" id="prosp-followup" />
+          </div>
+        </div>
+        <div class="modal-foot" style="justify-content:space-between">
+          <button type="button" class="btn btn-secondary" onclick="handleAutoClassifyProspectModalReply()">⚡ Run AI Reply Classifier</button>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="btn btn-secondary" onclick="closeOutreachProspectModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Prospect</button>
+          </div>
         </div>
       </form>
     </div>

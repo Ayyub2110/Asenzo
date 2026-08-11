@@ -77,6 +77,35 @@ window.ASENZO_API = {
   async getContentItems() { return this.getContents(); },
   async createContentItem(data) { return this.createContent(data); },
 
+  // Authority Asset Library (Approved Proof Engine)
+  async getAuthorityAssets(params = {}) {
+    let q = '/authority-assets';
+    const sp = new URLSearchParams();
+    if (params.type) sp.append('type', params.type);
+    if (params.permissionStatus) sp.append('permissionStatus', params.permissionStatus);
+    if (params.q) sp.append('q', params.q);
+    const str = sp.toString();
+    if (str) q += `?${str}`;
+    return apiFetch(q);
+  },
+  async createAuthorityAsset(data) { return apiFetch('/authority-assets', { method: 'POST', body: data }); },
+  async updateAuthorityAsset(id, data) { return apiFetch(`/authority-assets/${id}`, { method: 'PUT', body: data }); },
+  async deleteAuthorityAsset(id) { return apiFetch(`/authority-assets/${id}`, { method: 'DELETE' }); },
+
+  // Market Intelligence System (Signal Radar)
+  async getMarketIntel() { return apiFetch('/market-intel'); },
+  async createMarketIntel(data) { return apiFetch('/market-intel', { method: 'POST', body: data }); },
+  async updateMarketIntel(id, data) { return apiFetch(`/market-intel/${id}`, { method: 'PUT', body: data }); },
+  async deleteMarketIntel(id) { return apiFetch(`/market-intel/${id}`, { method: 'DELETE' }); },
+  async convertSignalToIdea(id) { return apiFetch(`/market-intel/${id}/convert-to-idea`, { method: 'POST' }); },
+
+  // Attention Outreach Tracker
+  async getOutreachProspects() { return apiFetch('/outreach'); },
+  async createOutreachProspect(data) { return apiFetch('/outreach', { method: 'POST', body: data }); },
+  async updateOutreachProspect(id, data) { return apiFetch(`/outreach/${id}`, { method: 'PUT', body: data }); },
+  async deleteOutreachProspect(id) { return apiFetch(`/outreach/${id}`, { method: 'DELETE' }); },
+  async classifyOutreachReply(data) { return apiFetch('/outreach/classify-reply', { method: 'POST', body: data }); },
+
   // Content Strategy — Pillars
   async getPillars(params) {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';

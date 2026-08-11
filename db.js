@@ -132,9 +132,29 @@ async function initDb() {
           id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pillar_id TEXT, icp_id TEXT, source TEXT DEFAULT 'MANUAL', title TEXT NOT NULL, premise TEXT DEFAULT '', icp TEXT DEFAULT '', pain TEXT DEFAULT '', desired_result TEXT DEFAULT '', content_format TEXT DEFAULT 'POST', platform TEXT DEFAULT 'LINKEDIN', objective TEXT DEFAULT '', cta TEXT DEFAULT '', score INTEGER DEFAULT 0, score_breakdown TEXT DEFAULT '{}', priority TEXT DEFAULT 'LOW', status TEXT DEFAULT 'NEW', notes TEXT DEFAULT '', is_archived INTEGER DEFAULT 0, converted_content_id TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT
         )`);
 
-        // 13b. Market Intelligence (Niche & Competitor Observations → Idea Source)
+        // 13b. Market Intelligence (Signals & Niche Observations)
         await run(`CREATE TABLE IF NOT EXISTS market_intel (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, source TEXT DEFAULT 'Niche Observation', insight TEXT DEFAULT '', viral_factor TEXT DEFAULT 'Medium', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, signal_type TEXT DEFAULT 'MARKET_CONVERSATION', source TEXT DEFAULT 'Niche Observation', signal_date TEXT DEFAULT '', relevance TEXT DEFAULT 'HIGH', icp_relevance TEXT DEFAULT '', topic TEXT DEFAULT '', summary TEXT DEFAULT '', potential_content_angle TEXT DEFAULT '', is_converted_to_idea INTEGER DEFAULT 0, converted_idea_id TEXT DEFAULT '', insight TEXT DEFAULT '', viral_factor TEXT DEFAULT 'Medium', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 21. OutreachProspect (Attention OS Lightweight Outreach Tracker)
+        await run(`CREATE TABLE IF NOT EXISTS outreach_prospects (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, prospect_name TEXT NOT NULL, source TEXT DEFAULT 'LinkedIn Search', platform TEXT DEFAULT 'LINKEDIN', initial_message TEXT DEFAULT '', contact_date TEXT DEFAULT '', follow_up_date TEXT DEFAULT '', latest_reply TEXT DEFAULT '', reply_classification TEXT DEFAULT 'UNKNOWN', conversation_history TEXT DEFAULT '[]', qualified_status TEXT DEFAULT 'UNQUALIFIED', icp_score INTEGER DEFAULT 50, status TEXT DEFAULT 'NEW', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 22. OutreachMessage
+        await run(`CREATE TABLE IF NOT EXISTS outreach_messages (
+          id TEXT PRIMARY KEY, prospect_id TEXT NOT NULL, message_text TEXT NOT NULL, status TEXT DEFAULT 'QUEUED', sent_at TEXT DEFAULT ''
+        )`);
+
+        // 23. OutreachReply
+        await run(`CREATE TABLE IF NOT EXISTS outreach_replies (
+          id TEXT PRIMARY KEY, message_id TEXT NOT NULL, reply_text TEXT NOT NULL, sentiment TEXT DEFAULT 'NEUTRAL', received_at TEXT
+        )`);
+
+        // 24. AuthorityAsset (Approved Proof Library — Strict Anti-Fabrication Engine Source)
+        await run(`CREATE TABLE IF NOT EXISTS authority_assets (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, asset_type TEXT NOT NULL DEFAULT 'CASE_STUDY', source TEXT DEFAULT 'Client Case Study', asset_date TEXT DEFAULT '', client_name TEXT DEFAULT '', problem TEXT DEFAULT '', result TEXT DEFAULT '', metric TEXT DEFAULT '', tags TEXT DEFAULT '[]', permission_status TEXT DEFAULT 'APPROVED', expiration_date TEXT DEFAULT '', proof_summary TEXT DEFAULT '', file_url TEXT DEFAULT '#', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
         )`);
 
         // 14. Content (11-Stage Lifecycle)
@@ -530,17 +550,42 @@ When you replace random agency retainers with a production-grade Growth Operatin
           );
         }
 
-        // Market Intelligence Seeds (Idea Sources)
+        // Market Intelligence Seeds (Signal Radar)
         const marketIntelSeeds = [
-          { title: 'Competitor X VSL angle leans hard on time-savings, not independence', source: 'YouTube Competitor Audit', insight: 'Gurus monetize save-time promises with zero underlying operating system — leaves a clear independence & mechanism gap to own.', viralFactor: 'High' },
-          { title: 'LinkedIn comments show founders burned after agency retainers', source: 'LinkedIn Comments', insight: 'Recurring pattern: "spent $5k/mo on retainers, still doing every sales call myself." Strong proof-gap content opportunity.', viralFactor: 'High' }
+          { id: 'mi_seed_1', title: 'Competitor X VSL angle leans hard on time-savings, not independence', signalType: 'COMPETITOR_ACTIVITY', source: 'YouTube Competitor Audit', relevance: 'HIGH', icpRelevance: 'Direct competitor target audience overlap', topic: 'Agency Retainer Myths', summary: 'Gurus monetize save-time promises with zero underlying operating system — leaves a clear independence & mechanism gap to own.', potentialContentAngle: 'Why software & retainer time-saving promises leave founders trapped as bottlenecks.' },
+          { id: 'mi_seed_2', title: 'LinkedIn comments show founders burned after agency retainers', signalType: 'CUSTOMER_QUESTION', source: 'LinkedIn Comments', relevance: 'HIGH', icpRelevance: 'Bootstrapped founders expressing frustration', topic: 'Founder Burnout', summary: 'Recurring pattern: "spent $5k/mo on retainers, still doing every sales call myself." Strong proof-gap content opportunity.', potentialContentAngle: 'The $5,000/month Agency Retainer Trap: How to transition to OS ownership.' }
         ];
-        for (let miIdx = 0; miIdx < marketIntelSeeds.length; miIdx++) {
-          const mi = marketIntelSeeds[miIdx];
+        for (const mi of marketIntelSeeds) {
           await run(
-            `INSERT OR IGNORE INTO market_intel (id, business_id, title, source, insight, viral_factor, is_archived, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-            [(`mi_seed_${Date.now()}_${miIdx}`), 'biz_default', mi.title, mi.source, mi.insight, mi.viralFactor, now, now]
+            `INSERT OR IGNORE INTO market_intel (id, business_id, title, signal_type, source, signal_date, relevance, icp_relevance, topic, summary, potential_content_angle, is_converted_to_idea, converted_idea_id, insight, viral_factor, is_archived, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, '', ?, 'High', 0, ?, ?)`,
+            [mi.id, 'biz_default', mi.title, mi.signalType, mi.source, now, mi.relevance, mi.icpRelevance, mi.topic, mi.summary, mi.potentialContentAngle, mi.summary, now, now]
+          );
+        }
+
+        // Seed Authority Proof Assets (Strict Approved Source for AI Guardrails)
+        const authorityAssetSeeds = [
+          { id: 'auth_seed_1', title: 'Apex Logistics Pipeline Growth Case Study', assetType: 'CASE_STUDY', source: 'Client Case Study', clientName: 'Apex Logistics', problem: 'Single bottleneck founder working 65 hrs/week with stagnant $22k/mo revenue', result: 'Scaled pipeline 2.4x in 90 days while dropping founder workload to 15 hrs/week', metric: '2.4x pipeline growth', tags: JSON.stringify(['Case Study', '2.4x', 'Pipeline', 'Founder Autonomy']), permissionStatus: 'APPROVED', proofSummary: 'Apex Logistics grown pipeline 2.4x in 90 days using ASENZO Growth OS framework.' },
+          { id: 'auth_seed_2', title: 'Vortex Media 3.4x Qualified DM Triaging Result', assetType: 'CLIENT_RESULT', source: 'DM Inbox Audit', clientName: 'Vortex Media', problem: 'Manual un-qualified DMs cluttering founder schedule', result: 'Tripled qualified DM volume in less than 30 days', metric: '3.4x DM volume', tags: JSON.stringify(['DM Triage', '3.4x', 'Qualified Leads']), permissionStatus: 'APPROVED', proofSummary: 'Vortex Media qualified DM volume tripled in less than 30 days.' }
+        ];
+        for (const auth of authorityAssetSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO authority_assets (id, business_id, title, asset_type, source, asset_date, client_name, problem, result, metric, tags, permission_status, expiration_date, proof_summary, file_url, is_archived, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, '#', 0, ?, ?)`,
+            [auth.id, 'biz_default', auth.title, auth.assetType, auth.source, now, auth.clientName, auth.problem, auth.result, auth.metric, auth.tags, auth.permissionStatus, auth.proofSummary, now, now]
+          );
+        }
+
+        // Seed Outreach Prospects (Attention Outreach Tracker)
+        const outreachSeeds = [
+          { id: 'prosp_seed_1', prospectName: 'Mark Vance (Founder @ SaaSify)', source: 'LinkedIn Search', platform: 'LINKEDIN', initialMessage: 'Hey Mark, saw your post on founder scaling bottlenecks. How are you handling content drafting?', contactDate: now, reply: 'We are struggling with manual drafting every week. Would love to see your framework.', replyClassification: 'INTERESTED', qualifiedStatus: 'QUALIFIED' },
+          { id: 'prosp_seed_2', prospectName: 'Sarah Jenkins (CEO @ Lumina)', source: 'X / Twitter DM', platform: 'X', initialMessage: 'Hi Sarah, loved your thread on agency retainers. Are you open to comparing Growth OS metrics?', contactDate: now, reply: 'Not interested at this moment thanks.', replyClassification: 'NOT_NOW', qualifiedStatus: 'UNQUALIFIED' }
+        ];
+        for (const op of outreachSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO outreach_prospects (id, business_id, prospect_name, source, platform, initial_message, contact_date, follow_up_date, latest_reply, reply_classification, conversation_history, qualified_status, icp_score, status, is_archived, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, '', ?, ?, '[]', ?, 85, 'NEW', 0, ?, ?)`,
+            [op.id, 'biz_default', op.prospectName, op.source, op.platform, op.initialMessage, op.contactDate, op.reply, op.replyClassification, op.qualifiedStatus, now, now]
           );
         }
 

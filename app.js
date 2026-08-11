@@ -28,6 +28,8 @@ let POSITIONING = {
 let CONTENT_ITEMS = [];
 let KNOWLEDGE_ITEMS = [];
 let MARKET_INTEL_ITEMS = [];
+let AUTHORITY_ASSET_ITEMS = [];
+let OUTREACH_PROSPECT_ITEMS = [];
 let ATTENTION_ANALYTICS = null;
 let AI_RECOMMENDATIONS = [];
 
@@ -346,6 +348,8 @@ async function renderAttention() {
       ATTENTION_ANALYTICS = await window.ASENZO_API.getAnalytics();
       KNOWLEDGE_ITEMS = await window.ASENZO_API.getKnowledge();
       MARKET_INTEL_ITEMS = await window.ASENZO_API.getMarketIntel();
+      AUTHORITY_ASSET_ITEMS = await window.ASENZO_API.getAuthorityAssets();
+      OUTREACH_PROSPECT_ITEMS = await window.ASENZO_API.getOutreachProspects();
       AI_RECOMMENDATIONS = await window.ASENZO_API.getRecommendations();
       CONTENT_PILLARS = await window.ASENZO_API.getPillars();
       CONTENT_IDEAS = await window.ASENZO_API.getIdeas({ sort: IDEA_FILTERS.sort });
@@ -369,7 +373,7 @@ async function renderAttention() {
     </div>
 
     <!-- Engine 1 Sub-System Tab Bar -->
-    <div class="engine-tab-bar">
+    <div class="engine-tab-bar" style="overflow-x:auto">
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'strategy' ? 'active' : ''}" onclick="switchAttentionTab('strategy')">
         🎯 Content Strategy (${CONTENT_PILLARS.length})
       </div>
@@ -379,14 +383,20 @@ async function renderAttention() {
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'pipeline' ? 'active' : ''}" onclick="switchAttentionTab('pipeline')">
         📋 Content Pipeline & Workspace (${CONTENT_ITEMS.length})
       </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'authority' ? 'active' : ''}" onclick="switchAttentionTab('authority')">
+        🏆 Authority Proof Library (${AUTHORITY_ASSET_ITEMS.length})
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'market' ? 'active' : ''}" onclick="switchAttentionTab('market')">
+        📡 Market Intelligence Radar (${MARKET_INTEL_ITEMS.length})
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'outreach' ? 'active' : ''}" onclick="switchAttentionTab('outreach')">
+        💬 Outreach Tracker (${OUTREACH_PROSPECT_ITEMS.length})
+      </div>
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'attribution' ? 'active' : ''}" onclick="switchAttentionTab('attribution')">
         📈 Attribution Funnel & Analytics
       </div>
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'knowledge' ? 'active' : ''}" onclick="switchAttentionTab('knowledge')">
-        📚 Founder Voice & Knowledge Vault (${KNOWLEDGE_ITEMS.length})
-      </div>
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'market' ? 'active' : ''}" onclick="switchAttentionTab('market')">
-        🔍 Market Intelligence (${MARKET_INTEL_ITEMS.length})
+        📚 Founder Voice & Vault (${KNOWLEDGE_ITEMS.length})
       </div>
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'recommendations' ? 'active' : ''}" onclick="switchAttentionTab('recommendations')">
         ⚡ AI Recommendations (${AI_RECOMMENDATIONS.filter(r => r.status === 'pending').length})
@@ -410,12 +420,16 @@ function renderAttentionSubTabContent() {
     return renderContentStrategyTab();
   } else if (ATTENTION_SUB_TAB === 'ideas') {
     return renderContentIdeasTab();
+  } else if (ATTENTION_SUB_TAB === 'authority') {
+    return renderAuthorityTab();
+  } else if (ATTENTION_SUB_TAB === 'market') {
+    return renderMarketIntelTab();
+  } else if (ATTENTION_SUB_TAB === 'outreach') {
+    return renderOutreachTab();
   } else if (ATTENTION_SUB_TAB === 'attribution') {
     return renderAttributionTab();
   } else if (ATTENTION_SUB_TAB === 'knowledge') {
     return renderKnowledgeTab();
-  } else if (ATTENTION_SUB_TAB === 'market') {
-    return renderMarketIntelTab();
   } else if (ATTENTION_SUB_TAB === 'recommendations') {
     return renderRecommendationsTab();
   } else {
@@ -1218,32 +1232,396 @@ function renderKnowledgeTab() {
   `;
 }
 
-// ── ATTENTION SUB-TAB 4: MARKET INTELLIGENCE ────────────────────────────────
+// ── ATTENTION SUB-TAB: AUTHORITY ASSET LIBRARY ──────────────────────────────
+function renderAuthorityTab() {
+  return `
+    <div class="dash-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="dash-card-title">Authority Proof Asset Library (Anti-Fabrication Guardrail Vault)</div>
+          <div class="dash-card-sub">Verified case studies, metrics & client results — strictly filtered for AI content generation</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openAuthorityAssetModal()">+ Add Authority Asset</button>
+      </div>
+
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:#047857">
+        🛡 <b>Anti-Fabrication Enforcement Active:</b> The AI Hook and Script Generator will <i>only</i> anchor proof claims in assets marked <b>APPROVED</b>. Unapproved or expired assets are strictly excluded.
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-top:14px">
+        ${AUTHORITY_ASSET_ITEMS.length === 0 ? `<div style="text-align:center;color:#94A3B8;padding:30px;grid-column:span 2">No authority proof assets logged yet. Click "+ Add Authority Asset" to record case studies.</div>` : ''}
+        ${AUTHORITY_ASSET_ITEMS.map(auth => {
+          const isApp = auth.permission_status === 'APPROVED';
+          const badgeClass = isApp ? 'green' : (auth.permission_status === 'PENDING' ? 'yellow' : 'red');
+          return `
+            <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid ${isApp ? '#BBF7D0' : '#E2E8F0'};display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div>
+                  <div style="font-weight:700;color:#0F172A;font-size:13px">${auth.title}</div>
+                  <div style="font-size:11px;color:#64748B;margin-top:2px">Client: <b>${auth.client_name || 'N/A'}</b> • Source: ${auth.source || 'Case Study'}</div>
+                </div>
+                <span class="sb-badge ${badgeClass}" style="font-weight:700">${auth.permission_status}</span>
+              </div>
+
+              ${auth.proof_summary ? `<div style="font-size:12px;color:#334155;background:#FFFFFF;padding:8px;border-radius:6px;border:1px solid #E2E8F0">"${auth.proof_summary}"</div>` : ''}
+
+              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+                <span class="sb-badge blue" style="font-size:9.5px">${(auth.asset_type || 'CASE_STUDY').replace(/_/g, ' ')}</span>
+                ${auth.metric ? `<span class="sb-badge green" style="font-size:9.5px">🎯 ${auth.metric}</span>` : ''}
+                ${(auth.tags || []).map(t => `<span class="sb-badge" style="font-size:9px">${t}</span>`).join('')}
+              </div>
+
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:8px;border-top:1px solid #E2E8F0">
+                <button class="btn btn-secondary btn-sm" onclick="openAuthorityAssetModal('${auth.id}')">✏️ Edit Asset</button>
+                <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleDeleteAuthorityAsset('${auth.id}')">🗑 Archive</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── ATTENTION SUB-TAB: MARKET INTELLIGENCE RADAR ────────────────────────────
 function renderMarketIntelTab() {
   return `
     <div class="dash-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div class="dash-card-title">Market Intelligence & Niche Listener</div>
-          <div class="dash-card-sub">Competitor observations, viral breakdown logs & audience pain point harvester</div>
+          <div class="dash-card-title">Market Intelligence Signal Radar</div>
+          <div class="dash-card-sub">Competitor activity, customer questions, emerging pain points & signal → idea conversion</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openMarketIntelModal()">+ Log Market Intel</button>
+        <button class="btn btn-primary btn-sm" onclick="openMarketIntelModal()">+ Log Market Signal</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
-        ${MARKET_INTEL_ITEMS.length === 0 ? `<div style="text-align:center;color:#94A3B8;padding:30px">No market intelligence logged yet. Click "+ Log Market Intel" to record niche insights.</div>` : ''}
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+        ${MARKET_INTEL_ITEMS.length === 0 ? `<div style="text-align:center;color:#94A3B8;padding:30px">No market signals logged yet. Click "+ Log Market Signal" to track external niche conversations.</div>` : ''}
         ${MARKET_INTEL_ITEMS.map(mi => `
           <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:flex-start">
-            <div>
-              <div style="font-weight:700;color:#0F172A">${mi.title} <span class="sb-badge" style="margin-left:6px">${mi.source || 'Niche Observation'}</span></div>
-              <div style="font-size:12px;color:#475569;margin-top:4px">${mi.insight}</div>
+            <div style="flex:1;padding-right:16px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <span class="sb-badge blue" style="font-weight:700">${(mi.signal_type || 'MARKET_CONVERSATION').replace(/_/g, ' ')}</span>
+                <span class="sb-badge ${mi.relevance === 'HIGH' ? 'green' : ''}">${mi.relevance || 'HIGH'} RELEVANCE</span>
+                ${mi.is_converted_to_idea ? `<span class="sb-badge green">✓ Converted to Content Idea</span>` : ''}
+              </div>
+              <div style="font-weight:700;color:#0F172A;font-size:13.5px;margin-top:6px">${mi.title}</div>
+              <div style="font-size:12px;color:#475569;margin-top:4px;line-height:1.45">${mi.summary || mi.insight || ''}</div>
+              ${mi.potential_content_angle ? `<div style="font-size:11.5px;color:#1E40AF;background:#EFF6FF;padding:6px 10px;border-radius:6px;margin-top:6px;font-weight:600">💡 Content Angle: ${mi.potential_content_angle}</div>` : ''}
             </div>
-            <span class="sc-delta-pill" style="margin-left:12px">${mi.viral_factor || 'Medium'} Impact</span>
+
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              ${!mi.is_converted_to_idea ? `
+                <button class="btn btn-primary btn-sm" onclick="handleConvertSignalToIdea('${mi.id}')">⚡ Convert to Content Idea</button>
+              ` : `
+                <span style="font-size:11px;font-weight:700;color:#10B981">Converted</span>
+              `}
+              <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleDeleteMarketIntel('${mi.id}')">🗑 Archive</button>
+            </div>
           </div>
         `).join('')}
       </div>
     </div>
   `;
+}
+
+// ── ATTENTION SUB-TAB: OUTREACH TRACKER ─────────────────────────────────────
+function renderOutreachTab() {
+  return `
+    <div class="dash-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="dash-card-title">Attention Outreach Tracker (Lightweight Prospect Pipeline)</div>
+          <div class="dash-card-sub">Track initial contacts, AI reply classifications, qualified statuses & human overrides</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openOutreachProspectModal()">+ Add Prospect</button>
+      </div>
+
+      <div style="margin-top:14px;overflow-x:auto">
+        <table class="data-table" style="width:100%;font-size:12px">
+          <thead>
+            <tr>
+              <th>Prospect Name</th>
+              <th>Platform</th>
+              <th>Source</th>
+              <th>Latest Reply</th>
+              <th>AI Reply Classification</th>
+              <th>Qualified Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${OUTREACH_PROSPECT_ITEMS.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:24px">No outreach prospects tracked yet. Click "+ Add Prospect" to begin.</td></tr>` : ''}
+            ${OUTREACH_PROSPECT_ITEMS.map(p => {
+              const classBadge = p.reply_classification === 'INTERESTED' ? 'green' : (p.reply_classification === 'NOT_NOW' ? 'yellow' : (p.reply_classification === 'UNSUBSCRIBE' ? 'red' : 'blue'));
+              return `
+                <tr>
+                  <td><b>${p.prospect_name}</b></td>
+                  <td><span class="sb-badge blue">${p.platform}</span></td>
+                  <td>${p.source || 'LinkedIn'}</td>
+                  <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.latest_reply || ''}">${p.latest_reply ? `"${p.latest_reply}"` : 'No reply yet'}</td>
+                  <td><span class="sb-badge ${classBadge}">${p.reply_classification || 'UNKNOWN'}</span></td>
+                  <td><span class="sb-badge ${p.qualified_status === 'QUALIFIED' ? 'green' : ''}">${p.qualified_status || 'UNQUALIFIED'}</span></td>
+                  <td>
+                    <div style="display:flex;gap:4px">
+                      <button class="btn btn-secondary btn-sm" onclick="handleAutoClassifyProspectReply('${p.id}')">⚡ AI Classify</button>
+                      <button class="btn btn-secondary btn-sm" onclick="openOutreachProspectModal('${p.id}')">✏️ Override</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ── AUTHORITY ASSET MODAL CONTROLLER ─────────────────────────────────────────
+function openAuthorityAssetModal(id) {
+  document.getElementById('authority-modal-title').textContent = id ? 'Edit Authority Asset' : 'New Authority Proof Asset';
+  document.getElementById('auth-id').value = id || '';
+  document.getElementById('auth-title').value = '';
+  document.getElementById('auth-type').value = 'CASE_STUDY';
+  document.getElementById('auth-permission').value = 'APPROVED';
+  document.getElementById('auth-client').value = '';
+  document.getElementById('auth-source').value = '';
+  document.getElementById('auth-metric').value = '';
+  document.getElementById('auth-url').value = '';
+  document.getElementById('auth-problem').value = '';
+  document.getElementById('auth-result').value = '';
+  document.getElementById('auth-summary').value = '';
+
+  if (id) {
+    const auth = AUTHORITY_ASSET_ITEMS.find(a => String(a.id) === String(id));
+    if (auth) {
+      document.getElementById('auth-title').value = auth.title || '';
+      document.getElementById('auth-type').value = auth.asset_type || 'CASE_STUDY';
+      document.getElementById('auth-permission').value = auth.permission_status || 'APPROVED';
+      document.getElementById('auth-client').value = auth.client_name || '';
+      document.getElementById('auth-source').value = auth.source || '';
+      document.getElementById('auth-metric').value = auth.metric || '';
+      document.getElementById('auth-url').value = auth.file_url || '';
+      document.getElementById('auth-problem').value = auth.problem || '';
+      document.getElementById('auth-result').value = auth.result || '';
+      document.getElementById('auth-summary').value = auth.proof_summary || '';
+    }
+  }
+  document.getElementById('authority-asset-modal').classList.remove('hidden');
+}
+
+function closeAuthorityAssetModal() {
+  document.getElementById('authority-asset-modal').classList.add('hidden');
+}
+
+async function handleSaveAuthorityAsset(e) {
+  e.preventDefault();
+  const id = document.getElementById('auth-id').value;
+  const payload = {
+    title: document.getElementById('auth-title').value.trim(),
+    assetType: document.getElementById('auth-type').value,
+    permissionStatus: document.getElementById('auth-permission').value,
+    clientName: document.getElementById('auth-client').value.trim(),
+    source: document.getElementById('auth-source').value.trim(),
+    metric: document.getElementById('auth-metric').value.trim(),
+    fileUrl: document.getElementById('auth-url').value.trim() || '#',
+    problem: document.getElementById('auth-problem').value.trim(),
+    result: document.getElementById('auth-result').value.trim(),
+    proofSummary: document.getElementById('auth-summary').value.trim(),
+    tags: [document.getElementById('auth-type').value, document.getElementById('auth-metric').value.trim()].filter(Boolean)
+  };
+
+  try {
+    let saved;
+    if (id) {
+      saved = await window.ASENZO_API.updateAuthorityAsset(id, payload);
+    } else {
+      saved = await window.ASENZO_API.createAuthorityAsset(payload);
+    }
+    const idx = AUTHORITY_ASSET_ITEMS.findIndex(a => String(a.id) === String(saved.id));
+    if (idx !== -1) AUTHORITY_ASSET_ITEMS[idx] = saved; else AUTHORITY_ASSET_ITEMS.unshift(saved);
+    closeAuthorityAssetModal();
+    showToast(id ? 'Authority asset updated' : 'Authority asset created');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Authority Asset Error: ${err.message}`);
+  }
+}
+
+async function handleDeleteAuthorityAsset(id) {
+  if (!confirm('Archive this authority proof asset?')) return;
+  try {
+    await window.ASENZO_API.deleteAuthorityAsset(id);
+    AUTHORITY_ASSET_ITEMS = AUTHORITY_ASSET_ITEMS.filter(a => String(a.id) !== String(id));
+    showToast('Authority asset archived');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Archive Error: ${err.message}`);
+  }
+}
+
+// MARKET INTEL CONTROLLER & SIGNAL CONVERSION LOGIC
+function openMarketIntelModal() {
+  document.getElementById('market-intel-modal').classList.remove('hidden');
+}
+
+function closeMarketIntelModal() {
+  document.getElementById('market-intel-modal').classList.add('hidden');
+}
+
+async function handleCreateMarketIntel(e) {
+  e.preventDefault();
+  const payload = {
+    title: document.getElementById('mi-title').value.trim(),
+    signalType: document.getElementById('mi-type').value,
+    relevance: document.getElementById('mi-relevance').value,
+    source: document.getElementById('mi-source').value.trim(),
+    topic: document.getElementById('mi-topic').value.trim(),
+    icpRelevance: document.getElementById('mi-icp-relevance').value.trim(),
+    summary: document.getElementById('mi-summary').value.trim(),
+    potentialContentAngle: document.getElementById('mi-angle').value.trim()
+  };
+
+  try {
+    const created = await window.ASENZO_API.createMarketIntel(payload);
+    MARKET_INTEL_ITEMS.unshift(created);
+    closeMarketIntelModal();
+    showToast('Market Signal logged');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Market Intel Error: ${err.message}`);
+  }
+}
+
+async function handleConvertSignalToIdea(id) {
+  if (!confirm('Convert this market signal into a scored Content Idea?')) return;
+  try {
+    const res = await window.ASENZO_API.convertSignalToIdea(id);
+    const idx = MARKET_INTEL_ITEMS.findIndex(m => String(m.id) === String(id));
+    if (idx !== -1) MARKET_INTEL_ITEMS[idx] = res.signal;
+    if (res.idea && !CONTENT_IDEAS.find(i => String(i.id) === String(res.idea.id))) {
+      CONTENT_IDEAS.unshift(res.idea);
+    }
+    showToast('Signal converted to Content Idea');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Conversion Error: ${err.message}`);
+  }
+}
+
+async function handleDeleteMarketIntel(id) {
+  if (!confirm('Archive this market signal?')) return;
+  try {
+    await window.ASENZO_API.deleteMarketIntel(id);
+    MARKET_INTEL_ITEMS = MARKET_INTEL_ITEMS.filter(m => String(m.id) !== String(id));
+    showToast('Market signal archived');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Archive Error: ${err.message}`);
+  }
+}
+
+// OUTREACH TRACKER MODAL CONTROLLER & AI CLASSIFIER LOGIC
+function openOutreachProspectModal(id) {
+  document.getElementById('outreach-modal-title').textContent = id ? 'Edit Outreach Prospect (Human Override)' : 'Attention Outreach Tracker Prospect';
+  document.getElementById('prosp-id').value = id || '';
+  document.getElementById('prosp-name').value = '';
+  document.getElementById('prosp-platform').value = 'LINKEDIN';
+  document.getElementById('prosp-qualified').value = 'UNQUALIFIED';
+  document.getElementById('prosp-source').value = 'LinkedIn Search';
+  document.getElementById('prosp-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('prosp-initial').value = '';
+  document.getElementById('prosp-reply').value = '';
+  document.getElementById('prosp-classification').value = 'UNKNOWN';
+  document.getElementById('prosp-followup').value = '';
+
+  if (id) {
+    const p = OUTREACH_PROSPECT_ITEMS.find(x => String(x.id) === String(id));
+    if (p) {
+      document.getElementById('prosp-name').value = p.prospect_name || '';
+      document.getElementById('prosp-platform').value = p.platform || 'LINKEDIN';
+      document.getElementById('prosp-qualified').value = p.qualified_status || 'UNQUALIFIED';
+      document.getElementById('prosp-source').value = p.source || '';
+      document.getElementById('prosp-date').value = p.contact_date ? p.contact_date.split('T')[0] : '';
+      document.getElementById('prosp-initial').value = p.initial_message || '';
+      document.getElementById('prosp-reply').value = p.latest_reply || '';
+      document.getElementById('prosp-classification').value = p.reply_classification || 'UNKNOWN';
+      document.getElementById('prosp-followup').value = p.follow_up_date ? p.follow_up_date.split('T')[0] : '';
+    }
+  }
+  document.getElementById('outreach-prospect-modal').classList.remove('hidden');
+}
+
+function closeOutreachProspectModal() {
+  document.getElementById('outreach-prospect-modal').classList.add('hidden');
+}
+
+async function handleSaveOutreachProspect(e) {
+  e.preventDefault();
+  const id = document.getElementById('prosp-id').value;
+  const payload = {
+    prospectName: document.getElementById('prosp-name').value.trim(),
+    platform: document.getElementById('prosp-platform').value,
+    qualifiedStatus: document.getElementById('prosp-qualified').value,
+    source: document.getElementById('prosp-source').value.trim(),
+    contactDate: document.getElementById('prosp-date').value,
+    initialMessage: document.getElementById('prosp-initial').value.trim(),
+    latestReply: document.getElementById('prosp-reply').value.trim(),
+    replyClassification: document.getElementById('prosp-classification').value,
+    followUpDate: document.getElementById('prosp-followup').value
+  };
+
+  try {
+    let saved;
+    if (id) {
+      saved = await window.ASENZO_API.updateOutreachProspect(id, payload);
+    } else {
+      saved = await window.ASENZO_API.createOutreachProspect(payload);
+    }
+    const idx = OUTREACH_PROSPECT_ITEMS.findIndex(p => String(p.id) === String(saved.id));
+    if (idx !== -1) OUTREACH_PROSPECT_ITEMS[idx] = saved; else OUTREACH_PROSPECT_ITEMS.unshift(saved);
+    closeOutreachProspectModal();
+    showToast(id ? 'Prospect updated & saved' : 'Prospect added to Outreach Tracker');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Outreach Error: ${err.message}`);
+  }
+}
+
+async function handleAutoClassifyProspectModalReply() {
+  const replyText = document.getElementById('prosp-reply').value.trim();
+  if (!replyText) {
+    return showToast('Please enter an inbound reply message first');
+  }
+  try {
+    const res = await window.ASENZO_API.classifyOutreachReply({ replyText });
+    document.getElementById('prosp-classification').value = res.classification;
+    if (res.classification === 'INTERESTED') {
+      document.getElementById('prosp-qualified').value = 'QUALIFIED';
+    }
+    showToast(`AI Classified: ${res.classification} (${res.confidence}% confidence)`);
+  } catch (err) {
+    showToast(`Classification Error: ${err.message}`);
+  }
+}
+
+async function handleAutoClassifyProspectReply(id) {
+  const p = OUTREACH_PROSPECT_ITEMS.find(x => String(x.id) === String(id));
+  if (!p || !p.latest_reply) {
+    return showToast('No inbound reply text recorded for this prospect');
+  }
+  try {
+    const res = await window.ASENZO_API.classifyOutreachReply({ replyText: p.latest_reply, prospectId: id });
+    if (res.prospect) {
+      const idx = OUTREACH_PROSPECT_ITEMS.findIndex(x => String(x.id) === String(id));
+      if (idx !== -1) OUTREACH_PROSPECT_ITEMS[idx] = res.prospect;
+    }
+    showToast(`AI Classified reply: ${res.classification} (${res.confidence}% confidence)`);
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Classifier Error: ${err.message}`);
+  }
 }
 
 // ── ATTENTION SUB-TAB 5: AI RECOMMENDATIONS ─────────────────────────────────

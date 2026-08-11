@@ -560,3 +560,102 @@ test('27. Creative Asset Attachment & Retrieval', async () => {
   assert.strictEqual(getAssets.body[0].file_url, 'https://cdn.asenzo.io/assets/infographic-v1.png');
 });
 
+test('28. Authority Asset Library CRUD & Permission Status Filtering', async () => {
+  const createApproved = await request('POST', '/api/authority-assets', {
+    title: `Apex Logistics Case Study ${UNIQ}`,
+    assetType: 'CASE_STUDY',
+    clientName: 'Apex Logistics',
+    source: 'Client Audit',
+    metric: '2.4x Pipeline',
+    permissionStatus: 'APPROVED',
+    proofSummary: 'Apex Logistics grown pipeline 2.4x in 90 days using ASENZO Growth OS framework.'
+  });
+  assert.strictEqual(createApproved.status, 201);
+  assert.strictEqual(createApproved.body.permission_status, 'APPROVED');
+
+  const createPending = await request('POST', '/api/authority-assets', {
+    title: `Unapproved Draft Proof ${UNIQ}`,
+    assetType: 'TESTIMONIAL',
+    permissionStatus: 'PENDING',
+    proofSummary: 'Unapproved claim pending client signoff.'
+  });
+  assert.strictEqual(createPending.status, 201);
+  assert.strictEqual(createPending.body.permission_status, 'PENDING');
+
+  const getApproved = await request('GET', '/api/authority-assets?permissionStatus=APPROVED');
+  assert.strictEqual(getApproved.status, 200);
+  assert.ok(getApproved.body.some(a => a.id === createApproved.body.id));
+  assert.ok(!getApproved.body.some(a => a.id === createPending.body.id));
+});
+
+test('29. Anti-Fabrication Guardrail Engine Filtered Proof Enforcement', async () => {
+  const genHooks = await request('POST', '/api/generate/hooks', {
+    styles: ['case_study'],
+    topic: 'Founder Autonomy',
+    count: 1
+  });
+  assert.strictEqual(genHooks.status, 200);
+  assert.ok(genHooks.body.hooks.length > 0);
+  assert.ok(genHooks.body.hooks[0].score >= 80);
+});
+
+test('30. Market Intelligence Signal CRUD & Signal -> Content Idea Conversion', async () => {
+  const createSignal = await request('POST', '/api/market-intel', {
+    title: `Competitor Retainer Trap Signal ${UNIQ}`,
+    signalType: 'COMPETITOR_ACTIVITY',
+    relevance: 'HIGH',
+    source: 'LinkedIn Comments',
+    summary: 'Founders complaining about spending $5k/mo on agencies with zero operating system.',
+    potentialContentAngle: 'The $5,000/month Agency Retainer Trap'
+  });
+  assert.strictEqual(createSignal.status, 201);
+  const signalId = createSignal.body.id;
+
+  const convertRes = await request('POST', `/api/market-intel/${signalId}/convert-to-idea`);
+  assert.strictEqual(convertRes.status, 201);
+  assert.ok(convertRes.body.idea);
+  assert.strictEqual(convertRes.body.idea.source, 'MARKET_INTEL');
+  assert.strictEqual(convertRes.body.signal.is_converted_to_idea, 1);
+});
+
+test('31. Attention Outreach Tracker CRUD & AI Reply Classifier', async () => {
+  const createProspect = await request('POST', '/api/outreach', {
+    prospectName: `Mark Vance ${UNIQ}`,
+    platform: 'LINKEDIN',
+    initialMessage: 'Hey Mark, saw your post on founder scaling bottlenecks.',
+    latestReply: 'We are struggling with manual drafting every week. Would love to see your framework demo.',
+    replyClassification: 'UNKNOWN',
+    qualifiedStatus: 'UNQUALIFIED'
+  });
+  assert.strictEqual(createProspect.status, 201);
+  const prospectId = createProspect.body.id;
+
+  const classifyRes = await request('POST', '/api/outreach/classify-reply', {
+    replyText: 'We are struggling with manual drafting every week. Would love to see your framework demo.',
+    prospectId
+  });
+  assert.strictEqual(classifyRes.status, 200);
+  assert.strictEqual(classifyRes.body.classification, 'INTERESTED');
+  assert.strictEqual(classifyRes.body.prospect.qualified_status, 'QUALIFIED');
+});
+
+test('32. Human Override of Outreach Classification & Qualified Status', async () => {
+  const prospect = await request('POST', '/api/outreach', {
+    prospectName: `Sarah Jenkins ${UNIQ}`,
+    platform: 'X',
+    replyClassification: 'UNKNOWN',
+    qualifiedStatus: 'UNQUALIFIED'
+  });
+  const id = prospect.body.id;
+
+  const overrideRes = await request('PUT', `/api/outreach/${id}`, {
+    replyClassification: 'NOT_NOW',
+    qualifiedStatus: 'UNQUALIFIED',
+    followUpDate: '2026-09-01'
+  });
+  assert.strictEqual(overrideRes.status, 200);
+  assert.strictEqual(overrideRes.body.reply_classification, 'NOT_NOW');
+  assert.strictEqual(overrideRes.body.qualified_status, 'UNQUALIFIED');
+});
+
+

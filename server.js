@@ -34,7 +34,11 @@ const {
   LeadCtaSchema,
   LeadCaptureSchema,
   LeadUpdateSchema,
-  AttributionEventSchema
+  AttributionEventSchema,
+  AuthorityAssetFullSchema,
+  MarketSignalFullSchema,
+  OutreachProspectFullSchema,
+  ReplyClassificationRequestSchema
 } = require('./schema');
 
 const app = express();
@@ -2224,7 +2228,7 @@ async function assembleFullGrowthContext(businessId = 'biz_default', pillarId = 
     get(`SELECT * FROM brand_profiles WHERE business_id = ?`, [businessId]),
     get(`SELECT * FROM founder_voice_profiles WHERE business_id = ?`, [businessId]),
     get(`SELECT * FROM brand_voices WHERE business_id = ?`, [businessId]),
-    all(`SELECT * FROM authority_assets WHERE business_id = ? AND is_archived = 0`, [businessId]),
+    all(`SELECT * FROM authority_assets WHERE business_id = ? AND is_archived = 0 AND permission_status = 'APPROVED'`, [businessId]),
     all(`SELECT * FROM founder_knowledge_chunks WHERE business_id = ? ORDER BY created_at DESC LIMIT 20`, [businessId]),
     pillarId ? get(`SELECT * FROM content_pillars WHERE id = ?`, [pillarId]) : Promise.resolve(null),
     ideaId ? get(`SELECT * FROM content_ideas WHERE id = ?`, [ideaId]) : Promise.resolve(null)
@@ -3255,6 +3259,393 @@ app.delete('/api/leads/:id', async (req, res) => {
     res.json({ success: true, deleted: true });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ── AUTHORITY ASSET LIBRARY ENDPOINTS (APPROVED PROOF SOURCE) ────────────────
+app.get('/api/authority-assets', async (req, res) => {
+  try {
+    let sql = `SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND is_archived = 0`;
+    const params = [];
+    if (req.query.type) { sql += ` AND asset_type = ?`; params.push(req.query.type); }
+    if (req.query.permissionStatus) { sql += ` AND permission_status = ?`; params.push(req.query.permissionStatus); }
+    if (req.query.q) {
+      sql += ` AND (title LIKE ? OR proof_summary LIKE ? OR client_name LIKE ? OR metric LIKE ?)`;
+      const like = `%${req.query.q}%`;
+      params.push(like, like, like, like);
+    }
+    sql += ` ORDER BY created_at DESC`;
+    const rows = await all(sql, params);
+    res.json(rows.map(r => ({ ...r, tags: JSON.parse(r.tags || '[]') })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/authority-assets', async (req, res) => {
+  try {
+    const parsed = AuthorityAssetFullSchema.parse(req.body);
+    const id = parsed.id || makeId('auth');
+    const now = new Date().toISOString();
+    await run(
+      `INSERT INTO authority_assets (id, business_id, title, asset_type, source, asset_date, client_name, problem, result, metric, tags, permission_status, expiration_date, proof_summary, file_url, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [
+        id, parsed.businessId, parsed.title, parsed.assetType, parsed.source || 'Client Case Study',
+        parsed.assetDate || now, parsed.clientName || '', parsed.problem || '', parsed.result || '',
+        parsed.metric || '', JSON.stringify(parsed.tags || []), parsed.permissionStatus || 'APPROVED',
+        parsed.expirationDate || '', parsed.proofSummary || '', parsed.fileUrl || '#', now, now
+      ]
+    );
+    await logAudit('CREATE', 'authority_assets', id, parsed);
+    const created = await get(`SELECT * FROM authority_assets WHERE id = ?`, [id]);
+    res.status(201).json({ ...created, tags: JSON.parse(created.tags || '[]') });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/authority-assets/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM authority_assets WHERE id = ? AND is_archived = 0`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Authority asset not found' });
+
+    const merged = {
+      id: existing.id,
+      businessId: existing.business_id,
+      title: req.body.title !== undefined ? req.body.title : existing.title,
+      assetType: req.body.assetType !== undefined ? req.body.assetType : existing.asset_type,
+      source: req.body.source !== undefined ? req.body.source : existing.source,
+      assetDate: req.body.assetDate !== undefined ? req.body.assetDate : existing.asset_date,
+      clientName: req.body.clientName !== undefined ? req.body.clientName : existing.client_name,
+      problem: req.body.problem !== undefined ? req.body.problem : existing.problem,
+      result: req.body.result !== undefined ? req.body.result : existing.result,
+      metric: req.body.metric !== undefined ? req.body.metric : existing.metric,
+      tags: req.body.tags !== undefined ? req.body.tags : JSON.parse(existing.tags || '[]'),
+      permissionStatus: req.body.permissionStatus !== undefined ? req.body.permissionStatus : existing.permission_status,
+      expirationDate: req.body.expirationDate !== undefined ? req.body.expirationDate : existing.expiration_date,
+      proofSummary: req.body.proofSummary !== undefined ? req.body.proofSummary : existing.proof_summary,
+      fileUrl: req.body.fileUrl !== undefined ? req.body.fileUrl : existing.file_url,
+      isArchived: req.body.isArchived !== undefined ? Boolean(req.body.isArchived) : Boolean(existing.is_archived)
+    };
+
+    const parsed = AuthorityAssetFullSchema.parse(merged);
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE authority_assets SET title = ?, asset_type = ?, source = ?, asset_date = ?, client_name = ?, problem = ?, result = ?, metric = ?, tags = ?, permission_status = ?, expiration_date = ?, proof_summary = ?, file_url = ?, is_archived = ?, updated_at = ? WHERE id = ?`,
+      [
+        parsed.title, parsed.assetType, parsed.source, parsed.assetDate, parsed.clientName,
+        parsed.problem, parsed.result, parsed.metric, JSON.stringify(parsed.tags),
+        parsed.permissionStatus, parsed.expirationDate, parsed.proofSummary, parsed.fileUrl,
+        parsed.isArchived ? 1 : 0, now, id
+      ]
+    );
+    await logAudit('UPDATE', 'authority_assets', id, { title: parsed.title, permissionStatus: parsed.permissionStatus });
+    const updated = await get(`SELECT * FROM authority_assets WHERE id = ?`, [id]);
+    res.json({ ...updated, tags: JSON.parse(updated.tags || '[]') });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/authority-assets/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    await run(`UPDATE authority_assets SET is_archived = 1, updated_at = ? WHERE id = ?`, [now, id]);
+    res.json({ message: 'Authority asset archived', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── MARKET INTELLIGENCE SIGNAL RADAR ENDPOINTS ───────────────────────────────
+app.get('/api/market-intel', async (req, res) => {
+  try {
+    const rows = await all(`SELECT * FROM market_intel WHERE business_id = 'biz_default' AND is_archived = 0 ORDER BY updated_at DESC`);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/market-intel', async (req, res) => {
+  try {
+    const parsed = MarketSignalFullSchema.parse(req.body);
+    const id = parsed.id || makeId('mi');
+    const now = new Date().toISOString();
+
+    await run(
+      `INSERT INTO market_intel (id, business_id, title, signal_type, source, signal_date, relevance, icp_relevance, topic, summary, potential_content_angle, is_converted_to_idea, converted_idea_id, insight, viral_factor, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, '', ?, 'High', 0, ?, ?)`,
+      [
+        id, parsed.businessId, parsed.title, parsed.signalType, parsed.source || 'Niche Observation',
+        parsed.signalDate || now, parsed.relevance || 'HIGH', parsed.icpRelevance || '',
+        parsed.topic || '', parsed.summary || '', parsed.potentialContentAngle || '',
+        parsed.summary || '', now, now
+      ]
+    );
+    await logAudit('CREATE', 'market_intel', id, parsed);
+    res.status(201).json(await get(`SELECT * FROM market_intel WHERE id = ?`, [id]));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/market-intel/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM market_intel WHERE id = ? AND is_archived = 0`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Market signal not found' });
+
+    const merged = {
+      id: existing.id,
+      businessId: existing.business_id,
+      title: req.body.title !== undefined ? req.body.title : existing.title,
+      signalType: req.body.signalType !== undefined ? req.body.signalType : existing.signal_type,
+      source: req.body.source !== undefined ? req.body.source : existing.source,
+      signalDate: req.body.signalDate !== undefined ? req.body.signalDate : existing.signal_date,
+      relevance: req.body.relevance !== undefined ? req.body.relevance : existing.relevance,
+      icpRelevance: req.body.icpRelevance !== undefined ? req.body.icpRelevance : existing.icp_relevance,
+      topic: req.body.topic !== undefined ? req.body.topic : existing.topic,
+      summary: req.body.summary !== undefined ? req.body.summary : existing.summary,
+      potentialContentAngle: req.body.potentialContentAngle !== undefined ? req.body.potentialContentAngle : existing.potential_content_angle,
+      isConvertedToIdea: req.body.isConvertedToIdea !== undefined ? Boolean(req.body.isConvertedToIdea) : Boolean(existing.is_converted_to_idea),
+      convertedIdeaId: req.body.convertedIdeaId !== undefined ? req.body.convertedIdeaId : existing.converted_idea_id,
+      isArchived: req.body.isArchived !== undefined ? Boolean(req.body.isArchived) : Boolean(existing.is_archived)
+    };
+
+    const parsed = MarketSignalFullSchema.parse(merged);
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE market_intel SET title = ?, signal_type = ?, source = ?, signal_date = ?, relevance = ?, icp_relevance = ?, topic = ?, summary = ?, potential_content_angle = ?, is_converted_to_idea = ?, converted_idea_id = ?, updated_at = ? WHERE id = ?`,
+      [
+        parsed.title, parsed.signalType, parsed.source, parsed.signalDate, parsed.relevance,
+        parsed.icpRelevance, parsed.topic, parsed.summary, parsed.potentialContentAngle,
+        parsed.isConvertedToIdea ? 1 : 0, parsed.convertedIdeaId, now, id
+      ]
+    );
+    res.json(await get(`SELECT * FROM market_intel WHERE id = ?`, [id]));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/market-intel/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    await run(`UPDATE market_intel SET is_archived = 1, updated_at = ? WHERE id = ?`, [now, id]);
+    res.json({ message: 'Market signal archived', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── SIGNAL → CONTENT IDEA CONVERSION ENDPOINT ──────────────────────────────
+app.post('/api/market-intel/:id/convert-to-idea', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const signal = await get(`SELECT * FROM market_intel WHERE id = ? AND is_archived = 0`, [id]);
+    if (!signal) return res.status(404).json({ error: 'Market signal not found' });
+
+    const ideaId = makeId('idea');
+    const now = new Date().toISOString();
+    const ctx = await buildIdeaScoringContext();
+    const rawIdea = {
+      title: signal.title,
+      premise: signal.summary || signal.insight || '',
+      icp: signal.icp_relevance || 'Bootstrapped B2B Founders',
+      pain: signal.topic || 'Market Bottleneck',
+      desiredResult: 'Scale MRR to $100k/mo',
+      source: 'MARKET_INTEL',
+      notes: signal.potential_content_angle || ''
+    };
+    const scored = scoreContentIdea(rawIdea, ctx);
+
+    await run(
+      `INSERT INTO content_ideas (id, business_id, source, title, premise, icp, pain, desired_result, content_format, platform, objective, cta, score, score_breakdown, priority, status, notes, is_archived, created_at, updated_at)
+       VALUES (?, 'biz_default', 'MARKET_INTEL', ?, ?, ?, ?, ?, 'POST', 'LINKEDIN', ?, '', ?, ?, ?, 'NEW', ?, 0, ?, ?)`,
+      [
+        ideaId, rawIdea.title, rawIdea.premise, rawIdea.icp, rawIdea.pain, rawIdea.desiredResult,
+        signal.potential_content_angle || 'Capitalize on market signal', scored.totalScore,
+        JSON.stringify(scored.breakdown), scored.priority, rawIdea.notes, now, now
+      ]
+    );
+
+    await run(
+      `UPDATE market_intel SET is_converted_to_idea = 1, converted_idea_id = ?, updated_at = ? WHERE id = ?`,
+      [ideaId, now, id]
+    );
+
+    await logAudit('CREATE', 'content_ideas', ideaId, { source: 'MARKET_INTEL', signalId: id });
+    res.status(201).json({
+      message: 'Market signal converted to Content Idea successfully',
+      idea: serializeIdea(await get(`SELECT * FROM content_ideas WHERE id = ?`, [ideaId])),
+      signal: await get(`SELECT * FROM market_intel WHERE id = ?`, [id])
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ATTENTION OUTREACH TRACKER & AI REPLY CLASSIFIER ENDPOINTS ───────────────
+app.get('/api/outreach', async (req, res) => {
+  try {
+    const rows = await all(`SELECT * FROM outreach_prospects WHERE business_id = 'biz_default' AND is_archived = 0 ORDER BY updated_at DESC`);
+    res.json(rows.map(r => ({ ...r, conversationHistory: JSON.parse(r.conversation_history || '[]') })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/outreach', async (req, res) => {
+  try {
+    const parsed = OutreachProspectFullSchema.parse(req.body);
+    const id = parsed.id || makeId('prosp');
+    const now = new Date().toISOString();
+
+    await run(
+      `INSERT INTO outreach_prospects (id, business_id, prospect_name, source, platform, initial_message, contact_date, follow_up_date, latest_reply, reply_classification, conversation_history, qualified_status, icp_score, status, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [
+        id, parsed.businessId, parsed.prospectName, parsed.source || 'LinkedIn Search',
+        parsed.platform || 'LINKEDIN', parsed.initialMessage || '', parsed.contactDate || now,
+        parsed.followUpDate || '', parsed.latestReply || '', parsed.replyClassification || 'UNKNOWN',
+        JSON.stringify(parsed.conversationHistory || []), parsed.qualifiedStatus || 'UNQUALIFIED',
+        parsed.icpScore || 85, parsed.status || 'NEW', now, now
+      ]
+    );
+    await logAudit('CREATE', 'outreach_prospects', id, parsed);
+    const created = await get(`SELECT * FROM outreach_prospects WHERE id = ?`, [id]);
+    res.status(201).json({ ...created, conversationHistory: JSON.parse(created.conversation_history || '[]') });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/outreach/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM outreach_prospects WHERE id = ? AND is_archived = 0`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Outreach prospect not found' });
+
+    const merged = {
+      id: existing.id,
+      businessId: existing.business_id,
+      prospectName: req.body.prospectName !== undefined ? req.body.prospectName : existing.prospect_name,
+      source: req.body.source !== undefined ? req.body.source : existing.source,
+      platform: req.body.platform !== undefined ? req.body.platform : existing.platform,
+      initialMessage: req.body.initialMessage !== undefined ? req.body.initialMessage : existing.initial_message,
+      contactDate: req.body.contactDate !== undefined ? req.body.contactDate : existing.contact_date,
+      followUpDate: req.body.followUpDate !== undefined ? req.body.followUpDate : existing.follow_up_date,
+      latestReply: req.body.latestReply !== undefined ? req.body.latestReply : existing.latest_reply,
+      replyClassification: req.body.replyClassification !== undefined ? req.body.replyClassification : existing.reply_classification,
+      conversationHistory: req.body.conversationHistory !== undefined ? req.body.conversationHistory : JSON.parse(existing.conversation_history || '[]'),
+      qualifiedStatus: req.body.qualifiedStatus !== undefined ? req.body.qualifiedStatus : existing.qualified_status,
+      icpScore: req.body.icpScore !== undefined ? req.body.icpScore : existing.icp_score,
+      status: req.body.status !== undefined ? req.body.status : existing.status,
+      isArchived: req.body.isArchived !== undefined ? Boolean(req.body.isArchived) : Boolean(existing.is_archived)
+    };
+
+    const parsed = OutreachProspectFullSchema.parse(merged);
+    const now = new Date().toISOString();
+
+    await run(
+      `UPDATE outreach_prospects SET prospect_name = ?, source = ?, platform = ?, initial_message = ?, contact_date = ?, follow_up_date = ?, latest_reply = ?, reply_classification = ?, conversation_history = ?, qualified_status = ?, icp_score = ?, status = ?, is_archived = ?, updated_at = ? WHERE id = ?`,
+      [
+        parsed.prospectName, parsed.source, parsed.platform, parsed.initialMessage,
+        parsed.contactDate, parsed.followUpDate, parsed.latestReply, parsed.replyClassification,
+        JSON.stringify(parsed.conversationHistory), parsed.qualifiedStatus, parsed.icpScore,
+        parsed.status, parsed.isArchived ? 1 : 0, now, id
+      ]
+    );
+    await logAudit('UPDATE', 'outreach_prospects', id, { classification: parsed.replyClassification, qualifiedStatus: parsed.qualifiedStatus });
+    const updated = await get(`SELECT * FROM outreach_prospects WHERE id = ?`, [id]);
+    res.json({ ...updated, conversationHistory: JSON.parse(updated.conversation_history || '[]') });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/outreach/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const now = new Date().toISOString();
+    await run(`UPDATE outreach_prospects SET is_archived = 1, updated_at = ? WHERE id = ?`, [now, id]);
+    res.json({ message: 'Outreach prospect archived', id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AI REPLY CLASSIFIER ENDPOINT (WITH HUMAN OVERRIDE SUPPORT) ────────────────
+app.post('/api/outreach/classify-reply', async (req, res) => {
+  try {
+    const parsed = ReplyClassificationRequestSchema.parse(req.body);
+    const text = parsed.replyText.toLowerCase();
+
+    let classification = 'UNKNOWN';
+    let explanation = 'Unclear response sentiment; flagged for human operator review.';
+    let confidence = 90;
+
+    if (/unsubscribe|stop|remove me|don\'t message|don\'t email|spam/.test(text)) {
+      classification = 'UNSUBSCRIBE';
+      explanation = 'Explicit opt-out or unsubscribe request detected.';
+    } else if (/interested|would love|send over|let\'s connect|demo|tell me more|how do i|yes|book a call/.test(text)) {
+      classification = 'INTERESTED';
+      explanation = 'High purchase intent or framework demo interest detected.';
+      confidence = 96;
+    } else if (/how much|what is|can you|cost|pricing|where|what about/.test(text)) {
+      classification = 'QUESTION';
+      explanation = 'Prospect asked an inquiry regarding pricing, capability or process.';
+      confidence = 94;
+    } else if (/talk to|connect with|reach out to|my cofounder|vp of|head of/.test(text)) {
+      classification = 'REFERRAL';
+      explanation = 'Prospect directed inquiry to a colleague or decision maker.';
+      confidence = 92;
+    } else if (/not right now|maybe later|busy|next quarter|circle back|next month/.test(text)) {
+      classification = 'NOT_NOW';
+      explanation = 'Prospect requested a delayed follow-up date.';
+      confidence = 93;
+    } else if (/no thanks|pass|not interested|stop messaging/.test(text)) {
+      classification = 'NEGATIVE';
+      explanation = 'Prospect declined interest.';
+      confidence = 95;
+    } else if (/great|awesome|sounds good|thanks|cool/.test(text)) {
+      classification = 'POSITIVE';
+      explanation = 'Positive conversational affinity expressed.';
+      confidence = 91;
+    } else {
+      classification = 'NEUTRAL';
+      explanation = 'Standard neutral conversational reply.';
+      confidence = 85;
+    }
+
+    let prospect = null;
+    if (parsed.prospectId) {
+      const now = new Date().toISOString();
+      const existing = await get(`SELECT * FROM outreach_prospects WHERE id = ?`, [parsed.prospectId]);
+      if (existing) {
+        let qual = existing.qualified_status;
+        if (classification === 'INTERESTED') qual = 'QUALIFIED';
+        await run(
+          `UPDATE outreach_prospects SET latest_reply = ?, reply_classification = ?, qualified_status = ?, updated_at = ? WHERE id = ?`,
+          [parsed.replyText, classification, qual, now, parsed.prospectId]
+        );
+        prospect = await get(`SELECT * FROM outreach_prospects WHERE id = ?`, [parsed.prospectId]);
+      }
+    }
+
+    res.json({
+      classification,
+      confidence,
+      explanation,
+      prospect: prospect ? { ...prospect, conversationHistory: JSON.parse(prospect.conversation_history || '[]') } : null
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
