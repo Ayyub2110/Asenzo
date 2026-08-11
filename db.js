@@ -138,7 +138,7 @@ async function initDb() {
 
         // 14. Content (11-Stage Lifecycle)
         await run(`CREATE TABLE IF NOT EXISTS contents (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pillar_id TEXT, idea_id TEXT, title TEXT NOT NULL, lifecycle_status TEXT DEFAULT 'DRAFT', primary_platform TEXT DEFAULT 'LINKEDIN', hook_text TEXT DEFAULT '', body_script TEXT DEFAULT '', cta TEXT DEFAULT '', is_ad_candidate INTEGER DEFAULT 0, is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT, deleted_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pillar_id TEXT, idea_id TEXT, title TEXT NOT NULL, lifecycle_status TEXT DEFAULT 'DRAFT', primary_platform TEXT DEFAULT 'LINKEDIN', hook_text TEXT DEFAULT '', body_script TEXT DEFAULT '', cta TEXT DEFAULT '', owner TEXT DEFAULT 'Alex Morgan', deadline TEXT DEFAULT '', scheduled_at TEXT DEFAULT '', published_at TEXT DEFAULT '', score INTEGER DEFAULT 85, performance_json TEXT DEFAULT '{}', is_ad_candidate INTEGER DEFAULT 0, is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT, deleted_at TEXT
         )`);
 
         // 15. ContentVersion
@@ -224,7 +224,7 @@ async function initDb() {
         const now = new Date().toISOString();
 
         // Seed Business & Founder
-        await run(`INSERT INTO businesses (id, name, domain, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`, [
+        await run(`INSERT OR IGNORE INTO businesses (id, name, domain, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`, [
           'biz_default',
           'ASENZO Growth OS Tenant',
           'asenzo.ai',
@@ -233,7 +233,7 @@ async function initDb() {
         ]);
 
         await run(
-          `INSERT INTO founders (id, business_id, name, email, title, bio, expertise, experience, story, beliefs, opinions, achievements, credentials, created_at, updated_at)
+          `INSERT OR IGNORE INTO founders (id, business_id, name, email, title, bio, expertise, experience, story, beliefs, opinions, achievements, credentials, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             'founder_default',
@@ -256,7 +256,7 @@ async function initDb() {
 
         // Seed Brand Profile
         await run(
-          `INSERT INTO brand_profiles (id, business_id, brand_name, tagline, mission, personal_brand_positioning, business_brand_positioning, audience, personality, tone, formality, directness, humor, technical_depth, vocabulary_preferences, words_to_use, words_to_avoid, created_at, updated_at)
+          `INSERT OR IGNORE INTO brand_profiles (id, business_id, brand_name, tagline, mission, personal_brand_positioning, business_brand_positioning, audience, personality, tone, formality, directness, humor, technical_depth, vocabulary_preferences, words_to_use, words_to_avoid, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             'bp_default',
@@ -296,17 +296,17 @@ When you replace random agency retainers with a production-grade Growth Operatin
 
         const srcId = 'kn_seed_1';
         await run(
-          `INSERT INTO founder_knowledge_sources (id, business_id, founder_id, title, source_type, raw_content, clean_content, metadata_json, chunk_count, is_archived, created_at, updated_at)
+          `INSERT OR IGNORE INTO founder_knowledge_sources (id, business_id, founder_id, title, source_type, raw_content, clean_content, metadata_json, chunk_count, is_archived, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
           [
             srcId,
             'biz_default',
             'founder_default',
-            'Article: The Founder Operating Bottleneck & FIS Score Framework',
+            'Founder Independence Framework & Agency Myths Article',
             'ARTICLE',
             sampleContent1,
             sampleContent1,
-            JSON.stringify({ keywords: ['operating system', 'bottleneck', 'FIS score', 'retainers', 'workload'], wordCount: 142 }),
+            JSON.stringify({ wordCount: 145, readingTimeMinutes: 1 }),
             2,
             now,
             now
@@ -315,22 +315,22 @@ When you replace random agency retainers with a production-grade Growth Operatin
 
         // Seed Chunks
         await run(
-          `INSERT INTO founder_knowledge_chunks (id, source_id, business_id, chunk_index, chunk_text, token_count, keywords, created_at)
+          `INSERT OR IGNORE INTO founder_knowledge_chunks (id, source_id, business_id, chunk_index, chunk_text, token_count, keywords, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             'chk_seed_1_0',
             srcId,
             'biz_default',
             0,
-            'Most bootstrapped B2B founders think they have a sales problem. They don\'t. They have an operating system problem. When a founder spends 60 hours a week running every sales call, writing every post, and closing every DM, they are not operating a business — they are running a high-stress job.',
-            54,
-            JSON.stringify(['sales problem', 'operating system problem', '60 hours', 'high-stress job']),
+            'Most bootstrapped B2B founders think they have a sales problem. They don\'t. They have an operating system problem. When a founder spends 60 hours a week running sales calls, posts, and DMs, they run a high-stress job.',
+            48,
+            JSON.stringify(['sales problem', 'operating system problem', '60 hours a week', 'high-stress job']),
             now
           ]
         );
 
         await run(
-          `INSERT INTO founder_knowledge_chunks (id, source_id, business_id, chunk_index, chunk_text, token_count, keywords, created_at)
+          `INSERT OR IGNORE INTO founder_knowledge_chunks (id, source_id, business_id, chunk_index, chunk_text, token_count, keywords, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             'chk_seed_1_1',
@@ -346,7 +346,7 @@ When you replace random agency retainers with a production-grade Growth Operatin
 
         // Seed Founder Voice Profile
         await run(
-          `INSERT INTO founder_voice_profiles (id, business_id, sentence_patterns, recurring_phrases, vocabulary, writing_structure, directness_level, communication_style, sample_chunks, updated_at)
+          `INSERT OR IGNORE INTO founder_voice_profiles (id, business_id, sentence_patterns, recurring_phrases, vocabulary, writing_structure, directness_level, communication_style, sample_chunks, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             'vp_default',
@@ -364,7 +364,7 @@ When you replace random agency retainers with a production-grade Growth Operatin
 
         // Seed Positioning & ICP
         await run(
-          `INSERT INTO icps (id, business_id, name, target_customer, industry, business_type, founder_role, company_size, revenue_range, primary_pains, secondary_pains, desired_outcomes, buying_triggers, objections, is_active, created_at, updated_at)
+          `INSERT OR IGNORE INTO icps (id, business_id, name, target_customer, industry, business_type, founder_role, company_size, revenue_range, primary_pains, secondary_pains, desired_outcomes, buying_triggers, objections, is_active, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
           [
             'icp_default',
@@ -390,7 +390,7 @@ When you replace random agency retainers with a production-grade Growth Operatin
         const initialBreakdown = JSON.stringify({ icpSpecificity: 18, painClarity: 18, outcomeClarity: 18, differentiation: 18, comprehension: 16 });
 
         await run(
-          `INSERT INTO positionings (id, business_id, icp_id, icp_summary, problem, result, mechanism, statement, score, score_breakdown, alternatives, version, is_active, created_at, updated_at)
+          `INSERT OR IGNORE INTO positionings (id, business_id, icp_id, icp_summary, problem, result, mechanism, statement, score, score_breakdown, alternatives, version, is_active, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 88, ?, '[]', 1, 1, ?, ?)`,
           [
             'pos_default',
@@ -408,13 +408,13 @@ When you replace random agency retainers with a production-grade Growth Operatin
         );
 
         await run(
-          `INSERT INTO positioning_versions (id, positioning_id, version_number, statement, icp_summary, problem, result, mechanism, score, score_breakdown, created_at)
+          `INSERT OR IGNORE INTO positioning_versions (id, positioning_id, version_number, statement, icp_summary, problem, result, mechanism, score, score_breakdown, created_at)
            VALUES (?, ?, 1, ?, ?, ?, ?, ?, 88, ?, ?)`,
           ['pos_ver_1', 'pos_default', initialStatement, 'Bootstrapped B2B Founders doing $15k–$50k/mo', 'Trapped in 60-hr workweeks serving as single bottleneck', 'Scale to $100k/mo', 'The ASENZO 5-Engine Growth OS Framework', initialBreakdown, now]
         );
 
         await run(
-          `INSERT INTO offers (id, business_id, offer_name, description, promise, deliverables, target_audience, pricing_context, proof, differentiators, created_at, updated_at)
+          `INSERT OR IGNORE INTO offers (id, business_id, offer_name, description, promise, deliverables, target_audience, pricing_context, proof, differentiators, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             'offer_default',
@@ -477,21 +477,22 @@ When you replace random agency retainers with a production-grade Growth Operatin
         ];
         for (const p of pillars) {
           await run(
-            `INSERT INTO content_pillars (id, business_id, name, pillar_type, description, target_audience, objective, pain, desired_result, content_formats, supported_platforms, status, target_percentage, created_at, updated_at)
+            `INSERT OR IGNORE INTO content_pillars (id, business_id, name, pillar_type, description, target_audience, objective, pain, desired_result, content_formats, supported_platforms, status, target_percentage, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?)`,
             [p.id, 'biz_default', p.name, p.type, p.desc, p.audience, p.objective, p.pain, p.desired, JSON.stringify(p.formats), JSON.stringify(p.platforms), p.pct, now, now]
           );
         }
 
         const initialContents = [
-          { id: 'cnt_1', title: 'Why 90% of Agencies Fail Founders', pillar_id: 'pil_pos', lifecycle_status: 'IDEA', primary_platform: 'LINKEDIN', hook_text: 'Most agencies don\'t sell growth. They sell activity.', body_script: 'Here is why relying on standard agency retainers creates dependency...', cta: 'Comment "OS" for the breakdown.' },
-          { id: 'cnt_2', title: 'The Founder Independence Score Framework', pillar_id: 'pil_mech', lifecycle_status: 'SCRIPT', primary_platform: 'X_TWITTER', hook_text: 'What happens to your revenue if you take 30 days completely offline?', body_script: 'If the answer is a drop in sales, you don\'t have a business — you have a job...', cta: 'DM "FIS" to calculate your score.' }
+          { id: 'cnt_1', title: 'Why 90% of Agencies Fail Founders', pillar_id: 'pil_pos', lifecycle_status: 'IDEA', primary_platform: 'LINKEDIN', hook_text: 'Most agencies don\'t sell growth. They sell activity.', body_script: 'Here is why relying on standard agency retainers creates dependency...', cta: 'Comment "OS" for the breakdown.', owner: 'Alex Morgan', score: 88, perf: JSON.stringify({ views: 4200, dms: 12, qualifiedLeads: 5 }) },
+          { id: 'cnt_2', title: 'The Founder Independence Score Framework', pillar_id: 'pil_mech', lifecycle_status: 'SCRIPT', primary_platform: 'X_TWITTER', hook_text: 'What happens to your revenue if you take 30 days completely offline?', body_script: 'If the answer is a drop in sales, you don\'t have a business — you have a job...', cta: 'DM "FIS" to calculate your score.', owner: 'Alex Morgan', score: 94, perf: JSON.stringify({ views: 8900, dms: 24, qualifiedLeads: 11 }) },
+          { id: 'cnt_3', title: 'Apex Logistics 2.4x Growth Case Study Breakdown', pillar_id: 'pil_proof', lifecycle_status: 'PUBLISHED', primary_platform: 'LINKEDIN', hook_text: 'How Apex Logistics scaled pipeline 2.4x in 90 days.', body_script: 'Complete breakdown of the 5-Engine Growth OS installation...', cta: 'DM "APEX" for case study access.', owner: 'Alex Morgan', score: 96, published_at: now, perf: JSON.stringify({ views: 14500, dms: 38, qualifiedLeads: 18 }) }
         ];
         for (const item of initialContents) {
           await run(
-            `INSERT INTO contents (id, business_id, pillar_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, is_ad_candidate, is_archived, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
-            [item.id, 'biz_default', item.pillar_id, item.title, item.lifecycle_status, item.primary_platform, item.hook_text, item.body_script, item.cta, now, now]
+            `INSERT OR IGNORE INTO contents (id, business_id, pillar_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, owner, deadline, scheduled_at, published_at, score, performance_json, is_ad_candidate, is_archived, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`,
+            [item.id, 'biz_default', item.pillar_id, item.title, item.lifecycle_status, item.primary_platform, item.hook_text, item.body_script, item.cta, item.owner || 'Alex Morgan', item.deadline || '', item.scheduled_at || '', item.published_at || '', item.score || 85, item.perf || '{}', now, now]
           );
         }
 
@@ -503,7 +504,7 @@ When you replace random agency retainers with a production-grade Growth Operatin
         for (let miIdx = 0; miIdx < marketIntelSeeds.length; miIdx++) {
           const mi = marketIntelSeeds[miIdx];
           await run(
-            `INSERT INTO market_intel (id, business_id, title, source, insight, viral_factor, is_archived, created_at, updated_at)
+            `INSERT OR IGNORE INTO market_intel (id, business_id, title, source, insight, viral_factor, is_archived, created_at, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
             [(`mi_seed_${Date.now()}_${miIdx}`), 'biz_default', mi.title, mi.source, mi.insight, mi.viralFactor, now, now]
           );

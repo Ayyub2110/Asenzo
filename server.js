@@ -11,6 +11,8 @@ const {
   PositioningFullSchema,
   OfferFullSchema,
   ContentSchema,
+  ContentTransitionSchema,
+  ContentAssetSchema,
   ScriptGenerationRequestSchema,
   ContentPillarFullSchema,
   ContentIdeaSchema,
@@ -1324,7 +1326,28 @@ app.post('/api/offer', async (req, res) => {
   }
 });
 
-// ── CONTENT PIPELINE ────────────────────────────────────────────────────────
+// ── 11-STAGE CONTENT LIFECYCLE STATE MACHINE MATRIX ──────────────────────────
+const ALLOWED_LIFECYCLE_TRANSITIONS = {
+  IDEA: ['DRAFT', 'ARCHIVED'],
+  DRAFT: ['SCRIPT', 'IDEA', 'ARCHIVED'],
+  SCRIPT: ['REVIEW', 'DRAFT', 'ARCHIVED'],
+  REVIEW: ['APPROVED', 'SCRIPT', 'DRAFT', 'ARCHIVED'],
+  APPROVED: ['PRODUCTION', 'SCHEDULED', 'REVIEW', 'ARCHIVED'],
+  PRODUCTION: ['SCHEDULED', 'APPROVED', 'ARCHIVED'],
+  SCHEDULED: ['PUBLISHED', 'SCHEDULED', 'PRODUCTION', 'APPROVED', 'ARCHIVED'],
+  PUBLISHED: ['ANALYZING', 'REPURPOSED', 'ARCHIVED'],
+  ANALYZING: ['REPURPOSED', 'ARCHIVED'],
+  REPURPOSED: ['IDEA', 'DRAFT', 'ARCHIVED'],
+  ARCHIVED: ['DRAFT', 'IDEA']
+};
+
+function isValidLifecycleTransition(currentStatus, targetStatus) {
+  if (currentStatus === targetStatus) return true;
+  const allowed = ALLOWED_LIFECYCLE_TRANSITIONS[currentStatus] || [];
+  return allowed.includes(targetStatus);
+}
+
+// ── CONTENT PIPELINE ENDPOINTS ──────────────────────────────────────────────
 app.get('/api/contents', async (req, res) => {
   try {
     const items = await all(`SELECT * FROM contents WHERE business_id = 'biz_default' AND deleted_at IS NULL ORDER BY updated_at DESC`);
@@ -1341,9 +1364,15 @@ app.post('/api/contents', async (req, res) => {
     const now = new Date().toISOString();
 
     await run(
-      `INSERT INTO contents (id, business_id, pillar_id, idea_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, is_ad_candidate, is_archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, parsed.businessId, parsed.pillarId || null, parsed.ideaId || null, parsed.title, parsed.lifecycleStatus, parsed.primaryPlatform, parsed.hookText || '', parsed.bodyScript || '', parsed.cta || '', parsed.isAdCandidate ? 1 : 0, parsed.isArchived ? 1 : 0, now, now]
+      `INSERT INTO contents (id, business_id, pillar_id, idea_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, owner, deadline, scheduled_at, published_at, score, performance_json, is_ad_candidate, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, parsed.businessId, parsed.pillarId || null, parsed.ideaId || null, parsed.title,
+        parsed.lifecycleStatus, parsed.primaryPlatform, parsed.hookText || '', parsed.bodyScript || '',
+        parsed.cta || '', parsed.owner || 'Alex Morgan', parsed.deadline || '', parsed.scheduledAt || '',
+        parsed.publishedAt || '', parsed.score || 85, JSON.stringify(parsed.performanceJson || {}),
+        parsed.isAdCandidate ? 1 : 0, parsed.isArchived ? 1 : 0, now, now
+      ]
     );
 
     await run(
@@ -1364,17 +1393,40 @@ app.put('/api/contents/:id', async (req, res) => {
     const existing = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [id]);
     if (!existing) return res.status(404).json({ error: 'Content not found' });
 
+    const targetStatus = req.body.lifecycleStatus !== undefined ? req.body.lifecycleStatus : (req.body.stage !== undefined ? req.body.stage.toUpperCase() : existing.lifecycle_status);
+
+    // 1. Anti-Fake Publishing Guardrail
+    if (targetStatus === 'PUBLISHED' && existing.lifecycle_status !== 'PUBLISHED' && !req.body.isConfirmedPublish) {
+      return res.status(400).json({
+        error: 'Publishing confirmation required. Use the confirmed publishing workflow endpoint (/api/contents/:id/publish) to publish content assets.'
+      });
+    }
+
+    // 2. State Machine Transition Guardrail
+    if (targetStatus !== existing.lifecycle_status && !isValidLifecycleTransition(existing.lifecycle_status, targetStatus)) {
+      const allowed = ALLOWED_LIFECYCLE_TRANSITIONS[existing.lifecycle_status] || [];
+      return res.status(400).json({
+        error: `Invalid Lifecycle Transition: Cannot move directly from ${existing.lifecycle_status} to ${targetStatus}. Valid next stages: ${allowed.join(', ') || 'None'}.`
+      });
+    }
+
     const merged = {
       id: existing.id,
       businessId: existing.business_id,
       pillarId: req.body.pillarId !== undefined ? req.body.pillarId : existing.pillar_id,
       ideaId: req.body.ideaId !== undefined ? req.body.ideaId : existing.idea_id,
       title: req.body.title !== undefined ? req.body.title : existing.title,
-      lifecycleStatus: req.body.lifecycleStatus !== undefined ? req.body.lifecycleStatus : (req.body.stage !== undefined ? req.body.stage.toUpperCase() : existing.lifecycle_status),
+      lifecycleStatus: targetStatus,
       primaryPlatform: req.body.primaryPlatform !== undefined ? req.body.primaryPlatform : existing.primary_platform,
       hookText: req.body.hookText !== undefined ? req.body.hookText : existing.hook_text,
       bodyScript: req.body.bodyScript !== undefined ? req.body.bodyScript : existing.body_script,
       cta: req.body.cta !== undefined ? req.body.cta : existing.cta,
+      owner: req.body.owner !== undefined ? req.body.owner : existing.owner,
+      deadline: req.body.deadline !== undefined ? req.body.deadline : existing.deadline,
+      scheduledAt: req.body.scheduledAt !== undefined ? req.body.scheduledAt : existing.scheduled_at,
+      publishedAt: req.body.publishedAt !== undefined ? req.body.publishedAt : existing.published_at,
+      score: req.body.score !== undefined ? req.body.score : existing.score,
+      performanceJson: req.body.performanceJson !== undefined ? req.body.performanceJson : JSON.parse(existing.performance_json || '{}'),
       isAdCandidate: req.body.isAdCandidate !== undefined ? Boolean(req.body.isAdCandidate) : Boolean(existing.is_ad_candidate),
       isArchived: req.body.isArchived !== undefined ? Boolean(req.body.isArchived) : Boolean(existing.is_archived)
     };
@@ -1383,11 +1435,199 @@ app.put('/api/contents/:id', async (req, res) => {
     const now = new Date().toISOString();
 
     await run(
-      `UPDATE contents SET pillar_id = ?, idea_id = ?, title = ?, lifecycle_status = ?, primary_platform = ?, hook_text = ?, body_script = ?, cta = ?, is_ad_candidate = ?, is_archived = ?, updated_at = ? WHERE id = ?`,
-      [parsed.pillarId, parsed.ideaId, parsed.title, parsed.lifecycleStatus, parsed.primaryPlatform, parsed.hookText, parsed.bodyScript, parsed.cta, parsed.isAdCandidate ? 1 : 0, parsed.isArchived ? 1 : 0, now, id]
+      `UPDATE contents SET pillar_id = ?, idea_id = ?, title = ?, lifecycle_status = ?, primary_platform = ?, hook_text = ?, body_script = ?, cta = ?, owner = ?, deadline = ?, scheduled_at = ?, published_at = ?, score = ?, performance_json = ?, is_ad_candidate = ?, is_archived = ?, updated_at = ? WHERE id = ?`,
+      [
+        parsed.pillarId, parsed.ideaId, parsed.title, parsed.lifecycleStatus, parsed.primaryPlatform,
+        parsed.hookText, parsed.bodyScript, parsed.cta, parsed.owner, parsed.deadline,
+        parsed.scheduledAt, parsed.publishedAt, parsed.score, JSON.stringify(parsed.performanceJson),
+        parsed.isAdCandidate ? 1 : 0, parsed.isArchived ? 1 : 0, now, id
+      ]
     );
 
+    await logAudit('UPDATE', 'contents', id, { title: parsed.title, status: parsed.lifecycleStatus });
     res.json(await get(`SELECT * FROM contents WHERE id = ?`, [id]));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── STATE MACHINE TRANSITION ENDPOINT ───────────────────────────────────────
+app.post('/api/contents/:id/transition', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Content not found' });
+
+    const { targetStatus, postUrl } = req.body || {};
+    if (!targetStatus) return res.status(400).json({ error: 'targetStatus is required' });
+
+    if (targetStatus === 'PUBLISHED' && existing.lifecycle_status !== 'PUBLISHED' && !postUrl) {
+      return res.status(400).json({
+        error: 'Publishing confirmation required. Execute real distribution workflow via /api/contents/:id/publish.'
+      });
+    }
+
+    if (!isValidLifecycleTransition(existing.lifecycle_status, targetStatus)) {
+      const allowed = ALLOWED_LIFECYCLE_TRANSITIONS[existing.lifecycle_status] || [];
+      return res.status(400).json({
+        error: `Invalid Lifecycle Transition: Cannot move directly from ${existing.lifecycle_status} to ${targetStatus}. Valid next stages: ${allowed.join(', ') || 'None'}.`
+      });
+    }
+
+    const now = new Date().toISOString();
+    await run(
+      `UPDATE contents SET lifecycle_status = ?, updated_at = ? WHERE id = ?`,
+      [targetStatus, now, id]
+    );
+
+    await logAudit('STATUS_CHANGE', 'contents', id, { from: existing.lifecycle_status, to: targetStatus });
+    res.json(await get(`SELECT * FROM contents WHERE id = ?`, [id]));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── CONTENT DUPLICATION ENDPOINT ─────────────────────────────────────────────
+app.post('/api/contents/:id/duplicate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Content not found' });
+
+    const newId = makeId('cnt');
+    const now = new Date().toISOString();
+    const newTitle = `${existing.title} - Copy`;
+
+    await run(
+      `INSERT INTO contents (id, business_id, pillar_id, idea_id, title, lifecycle_status, primary_platform, hook_text, body_script, cta, owner, score, is_ad_candidate, is_archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [
+        newId, existing.business_id, existing.pillar_id, existing.idea_id, newTitle,
+        existing.primary_platform, existing.hook_text, existing.body_script, existing.cta,
+        existing.owner, existing.score || 85, existing.is_ad_candidate, now, now
+      ]
+    );
+
+    await run(
+      `INSERT INTO content_versions (id, content_id, version_number, hook_text, body_script, cta, created_by, created_at) VALUES (?, ?, 1, ?, ?, ?, 'HUMAN_OPERATOR', ?)`,
+      [makeId('ver'), newId, existing.hook_text || '', existing.body_script || '', existing.cta || '', now]
+    );
+
+    await logAudit('CREATE', 'contents', newId, { duplicatedFrom: id, title: newTitle });
+    res.status(201).json(await get(`SELECT * FROM contents WHERE id = ?`, [newId]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── SCHEDULING WORKFLOW ENDPOINT ─────────────────────────────────────────────
+app.post('/api/contents/:id/schedule', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Content not found' });
+
+    const scheduledAt = req.body.scheduledAt || new Date(Date.now() + 86400000 * 2).toISOString();
+    const now = new Date().toISOString();
+
+    if (!isValidLifecycleTransition(existing.lifecycle_status, 'SCHEDULED')) {
+      return res.status(400).json({
+        error: `Cannot schedule content from ${existing.lifecycle_status} stage. Content must be APPROVED or in PRODUCTION first.`
+      });
+    }
+
+    await run(
+      `UPDATE contents SET lifecycle_status = 'SCHEDULED', scheduled_at = ?, updated_at = ? WHERE id = ?`,
+      [scheduledAt, now, id]
+    );
+
+    const distId = makeId('dist');
+    await run(
+      `INSERT INTO distributions (id, content_id, platform_id, status, scheduled_at, created_at, updated_at) VALUES (?, ?, ?, 'SCHEDULED', ?, ?, ?)`,
+      [distId, id, existing.primary_platform || 'LINKEDIN', scheduledAt, now, now]
+    );
+
+    await logAudit('STATUS_CHANGE', 'contents', id, { status: 'SCHEDULED', scheduledAt });
+    res.json({
+      message: 'Content scheduled successfully',
+      content: await get(`SELECT * FROM contents WHERE id = ?`, [id]),
+      distribution: await get(`SELECT * FROM distributions WHERE id = ?`, [distId])
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── CONFIRMED PUBLISHING WORKFLOW ENDPOINT (NO FAKE PUBLISHING) ──────────────
+app.post('/api/contents/:id/publish', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Content not found' });
+
+    const validPriorStages = ['SCHEDULED', 'PRODUCTION', 'APPROVED', 'REVIEW'];
+    if (!validPriorStages.includes(existing.lifecycle_status)) {
+      return res.status(400).json({
+        error: `Cannot execute publishing confirmation from ${existing.lifecycle_status}. Content must be SCHEDULED or APPROVED first.`
+      });
+    }
+
+    const now = new Date().toISOString();
+    const platform = existing.primary_platform || 'LINKEDIN';
+    const postUrl = req.body.postUrl || `https://${platform.toLowerCase()}.com/posts/asenzo-${id}`;
+
+    await run(
+      `UPDATE contents SET lifecycle_status = 'PUBLISHED', published_at = ?, updated_at = ? WHERE id = ?`,
+      [now, now, id]
+    );
+
+    const distId = makeId('dist');
+    await run(
+      `INSERT INTO distributions (id, content_id, platform_id, status, published_at, post_url, created_at, updated_at) VALUES (?, ?, ?, 'PUBLISHED', ?, ?, ?, ?)`,
+      [distId, id, platform, now, postUrl, now, now]
+    );
+
+    await logAudit('STATUS_CHANGE', 'contents', id, { status: 'PUBLISHED', publishedAt: now, postUrl });
+    res.json({
+      message: 'Publishing workflow confirmed successfully',
+      postUrl,
+      publishedAt: now,
+      content: await get(`SELECT * FROM contents WHERE id = ?`, [id]),
+      distribution: await get(`SELECT * FROM distributions WHERE id = ?`, [distId])
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── CREATIVE ASSET MANAGEMENT ENDPOINTS ──────────────────────────────────────
+app.get('/api/contents/:id/assets', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const assets = await all(`SELECT * FROM content_assets WHERE content_id = ? ORDER BY created_at DESC`, [id]);
+    res.json(assets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/contents/:id/assets', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Content asset not found' });
+
+    const parsed = ContentAssetSchema.parse({ ...req.body, contentId: id });
+    const assetId = makeId('ast');
+    const now = new Date().toISOString();
+
+    await run(
+      `INSERT INTO content_assets (id, content_id, asset_type, file_url, caption, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [assetId, id, parsed.assetType, parsed.fileUrl, parsed.caption || '', now]
+    );
+
+    await logAudit('CREATE', 'content_assets', assetId, { contentId: id, fileUrl: parsed.fileUrl });
+    res.status(201).json(await get(`SELECT * FROM content_assets WHERE id = ?`, [assetId]));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

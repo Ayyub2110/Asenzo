@@ -871,6 +871,40 @@ async function handleGenerateIdeas(e) {
 
 // ── ATTENTION SUB-TAB 2: PIPELINE & WORKSPACE ──────────────────────────────
 function renderPipelineTab() {
+  const activeStages = ['IDEA', 'DRAFT', 'SCRIPT', 'REVIEW', 'APPROVED', 'PRODUCTION', 'SCHEDULED', 'PUBLISHED'];
+  const postPublishStages = ['PUBLISHED', 'ANALYZING', 'REPURPOSED', 'ARCHIVED'];
+  const allStages = ['IDEA', 'DRAFT', 'SCRIPT', 'REVIEW', 'APPROVED', 'PRODUCTION', 'SCHEDULED', 'PUBLISHED', 'ANALYZING', 'REPURPOSED', 'ARCHIVED'];
+
+  let targetStages = activeStages;
+  if (PIPELINE_VIEW_MODE === 'POST_PUBLISH') targetStages = postPublishStages;
+  if (PIPELINE_VIEW_MODE === 'ALL') targetStages = allStages;
+
+  const stageBadges = {
+    IDEA: 'badge-stage-idea',
+    DRAFT: 'badge-stage-draft',
+    SCRIPT: 'badge-stage-script',
+    REVIEW: 'badge-stage-review',
+    APPROVED: 'badge-stage-approved',
+    PRODUCTION: 'badge-stage-production',
+    SCHEDULED: 'badge-stage-scheduled',
+    PUBLISHED: 'badge-stage-published',
+    ANALYZING: 'badge-stage-analyzing',
+    REPURPOSED: 'badge-stage-repurposed',
+    ARCHIVED: 'badge-stage-archived'
+  };
+
+  const platformIcons = {
+    LINKEDIN: '💼 LinkedIn',
+    X: '𝕏 X / Twitter',
+    X_TWITTER: '𝕏 X / Twitter',
+    INSTAGRAM: '📸 Instagram',
+    YOUTUBE_SHORT: '▶️ YouTube Short',
+    CAROUSEL: '📑 Carousel',
+    EMAIL: '✉️ Email',
+    NEWSLETTER: '📰 Newsletter',
+    BLOG: '📝 Blog'
+  };
+
   return `
     <!-- Active Positioning Summary Card (Business DNA Source of Truth) -->
     <div class="dash-card">
@@ -904,50 +938,71 @@ function renderPipelineTab() {
           <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-top:4px">${POSITIONING.mechanism}</div>
         </div>
       </div>
-
-      ${POSITIONING.statement ? `
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:12px;color:#1E3A8A"><strong style="color:#1D4ED8">Active Statement:</strong> "${POSITIONING.statement}"</div>
-          <button class="btn btn-secondary btn-sm" style="margin-left:12px;flex-shrink:0" onclick="handleGenerateAlternativesFromModal()">Compare Strategic Angles</button>
-        </div>
-      ` : ''}
     </div>
 
-    <!-- Content Pipeline Kanban Board -->
+    <!-- Content Pipeline 11-Stage Interactive Kanban Board -->
     <div style="margin-top:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:15px;font-weight:700;color:#0F172A">Content Pipeline Kanban Board</div>
-        <button class="btn btn-secondary btn-sm" onclick="openScriptGeneratorModal()">+ Create New Script Asset</button>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#0F172A">Attention OS Content Pipeline (11-Stage Matrix)</div>
+          <div style="font-size:11.5px;color:#64748B;margin-top:2px">Drag & drop assets between validated stage columns</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <!-- View Toggles -->
+          <div style="display:flex;background:#F1F5F9;padding:3px;border-radius:8px;gap:2px">
+            <button class="plat-btn ${PIPELINE_VIEW_MODE === 'ACTIVE' ? 'active' : ''}" style="font-size:11px;padding:4px 10px" onclick="setPipelineViewMode('ACTIVE')">Active Pipeline</button>
+            <button class="plat-btn ${PIPELINE_VIEW_MODE === 'POST_PUBLISH' ? 'active' : ''}" style="font-size:11px;padding:4px 10px" onclick="setPipelineViewMode('POST_PUBLISH')">Post-Publish</button>
+            <button class="plat-btn ${PIPELINE_VIEW_MODE === 'ALL' ? 'active' : ''}" style="font-size:11px;padding:4px 10px" onclick="setPipelineViewMode('ALL')">All 11 Stages</button>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="openScriptGeneratorModal()">+ Create New Script Asset</button>
+        </div>
       </div>
-      <div class="kanban-grid">
-        ${['Idea', 'Script', 'Production', 'Published'].map(stage => {
-          const items = CONTENT_ITEMS.filter(c => {
-            const st = (c.lifecycle_status || c.stage || '').toUpperCase();
-            if (stage === 'Idea') return ['IDEA', 'DRAFT'].includes(st);
-            if (stage === 'Script') return ['SCRIPT', 'REVIEW', 'APPROVED'].includes(st);
-            if (stage === 'Production') return ['PRODUCTION', 'SCHEDULED'].includes(st);
-            if (stage === 'Published') return ['PUBLISHED', 'ANALYZING', 'REPURPOSED'].includes(st);
-            return false;
-          });
+
+      <div style="display:grid;grid-template-columns:repeat(${targetStages.length}, minmax(220px, 1fr));gap:12px;overflow-x:auto;padding-bottom:12px">
+        ${targetStages.map(stage => {
+          const items = CONTENT_ITEMS.filter(c => (c.lifecycle_status || c.stage || 'DRAFT').toUpperCase() === stage);
+          const badgeClass = stageBadges[stage] || 'badge-stage-draft';
           return `
-            <div class="kanban-col">
-              <div class="col-head">
-                <span class="col-title">${stage}</span>
-                <span class="col-count">${items.length}</span>
+            <div class="kanban-col"
+                 ondragover="handleKanbanDragOver(event)"
+                 ondragleave="handleKanbanDragLeave(event)"
+                 ondrop="handleKanbanDrop(event, '${stage}')">
+              <div class="col-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span class="col-title sb-badge ${badgeClass}" style="font-size:11px;font-weight:700">${stage}</span>
+                <span class="col-count sb-badge" style="font-size:10px">${items.length}</span>
               </div>
-              <div class="kanban-cards">
-                ${items.length === 0 ? `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:20px">No assets in ${stage}</div>` : ''}
-                ${items.map(item => `
-                  <div class="k-card" onclick="openProductionWorkspaceModal('${item.id}')">
-                    <div class="k-card-title">${item.title}</div>
-                    ${item.hook_text ? `<div style="font-size:11.5px;color:#475569;font-style:italic;margin-top:2px">"${item.hook_text.substring(0, 60)}..."</div>` : ''}
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-                      <span class="sb-badge">${item.pillar_id || item.pillar || 'Positioning'}</span>
-                      <span class="sb-badge green" style="font-size:9px">${item.lifecycle_status || item.stage || 'DRAFT'}</span>
+              <div class="kanban-cards" style="display:flex;flex-direction:column;gap:8px;min-height:360px">
+                ${items.length === 0 ? `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:24px 10px;background:#FFFFFF;border:1px dashed #E2E8F0;border-radius:8px">No assets in ${stage}</div>` : ''}
+                ${items.map(item => {
+                  const platLabel = platformIcons[item.primary_platform || 'LINKEDIN'] || (item.primary_platform || 'LinkedIn');
+                  const perf = item.performance_json ? (typeof item.performance_json === 'string' ? JSON.parse(item.performance_json) : item.performance_json) : {};
+                  return `
+                    <div class="k-card" draggable="true"
+                         ondragstart="handleKanbanDragStart(event, '${item.id}')"
+                         onclick="openProductionWorkspaceModal('${item.id}')">
+                      
+                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+                        <div class="k-card-title" style="font-weight:700;font-size:12.5px;color:#0F172A;line-height:1.35">${item.title}</div>
+                        <span style="font-size:10px;font-weight:800;color:#047857;background:#ECFDF5;padding:1px 5px;border-radius:4px;flex-shrink:0">${item.score || 85}</span>
+                      </div>
+
+                      ${item.hook_text ? `<div style="font-size:11px;color:#475569;font-style:italic;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">"${item.hook_text}"</div>` : ''}
+
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;align-items:center">
+                        <span class="sb-badge" style="font-size:9.5px">${item.pillar_id || item.pillar || 'Positioning'}</span>
+                        <span class="sb-badge blue" style="font-size:9.5px">${platLabel}</span>
+                      </div>
+
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:6px;border-top:1px solid #F1F5F9;font-size:10.5px;color:#64748B">
+                        <span>👤 ${item.owner || 'Alex Morgan'}</span>
+                        <span>${item.published_at ? 'Published: ' + item.published_at.split('T')[0] : (item.scheduled_at ? 'Sched: ' + item.scheduled_at.split('T')[0] : (item.deadline ? 'Due: ' + item.deadline : ''))}</span>
+                      </div>
+
+                      ${perf.views ? `<div style="font-size:10px;color:#2563EB;background:#EFF6FF;padding:2px 6px;border-radius:4px;margin-top:4px;font-weight:600">👁 ${perf.views.toLocaleString()} • 💬 ${perf.dms || 0} DMs • 🎯 ${perf.qualifiedLeads || 0} Leads</div>` : ''}
+                      ${item.is_ad_candidate ? `<div style="font-size:9.5px;font-weight:700;color:#047857;background:#ECFDF5;padding:2px 5px;border-radius:4px;margin-top:4px">🔥 Ad Amplification</div>` : ''}
                     </div>
-                    ${item.is_ad_candidate ? `<div style="font-size:10px;font-weight:700;color:#047857;background:#ECFDF5;padding:2px 6px;border-radius:4px;width:fit-content;margin-top:4px">🔥 Ad Amplification Candidate</div>` : ''}
-                  </div>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
             </div>
           `;
@@ -1895,17 +1950,84 @@ async function handleSaveGeneratedScriptToKanban() {
   }
 }
 
-// ── PRODUCTION WORKSPACE MODAL LOGIC ─────────────────────────────────────────
+// ── KANBAN VIEW & DRAG AND DROP HANDLERS ────────────────────────────────────
+let PIPELINE_VIEW_MODE = 'ACTIVE';
+
+function setPipelineViewMode(mode) {
+  PIPELINE_VIEW_MODE = mode;
+  if (CURRENT_PAGE === 'attention') renderAttention();
+}
+
+function handleKanbanDragStart(e, id) {
+  e.dataTransfer.setData('text/plain', id);
+  e.currentTarget.classList.add('dragging');
+}
+
+function handleKanbanDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function handleKanbanDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+async function handleKanbanDrop(e, targetStage) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const id = e.dataTransfer.getData('text/plain');
+  const item = CONTENT_ITEMS.find(c => String(c.id) === String(id));
+  if (!item) return;
+
+  const currentStage = (item.lifecycle_status || item.stage || 'DRAFT').toUpperCase();
+  if (currentStage === targetStage) return;
+
+  // Optimistic UI Update
+  item.lifecycle_status = targetStage;
+  if (CURRENT_PAGE === 'attention') renderAttention();
+
+  try {
+    const updated = await window.ASENZO_API.transitionContentStage(id, targetStage);
+    const idx = CONTENT_ITEMS.findIndex(c => String(c.id) === String(id));
+    if (idx !== -1) CONTENT_ITEMS[idx] = updated;
+    showToast(`Moved content asset to ${targetStage}`);
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    // Rollback on failed mutation
+    item.lifecycle_status = currentStage;
+    showToast(`Transition Error: ${err.message}`);
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  }
+}
+
+// ── PRODUCTION WORKSPACE SUB-TABS & HANDLERS ──────────────────────────────
+function switchPwTab(tabName) {
+  const tabs = ['script', 'assets', 'publish', 'analytics', 'versions'];
+  tabs.forEach(t => {
+    const el = document.getElementById(`pw-tab-${t}`);
+    const btn = document.getElementById(`tab-btn-pw-${t}`);
+    if (el) el.classList.toggle('hidden', t !== tabName);
+    if (btn) btn.classList.toggle('active', t === tabName);
+  });
+}
+
 function openProductionWorkspaceModal(id) {
   const item = CONTENT_ITEMS.find(c => String(c.id) === String(id));
   if (!item) return;
 
+  const currentStage = (item.lifecycle_status || item.stage || 'DRAFT').toUpperCase();
+
   document.getElementById('pw-item-id').value = item.id;
-  document.getElementById('pw-title-heading').textContent = `Production Workspace — ${item.title}`;
+  document.getElementById('pw-title-heading').textContent = item.title;
+  document.getElementById('pw-stage-badge').textContent = currentStage;
+  document.getElementById('pw-score-badge').textContent = `Score: ${item.score || 85}/100`;
+
   document.getElementById('pw-title').value = item.title;
   document.getElementById('pw-pillar').value = item.pillar_id || item.pillar || 'Positioning';
-  document.getElementById('pw-stage').value = (item.lifecycle_status || item.stage || 'DRAFT').toUpperCase();
+  document.getElementById('pw-stage').value = currentStage;
   document.getElementById('pw-platform').value = item.primary_platform || item.target_platform || item.targetPlatform || 'LINKEDIN';
+  document.getElementById('pw-owner').value = item.owner || 'Alex Morgan';
+  document.getElementById('pw-deadline').value = item.deadline ? item.deadline.split('T')[0] : '';
   document.getElementById('pw-hook').value = item.hook_text || item.hookText || '';
   document.getElementById('pw-body').value = item.body_script || item.bodyScript || '';
   document.getElementById('pw-cta').value = item.cta || '';
@@ -1913,11 +2035,139 @@ function openProductionWorkspaceModal(id) {
   document.getElementById('pw-leads').value = item.qualified_leads || item.qualifiedLeads || 0;
   document.getElementById('pw-ad-candidate').value = String(Boolean(item.is_ad_candidate || item.ad_candidate || item.adCandidate));
 
+  // Reset tab
+  switchPwTab('script');
+
+  // Asynchronously load assets & version history
+  loadPwAssets(item.id);
+  loadPwVersions(item.id);
+
   document.getElementById('production-workspace-modal').classList.remove('hidden');
 }
 
 function closeProductionWorkspaceModal() {
   document.getElementById('production-workspace-modal').classList.add('hidden');
+}
+
+async function loadPwAssets(contentId) {
+  const container = document.getElementById('pw-assets-list');
+  if (!container) return;
+  try {
+    const assets = await window.ASENZO_API.getContentAssets(contentId);
+    if (!assets || assets.length === 0) {
+      container.innerHTML = `<div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px;grid-column:span 2">No creative assets attached yet. Add an asset link below.</div>`;
+      return;
+    }
+    container.innerHTML = assets.map(a => `
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="sb-badge blue">${a.asset_type}</span>
+          <span style="font-size:10px;color:#94A3B8">${(a.created_at || '').split('T')[0]}</span>
+        </div>
+        <div style="font-size:11px;word-break:break-all;color:#2563EB;margin-top:6px;font-weight:600">${a.file_url}</div>
+        ${a.caption ? `<div style="font-size:11px;color:#475569;margin-top:4px">${a.caption}</div>` : ''}
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="color:#EF4444;font-size:12px;grid-column:span 2">Failed to load assets: ${err.message}</div>`;
+  }
+}
+
+async function handleAddContentAsset() {
+  const contentId = document.getElementById('pw-item-id').value;
+  const assetType = document.getElementById('pw-new-asset-type').value;
+  const fileUrl = document.getElementById('pw-new-asset-url').value.trim();
+  if (!fileUrl) { showToast('Please enter a valid file URL'); return; }
+
+  try {
+    await window.ASENZO_API.addContentAsset(contentId, { assetType, fileUrl });
+    document.getElementById('pw-new-asset-url').value = '';
+    showToast('Attached creative asset!');
+    loadPwAssets(contentId);
+  } catch (err) {
+    showToast(`Asset Error: ${err.message}`);
+  }
+}
+
+async function loadPwVersions(contentId) {
+  const container = document.getElementById('pw-versions-list');
+  if (!container) return;
+  try {
+    const versions = await window.ASENZO_API.getContentVersions(contentId);
+    if (!versions || versions.length === 0) {
+      container.innerHTML = `<div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">No version snapshots found.</div>`;
+      return;
+    }
+    container.innerHTML = versions.map(v => `
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#0F172A">Version ${v.version_number} <span class="sb-badge">${v.created_by}</span></div>
+          <div style="font-size:11px;color:#475569;margin-top:2px">"${(v.hook_text || '').substring(0, 50)}..."</div>
+          <div style="font-size:10px;color:#94A3B8;margin-top:2px">${v.created_at}</div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="handleRestoreContentVersion('${contentId}', ${v.version_number}, '${v.hook_text ? encodeURIComponent(v.hook_text) : ''}', '${v.body_script ? encodeURIComponent(v.body_script) : ''}')">
+          Restore V${v.version_number}
+        </button>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="color:#EF4444;font-size:12px">Failed to load version history: ${err.message}</div>`;
+  }
+}
+
+function handleRestoreContentVersion(contentId, verNum, hookEnc, bodyEnc) {
+  if (hookEnc) document.getElementById('pw-hook').value = decodeURIComponent(hookEnc);
+  if (bodyEnc) document.getElementById('pw-body').value = decodeURIComponent(bodyEnc);
+  switchPwTab('script');
+  showToast(`Restored script from Version ${verNum}! Remember to save workspace changes.`);
+}
+
+async function handleDuplicateContentAction() {
+  const contentId = document.getElementById('pw-item-id').value;
+  try {
+    const duplicated = await window.ASENZO_API.duplicateContent(contentId);
+    CONTENT_ITEMS.unshift(duplicated);
+    closeProductionWorkspaceModal();
+    showToast(`Duplicated content asset to DRAFT: "${duplicated.title}"`);
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Duplicate Error: ${err.message}`);
+  }
+}
+
+async function handleScheduleContentAction() {
+  const contentId = document.getElementById('pw-item-id').value;
+  const schedDate = document.getElementById('pw-schedule-date').value;
+  try {
+    const res = await window.ASENZO_API.scheduleContent(contentId, schedDate ? new Date(schedDate).toISOString() : undefined);
+    const idx = CONTENT_ITEMS.findIndex(c => String(c.id) === String(contentId));
+    if (idx !== -1) CONTENT_ITEMS[idx] = res.content;
+    closeProductionWorkspaceModal();
+    showToast('Content scheduled successfully!');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Scheduling Error: ${err.message}`);
+  }
+}
+
+async function handleExecutePublishAction() {
+  const contentId = document.getElementById('pw-item-id').value;
+  const postUrl = document.getElementById('pw-publish-url').value.trim();
+  try {
+    const res = await window.ASENZO_API.publishContent(contentId, postUrl);
+    const idx = CONTENT_ITEMS.findIndex(c => String(c.id) === String(contentId));
+    if (idx !== -1) CONTENT_ITEMS[idx] = res.content;
+
+    const box = document.getElementById('pw-publish-status-box');
+    if (box) {
+      box.classList.remove('hidden');
+      box.innerHTML = `✅ Published confirmed! <a href="${res.postUrl}" target="_blank" style="color:#2563EB;text-decoration:underline">View Post (${res.postUrl})</a>`;
+    }
+    showToast('Publishing workflow confirmed successfully!');
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Publishing Error: ${err.message}`);
+  }
 }
 
 async function handleSaveProductionWorkspace(e) {
@@ -1928,6 +2178,8 @@ async function handleSaveProductionWorkspace(e) {
     pillarId: document.getElementById('pw-pillar').value,
     lifecycleStatus: document.getElementById('pw-stage').value,
     primaryPlatform: document.getElementById('pw-platform').value,
+    owner: document.getElementById('pw-owner').value.trim(),
+    deadline: document.getElementById('pw-deadline').value,
     hookText: document.getElementById('pw-hook').value.trim(),
     bodyScript: document.getElementById('pw-body').value.trim(),
     cta: document.getElementById('pw-cta').value.trim(),

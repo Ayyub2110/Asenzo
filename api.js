@@ -65,6 +65,12 @@ window.ASENZO_API = {
   async getContents(status) { return apiFetch(status ? `/contents?status=${status}` : '/contents'); },
   async createContent(data) { return apiFetch('/contents', { method: 'POST', body: data }); },
   async updateContent(id, data) { return apiFetch(`/contents/${id}`, { method: 'PUT', body: data }); },
+  async transitionContentStage(id, targetStatus, postUrl) { return apiFetch(`/contents/${id}/transition`, { method: 'POST', body: { targetStatus, postUrl } }); },
+  async duplicateContent(id) { return apiFetch(`/contents/${id}/duplicate`, { method: 'POST' }); },
+  async scheduleContent(id, scheduledAt) { return apiFetch(`/contents/${id}/schedule`, { method: 'POST', body: { scheduledAt } }); },
+  async publishContent(id, postUrl) { return apiFetch(`/contents/${id}/publish`, { method: 'POST', body: { postUrl } }); },
+  async getContentAssets(id) { return apiFetch(`/contents/${id}/assets`); },
+  async addContentAsset(id, data) { return apiFetch(`/contents/${id}/assets`, { method: 'POST', body: data }); },
   async deleteContent(id) { return apiFetch(`/contents/${id}`, { method: 'DELETE' }); },
 
   // Legacy aliases used by existing UI

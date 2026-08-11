@@ -450,3 +450,113 @@ test('22. Content Versioning & Founder Approval Workflow', async () => {
   assert.strictEqual(history.body[0].version_number, 3);
 });
 
+test('23. 11-Stage State Machine Lifecycle Transition Guardrails', async () => {
+  const item = await request('POST', '/api/contents', {
+    title: `State Machine Test Asset ${UNIQ}`,
+    lifecycleStatus: 'DRAFT',
+    primaryPlatform: 'LINKEDIN'
+  });
+  assert.strictEqual(item.status, 201);
+  const id = item.body.id;
+
+  // Valid move: DRAFT -> SCRIPT
+  const validMove = await request('POST', `/api/contents/${id}/transition`, { targetStatus: 'SCRIPT' });
+  assert.strictEqual(validMove.status, 200);
+  assert.strictEqual(validMove.body.lifecycle_status, 'SCRIPT');
+
+  // Invalid move: SCRIPT -> PUBLISHED directly (should fail 400)
+  const invalidMove = await request('POST', `/api/contents/${id}/transition`, { targetStatus: 'PUBLISHED' });
+  assert.strictEqual(invalidMove.status, 400);
+  assert.match(invalidMove.body.error, /Invalid Lifecycle Transition|Publishing confirmation required/);
+
+  // Valid move: SCRIPT -> REVIEW -> APPROVED -> PRODUCTION
+  await request('POST', `/api/contents/${id}/transition`, { targetStatus: 'REVIEW' });
+  await request('POST', `/api/contents/${id}/transition`, { targetStatus: 'APPROVED' });
+  const prodMove = await request('POST', `/api/contents/${id}/transition`, { targetStatus: 'PRODUCTION' });
+  assert.strictEqual(prodMove.status, 200);
+  assert.strictEqual(prodMove.body.lifecycle_status, 'PRODUCTION');
+});
+
+test('24. Anti-Fake Publishing & Verified Distribution Workflow', async () => {
+  const item = await request('POST', '/api/contents', {
+    title: `Anti-Fake Publishing Test Asset ${UNIQ}`,
+    lifecycleStatus: 'DRAFT',
+    primaryPlatform: 'LINKEDIN'
+  });
+  const id = item.body.id;
+
+  // Move to APPROVED first
+  await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'SCRIPT' });
+  await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'REVIEW' });
+  await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'APPROVED' });
+
+  // Direct PUT setting lifecycleStatus to PUBLISHED without confirmation MUST FAIL (Anti-Fake Publishing)
+  const directPub = await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'PUBLISHED' });
+  assert.strictEqual(directPub.status, 400);
+  assert.match(directPub.body.error, /Publishing confirmation required/);
+
+  // Execute Confirmed Publishing Workflow Endpoint
+  const realPub = await request('POST', `/api/contents/${id}/publish`, {
+    postUrl: 'https://linkedin.com/posts/asenzo-verified-test'
+  });
+  assert.strictEqual(realPub.status, 200);
+  assert.strictEqual(realPub.body.content.lifecycle_status, 'PUBLISHED');
+  assert.strictEqual(realPub.body.distribution.status, 'PUBLISHED');
+  assert.strictEqual(realPub.body.postUrl, 'https://linkedin.com/posts/asenzo-verified-test');
+});
+
+test('25. Content Asset Duplication Endpoint', async () => {
+  const item = await request('POST', '/api/contents', {
+    title: `Original Master Script ${UNIQ}`,
+    lifecycleStatus: 'APPROVED',
+    primaryPlatform: 'LINKEDIN',
+    hookText: 'Master Hook Interrupt',
+    bodyScript: 'Master Body Script'
+  });
+  const id = item.body.id;
+
+  const dup = await request('POST', `/api/contents/${id}/duplicate`);
+  assert.strictEqual(dup.status, 201);
+  assert.strictEqual(dup.body.title, `Original Master Script ${UNIQ} - Copy`);
+  assert.strictEqual(dup.body.lifecycle_status, 'DRAFT');
+  assert.strictEqual(dup.body.hook_text, 'Master Hook Interrupt');
+});
+
+test('26. Content Distribution Scheduling Workflow', async () => {
+  const item = await request('POST', '/api/contents', {
+    title: `Scheduled Asset ${UNIQ}`,
+    lifecycleStatus: 'DRAFT',
+    primaryPlatform: 'LINKEDIN'
+  });
+  const id = item.body.id;
+  await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'SCRIPT' });
+  await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'REVIEW' });
+  await request('PUT', `/api/contents/${id}`, { lifecycleStatus: 'APPROVED' });
+
+  const schedDate = new Date(Date.now() + 86400000 * 3).toISOString();
+  const schedRes = await request('POST', `/api/contents/${id}/schedule`, { scheduledAt: schedDate });
+  assert.strictEqual(schedRes.status, 200);
+  assert.strictEqual(schedRes.body.content.lifecycle_status, 'SCHEDULED');
+  assert.strictEqual(schedRes.body.distribution.status, 'SCHEDULED');
+});
+
+test('27. Creative Asset Attachment & Retrieval', async () => {
+  const item = await request('POST', '/api/contents', {
+    title: `Media Asset Post ${UNIQ}`,
+    lifecycleStatus: 'DRAFT'
+  });
+  const id = item.body.id;
+
+  const addAsset = await request('POST', `/api/contents/${id}/assets`, {
+    assetType: 'IMAGE',
+    fileUrl: 'https://cdn.asenzo.io/assets/infographic-v1.png',
+    caption: 'Growth OS Framework Diagram'
+  });
+  assert.strictEqual(addAsset.status, 201);
+
+  const getAssets = await request('GET', `/api/contents/${id}/assets`);
+  assert.strictEqual(getAssets.status, 200);
+  assert.strictEqual(getAssets.body.length, 1);
+  assert.strictEqual(getAssets.body[0].file_url, 'https://cdn.asenzo.io/assets/infographic-v1.png');
+});
+

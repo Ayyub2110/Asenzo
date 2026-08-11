@@ -160,11 +160,32 @@ const ContentSchema = z.object({
   title: z.string().min(3),
   lifecycleStatus: ContentLifecycleStatus.default('DRAFT'),
   primaryPlatform: PlatformType.default('LINKEDIN'),
-  hookText: optStr,
-  bodyScript: optStr,
-  cta: optStr,
+  hookText: optStr.default(''),
+  bodyScript: optStr.default(''),
+  cta: optStr.default(''),
+  owner: optStr.default('Alex Morgan'),
+  deadline: optStr.default(''),
+  scheduledAt: optStr.default(''),
+  publishedAt: optStr.default(''),
+  score: z.number().int().min(0).max(100).optional().default(85),
+  performanceJson: z.record(z.any()).optional().default({}),
   isAdCandidate: z.boolean().optional().default(false),
   isArchived: z.boolean().optional().default(false)
+});
+
+const ContentTransitionSchema = z.object({
+  targetStatus: ContentLifecycleStatus,
+  reason: optStr.default('State machine transition'),
+  rescheduleDate: optStr,
+  postUrl: optStr
+});
+
+const ContentAssetSchema = z.object({
+  id: optStr,
+  contentId: z.string().min(1, 'Content ID is required'),
+  assetType: z.enum(['IMAGE', 'VIDEO', 'CAROUSEL_PDF', 'INFOGRAPHIC', 'DOCUMENT']).default('IMAGE'),
+  fileUrl: z.string().min(3, 'File URL is required'),
+  caption: optStr.default('')
 });
 
 const ScriptGenerationRequestSchema = z.object({
@@ -329,6 +350,8 @@ module.exports = {
   PositioningFullSchema,
   OfferFullSchema,
   ContentSchema,
+  ContentTransitionSchema,
+  ContentAssetSchema,
   ScriptGenerationRequestSchema,
   ContentPillarFullSchema,
   ContentIdeaSchema,
