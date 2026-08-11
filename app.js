@@ -2248,3 +2248,319 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ATTENTION OS — AI HOOK & SCRIPT STUDIO FRONTEND LOGIC
+// ══════════════════════════════════════════════════════════════════════════════
+
+let ACTIVE_STUDIO_CONTENT_ID = null;
+let ACTIVE_HOOK_STYLES = [];
+let CURRENT_STUDIO_PLATFORM = 'LINKEDIN';
+let CURRENT_STUDIO_SCRIPTS_CACHE = {};
+
+function openAiStudioModal(item) {
+  ACTIVE_STUDIO_CONTENT_ID = item ? (item.id || item.converted_content_id || null) : null;
+  const topicInput = document.getElementById('ai-studio-topic');
+  const painInput = document.getElementById('ai-studio-pain');
+  const pillarSelect = document.getElementById('ai-studio-pillar');
+
+  if (item) {
+    topicInput.value = item.title || item.hookText || item.hook_text || '';
+    painInput.value = item.pain || item.targetPain || '';
+  } else if (!topicInput.value) {
+    topicInput.value = 'Why standard agency retainers fail bootstrapped B2B founders';
+    painInput.value = 'Trapped in 60-hr workweeks serving as single bottleneck';
+  }
+
+  // Populate Pillars
+  if (pillarSelect) {
+    const pillars = window.CONTENT_PILLARS || [];
+    pillarSelect.innerHTML = '<option value="">Auto-Select Pillar</option>' +
+      pillars.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  }
+
+  document.getElementById('ai-studio-modal').classList.remove('hidden');
+  switchStudioTab('hooks');
+  if (ACTIVE_STUDIO_CONTENT_ID) loadContentVersionHistory();
+}
+
+function closeAiStudioModal() {
+  document.getElementById('ai-studio-modal').classList.add('hidden');
+}
+
+function switchStudioTab(tabName) {
+  ['hooks', 'script', 'guardrails', 'versions'].forEach(t => {
+    const btn = document.getElementById(`tab-btn-studio-${t}`);
+    const tab = document.getElementById(`studio-tab-${t}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (tab) tab.classList.toggle('hidden', t !== tabName);
+  });
+}
+
+function toggleHookStyleChip(el) {
+  const style = el.getAttribute('data-style');
+  if (style === 'all') {
+    document.querySelectorAll('#hook-style-chips .style-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    ACTIVE_HOOK_STYLES = [];
+  } else {
+    document.querySelector('#hook-style-chips .style-chip[data-style="all"]').classList.remove('active');
+    el.classList.toggle('active');
+    ACTIVE_HOOK_STYLES = Array.from(document.querySelectorAll('#hook-style-chips .style-chip.active'))
+      .map(c => c.getAttribute('data-style'))
+      .filter(s => s !== 'all');
+  }
+}
+
+async function runHookGenerator() {
+  const topic = document.getElementById('ai-studio-topic').value.trim() || 'Growth Operating System';
+  const targetPain = document.getElementById('ai-studio-pain').value.trim();
+  const pillarId = document.getElementById('ai-studio-pillar').value;
+  const container = document.getElementById('ai-studio-hooks-list');
+
+  container.innerHTML = '<div style="padding:20px;text-align:center;color:#475569">⚡ Assembling Business DNA & Synthesizing Hooks...</div>';
+
+  try {
+    const res = await window.ASENZO_API.generateHooks({
+      topic,
+      targetPain,
+      pillarId,
+      styles: ACTIVE_HOOK_STYLES,
+      count: 3
+    });
+
+    if (!res.hooks || res.hooks.length === 0) {
+      container.innerHTML = '<div style="padding:16px;color:#EF4444">No hooks generated. Please check topic input.</div>';
+      return;
+    }
+
+    container.innerHTML = res.hooks.map(h => `
+      <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="sb-badge blue">${h.style.toUpperCase()}</span>
+            <span class="sb-badge green">Score: ${h.score}/100</span>
+            <span class="sb-badge gray">Confidence: ${h.confidence}%</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="selectStudioHook('${escapeHtml(h.text)}')">
+            🎯 Use This Hook
+          </button>
+        </div>
+        <div style="font-size:13.5px;font-weight:700;color:#0F172A;margin-bottom:6px;line-height:1.4">"${escapeHtml(h.text)}"</div>
+        <div style="font-size:12px;color:#64748B;font-style:italic;margin-bottom:4px">💡 ${escapeHtml(h.reasoning)}</div>
+        ${h.warnings && h.warnings.length > 0 ? `
+          <div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:4px;padding:4px 8px;margin-top:6px">
+            ⚠️ ${escapeHtml(h.warnings.join(' | '))}
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+
+    showToast(`Generated ${res.hooks.length} Hooks across styles!`);
+  } catch (err) {
+    container.innerHTML = `<div style="padding:16px;color:#EF4444">Error: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function selectStudioHook(hookText) {
+  document.getElementById('sec-hook').value = hookText;
+  switchStudioTab('script');
+  showToast('Hook copied to Script Synthesizer!');
+  triggerDraftValidation();
+}
+
+function selectScriptPlatform(platform) {
+  CURRENT_STUDIO_PLATFORM = platform;
+  document.querySelectorAll('#script-platform-selector .plat-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-platform') === platform);
+  });
+
+  if (CURRENT_STUDIO_SCRIPTS_CACHE[platform]) {
+    loadCachedScriptPlatform(platform);
+  } else {
+    runScriptSynthesizer();
+  }
+}
+
+async function runScriptSynthesizer() {
+  const topic = document.getElementById('ai-studio-topic').value.trim() || 'Growth Operating System';
+  const targetPain = document.getElementById('ai-studio-pain').value.trim();
+  const pillarId = document.getElementById('ai-studio-pillar').value;
+  const selectedHook = document.getElementById('sec-hook').value.trim();
+
+  try {
+    const res = await window.ASENZO_API.generateProductionScript({
+      topic,
+      targetPain,
+      pillarId,
+      selectedHook,
+      platforms: ['LINKEDIN', 'X', 'INSTAGRAM', 'YOUTUBE_SHORT', 'CAROUSEL', 'EMAIL', 'NEWSLETTER', 'BLOG']
+    });
+
+    if (res.platforms && res.platforms.length > 0) {
+      res.platforms.forEach(p => {
+        CURRENT_STUDIO_SCRIPTS_CACHE[p.platform] = p;
+      });
+      loadCachedScriptPlatform(CURRENT_STUDIO_PLATFORM);
+      showToast(`Synthesized scripts for 8 platforms!`);
+    }
+  } catch (err) {
+    showToast(`Script Generation Error: ${err.message}`);
+  }
+}
+
+function loadCachedScriptPlatform(platform) {
+  const data = CURRENT_STUDIO_SCRIPTS_CACHE[platform];
+  if (!data) return;
+
+  const secs = data.structuredSections || {};
+  document.getElementById('sec-hook').value = secs.hook || '';
+  document.getElementById('sec-context').value = secs.context || '';
+  document.getElementById('sec-problem').value = secs.problem || '';
+  document.getElementById('sec-insight').value = secs.insight || '';
+  document.getElementById('sec-mechanism').value = secs.mechanism || '';
+  document.getElementById('sec-proof').value = secs.proof || '';
+  document.getElementById('sec-cta').value = secs.cta || '';
+
+  document.getElementById('script-full-text').value = data.fullScript || '';
+  renderGuardrailsResult(data.guardrailResult);
+}
+
+function triggerDraftValidation() {
+  const hook = document.getElementById('sec-hook').value;
+  const context = document.getElementById('sec-context').value;
+  const problem = document.getElementById('sec-problem').value;
+  const insight = document.getElementById('sec-insight').value;
+  const mechanism = document.getElementById('sec-mechanism').value;
+  const proof = document.getElementById('sec-proof').value;
+  const cta = document.getElementById('sec-cta').value;
+
+  const assembled = `${hook}\n\n${context}\n\nProblem: ${problem}\n\n${insight}\n\nMechanism:\n${mechanism}\n\n${proof}\n\n${cta}`;
+  document.getElementById('script-full-text').value = assembled;
+}
+
+async function runDraftValidation() {
+  const fullText = document.getElementById('script-full-text').value;
+  try {
+    const result = await window.ASENZO_API.validateGuardrails({ scriptText: fullText });
+    renderGuardrailsResult(result);
+    showToast('Guardrails re-validated!');
+  } catch (err) {
+    showToast(`Validation Error: ${err.message}`);
+  }
+}
+
+function renderGuardrailsResult(g) {
+  if (!g) return;
+
+  document.getElementById('ai-studio-score-badge').textContent = `Overall Score: ${g.overallScore}/100`;
+  document.getElementById('g-score-overall').textContent = `${g.overallScore}/100`;
+  document.getElementById('g-score-icp').textContent = `${g.icpScore}/100`;
+  document.getElementById('g-score-pos').textContent = `${g.positioningScore}/100`;
+  document.getElementById('g-score-voice').textContent = `${g.brandVoiceScore}/100`;
+  document.getElementById('g-score-proof').textContent = `${g.proofScore}/100`;
+
+  // Proof Gap Alert
+  const gapAlert = document.getElementById('ai-studio-proof-gap-alert');
+  const gapText = document.getElementById('ai-studio-proof-gap-text');
+  if (g.proofGap && g.proofGaps && g.proofGaps.length > 0) {
+    gapAlert.classList.remove('hidden');
+    gapText.textContent = g.proofGaps.map(pg => pg.detail).join(' | ');
+  } else {
+    gapAlert.classList.add('hidden');
+  }
+
+  // Violations & Warnings
+  document.getElementById('ai-studio-violations').innerHTML = (g.violations && g.violations.length > 0)
+    ? g.violations.map(v => `<div>❌ ${escapeHtml(v)}</div>`).join('')
+    : '<div style="color:#10B981">✅ Zero Brand Voice Violations</div>';
+
+  document.getElementById('ai-studio-warnings').innerHTML = (g.warnings && g.warnings.length > 0)
+    ? g.warnings.map(w => `<div>⚠️ ${escapeHtml(w)}</div>`).join('')
+    : '<div style="color:#10B981">✅ All Quality Checks Passed</div>';
+}
+
+async function saveStudioVersion(approvalStatus = 'DRAFT') {
+  if (!ACTIVE_STUDIO_CONTENT_ID) {
+    // Create new content asset first
+    try {
+      const title = document.getElementById('ai-studio-topic').value.trim() || 'Untitled Growth Post';
+      const created = await window.ASENZO_API.createContent({
+        title,
+        primaryPlatform: CURRENT_STUDIO_PLATFORM,
+        lifecycleStatus: 'DRAFT'
+      });
+      ACTIVE_STUDIO_CONTENT_ID = created.id;
+    } catch (err) {
+      showToast(`Error creating content record: ${err.message}`);
+      return;
+    }
+  }
+
+  const payload = {
+    contentId: ACTIVE_STUDIO_CONTENT_ID,
+    hookText: document.getElementById('sec-hook').value.trim(),
+    bodyScript: document.getElementById('script-full-text').value.trim(),
+    cta: document.getElementById('sec-cta').value.trim(),
+    platform: CURRENT_STUDIO_PLATFORM,
+    createdBy: 'HUMAN_OPERATOR',
+    approvalStatus
+  };
+
+  try {
+    const res = await window.ASENZO_API.saveContentVersion(ACTIVE_STUDIO_CONTENT_ID, payload);
+    showToast(`Saved Content Version #${res.version.versionNumber} (${approvalStatus})!`);
+    loadContentVersionHistory();
+    if (CURRENT_PAGE === 'attention') renderAttention();
+  } catch (err) {
+    showToast(`Version Save Error: ${err.message}`);
+  }
+}
+
+async function loadContentVersionHistory() {
+  if (!ACTIVE_STUDIO_CONTENT_ID) return;
+  const container = document.getElementById('ai-studio-versions-list');
+
+  try {
+    const versions = await window.ASENZO_API.getContentVersions(ACTIVE_STUDIO_CONTENT_ID);
+    if (!versions || versions.length === 0) {
+      container.innerHTML = '<div style="padding:16px;text-align:center;color:#64748B">No saved versions yet.</div>';
+      return;
+    }
+
+    container.innerHTML = versions.map(v => `
+      <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="sb-badge blue">Version ${v.version_number}</span>
+            <span class="sb-badge gray">${v.created_by}</span>
+            <span class="sb-badge green">${new Date(v.created_at).toLocaleString()}</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="restoreStudioVersion('${escapeHtml(v.hook_text)}', '${escapeHtml(v.body_script)}', '${escapeHtml(v.cta)}')">
+            🔄 Load Into Editor
+          </button>
+        </div>
+        <div style="font-size:12.5px;font-weight:700;color:#0F172A">"${escapeHtml(v.hook_text || 'No Hook')}"</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="padding:12px;color:#EF4444">Error loading versions: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function restoreStudioVersion(hook, body, cta) {
+  document.getElementById('sec-hook').value = hook || '';
+  document.getElementById('script-full-text').value = body || '';
+  document.getElementById('sec-cta').value = cta || '';
+  switchStudioTab('script');
+  showToast('Loaded selected version into editor!');
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}

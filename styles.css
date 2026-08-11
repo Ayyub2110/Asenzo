@@ -1456,3 +1456,48 @@ input, select, textarea {
   font-weight: 700;
 }
 
+/* AI Studio Style Chips & Platform Buttons */
+.style-chip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.style-chip:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+.style-chip.active {
+  background: #0EA5E9;
+  border-color: #0284C7;
+  color: #FFFFFF;
+}
+
+.plat-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.plat-btn:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+.plat-btn.active {
+  background: #4F46E5;
+  border-color: #4338CA;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+

@@ -99,9 +99,17 @@ window.ASENZO_API = {
   async getMarketIntel() { return apiFetch('/market-intel'); },
   async addMarketIntel(data) { return apiFetch('/market-intel', { method: 'POST', body: data }); },
 
-  // Analytics & Script Generation
+  // Analytics & Legacy Script Generation
   async getAnalytics() { return apiFetch('/attention/analytics'); },
   async generateScript(payload) { return apiFetch('/attention/generate-script', { method: 'POST', body: payload }); },
+
+  // Production-Grade AI Hook & Script Studio
+  async generateHooks(payload) { return apiFetch('/generate/hooks', { method: 'POST', body: payload }); },
+  async generateProductionScript(payload) { return apiFetch('/generate/script', { method: 'POST', body: payload }); },
+  async validateGuardrails(payload) { return apiFetch('/generate/validate', { method: 'POST', body: payload }); },
+  async saveContentVersion(contentId, payload) { return apiFetch(`/contents/${contentId}/versions`, { method: 'POST', body: payload }); },
+  async getContentVersions(contentId) { return apiFetch(`/contents/${contentId}/versions`); },
+
   async getRecommendations() { return apiFetch('/recommendations'); },
   async applyRecommendation(id) { return apiFetch(`/recommendations/${id}/apply`, { method: 'POST' }); },
   async getAuditLogs() { return apiFetch('/audit-logs'); }

@@ -225,6 +225,81 @@ const ContentIdeaGenerateRequestSchema = z.object({
   seedPrompt: optStr.default('')
 });
 
+// ── 13. AI HOOK & SCRIPT GENERATION SCHEMAS ───────────────────────────────────
+const HookStyleEnum = z.enum([
+  'contrarian',
+  'problem',
+  'curiosity',
+  'story',
+  'data',
+  'mistake',
+  'framework',
+  'prediction',
+  'case_study'
+]);
+
+const ScriptPlatformEnum = z.enum([
+  'LINKEDIN',
+  'X',
+  'INSTAGRAM',
+  'YOUTUBE_SHORT',
+  'CAROUSEL',
+  'EMAIL',
+  'NEWSLETTER',
+  'BLOG'
+]);
+
+const HookGenerationRequestSchema = z.object({
+  businessId: optStr.default('biz_default'),
+  ideaId: optStr,
+  pillarId: optStr,
+  topic: z.string().min(3, 'Topic is required'),
+  targetPain: optStr.default(''),
+  styles: z.array(HookStyleEnum).optional(),
+  count: z.number().int().min(1).max(9).optional().default(3)
+});
+
+const ScriptGenerationFullRequestSchema = z.object({
+  businessId: optStr.default('biz_default'),
+  ideaId: optStr,
+  pillarId: optStr,
+  topic: z.string().min(3, 'Topic or title is required'),
+  targetPain: optStr.default(''),
+  selectedHook: optStr.default(''),
+  hookStyle: HookStyleEnum.optional().default('contrarian'),
+  platforms: z.array(ScriptPlatformEnum).min(1).default(['LINKEDIN']),
+  includeProof: z.boolean().optional().default(true),
+  forceProofGapCheck: z.boolean().optional().default(true)
+});
+
+const GuardrailValidationSchema = z.object({
+  passed: z.boolean(),
+  overallScore: z.number().min(0).max(100),
+  icpScore: z.number().min(0).max(100),
+  positioningScore: z.number().min(0).max(100),
+  brandVoiceScore: z.number().min(0).max(100),
+  proofScore: z.number().min(0).max(100),
+  proofGap: z.boolean().default(false),
+  proofGaps: z.array(z.record(z.any())).default([]),
+  violations: z.array(z.string()).default([]),
+  warnings: z.array(z.string()).default([]),
+  claimsVerification: z.array(z.record(z.any())).default([])
+});
+
+const ContentVersionSaveSchema = z.object({
+  contentId: z.string().min(1, 'Content ID is required'),
+  versionNumber: z.number().int().optional(),
+  hookText: optStr.default(''),
+  bodyScript: optStr.default(''),
+  cta: optStr.default(''),
+  platform: ScriptPlatformEnum.default('LINKEDIN'),
+  structuredSections: z.record(z.any()).optional().default({}),
+  guardrailResults: z.record(z.any()).optional().default({}),
+  provenance: z.record(z.any()).optional().default({}),
+  createdBy: z.string().default('HUMAN_OPERATOR'),
+  approvalStatus: z.enum(['DRAFT', 'APPROVED', 'NEEDS_REVISION']).default('DRAFT')
+});
+
 module.exports = {
   // Enums
   ContentLifecycleStatus,
@@ -242,6 +317,8 @@ module.exports = {
   ContentIdeaStatus,
   ContentFormatType,
   IdeaPriorityType,
+  HookStyleEnum,
+  ScriptPlatformEnum,
 
   // Entity Schemas
   FounderProfileFullSchema,
@@ -255,5 +332,11 @@ module.exports = {
   ScriptGenerationRequestSchema,
   ContentPillarFullSchema,
   ContentIdeaSchema,
-  ContentIdeaGenerateRequestSchema
+  ContentIdeaGenerateRequestSchema,
+
+  // AI Hook & Script Schemas
+  HookGenerationRequestSchema,
+  ScriptGenerationFullRequestSchema,
+  GuardrailValidationSchema,
+  ContentVersionSaveSchema
 };

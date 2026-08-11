@@ -2,6 +2,25 @@ const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 
+let spawnedServer;
+test.before(async () => {
+  const isUp = await new Promise(resolve => {
+    const req = http.get('http://localhost:3001/api/health', () => resolve(true));
+    req.on('error', () => resolve(false));
+  });
+  if (!isUp) {
+    const { server } = require('../server');
+    spawnedServer = server;
+    await new Promise(r => setTimeout(r, 200));
+  }
+});
+
+test.after(async () => {
+  if (spawnedServer && spawnedServer.close) {
+    await new Promise(r => spawnedServer.close(r));
+  }
+});
+
 function request(method, path, body = null) {
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
@@ -323,3 +342,111 @@ test('18. Idea Soft-Delete', async () => {
   const all = await request('GET', '/api/ideas?includeArchived=true');
   assert.ok(!all.body.some(i => i.id === id), 'Deleted idea must be fully excluded');
 });
+
+test('19. Production AI Hook Generation Across 9 Styles', async () => {
+  const payload = {
+    topic: 'Why standard agency retainers fail bootstrapped B2B founders',
+    targetPain: 'Trapped in 60-hr workweeks serving as single bottleneck',
+    styles: ['contrarian', 'problem', 'curiosity', 'story', 'data', 'mistake', 'framework', 'prediction', 'case_study'],
+    count: 3
+  };
+
+  const res = await request('POST', '/api/generate/hooks', payload);
+  assert.strictEqual(res.status, 200);
+  assert.ok(Array.isArray(res.body.hooks));
+  assert.ok(res.body.hooks.length >= 9, 'Must generate hooks for all 9 styles');
+
+  for (const h of res.body.hooks) {
+    assert.ok(h.text && h.text.length > 10, 'Hook text required');
+    assert.ok(h.style, 'Hook style required');
+    assert.ok(typeof h.score === 'number');
+    assert.ok(typeof h.confidence === 'number');
+    assert.ok(Array.isArray(h.warnings));
+  }
+
+  // Metadata verification
+  assert.strictEqual(res.body.promptVersion, 'v2.1');
+  assert.strictEqual(res.body.modelMetadata.provider, 'ASENZO_ATTENTION_ENGINE_V2');
+  assert.ok(res.body.generationMetadata.timestamp);
+  assert.ok(res.body.sourceProvenance.businessId);
+});
+
+test('20. Multi-Platform Script Generation Across 8 Platforms with Structured Output', async () => {
+  const payload = {
+    topic: 'The 5-Engine Growth OS Framework',
+    targetPain: 'Single bottleneck founder chaos',
+    selectedHook: 'Stop managing growth manually: here is the 5-Engine Growth OS.',
+    platforms: ['LINKEDIN', 'X', 'INSTAGRAM', 'YOUTUBE_SHORT', 'CAROUSEL', 'EMAIL', 'NEWSLETTER', 'BLOG']
+  };
+
+  const res = await request('POST', '/api/generate/script', payload);
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.platforms.length, 8);
+
+  for (const p of res.body.platforms) {
+    assert.ok(p.platform);
+    assert.ok(p.fullScript);
+    assert.ok(p.structuredSections.hook);
+    assert.ok(p.structuredSections.context);
+    assert.ok(p.structuredSections.problem);
+    assert.ok(p.structuredSections.insight);
+    assert.ok(p.structuredSections.mechanism);
+    assert.ok(p.structuredSections.proof);
+    assert.ok(p.structuredSections.cta);
+    assert.ok(p.guardrailResult.passed !== undefined);
+  }
+});
+
+test('21. Anti-Fabrication Guardrail & Proof Gap Enforcement', async () => {
+  const unverifiedText = 'We generated $10,000,000,000 in revenue overnight using secret hacks and guru tricks!';
+  const res = await request('POST', '/api/generate/validate', { scriptText: unverifiedText });
+
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.proofGap, true, 'Unverified metric claim must trigger proofGap');
+  assert.ok(res.body.violations.some(v => v.includes('guru') || v.includes('hack')), 'Must flag prohibited words');
+  assert.ok(res.body.proofGaps.some(pg => pg.category === 'UNSUBSTANTIATED_METRIC_CLAIM'));
+  assert.strictEqual(res.body.passed, false, 'Draft with violations & unverified claims must fail guardrails');
+});
+
+test('22. Content Versioning & Founder Approval Workflow', async () => {
+  // Create a content item (creates Version 1 automatically)
+  const contentRes = await request('POST', '/api/contents', {
+    title: `Versioned Content Post ${UNIQ}`,
+    lifecycleStatus: 'DRAFT',
+    primaryPlatform: 'LINKEDIN'
+  });
+  assert.strictEqual(contentRes.status, 201);
+  const contentId = contentRes.body.id;
+
+  // Save Version 2 (DRAFT edit)
+  const v2 = await request('POST', `/api/contents/${contentId}/versions`, {
+    hookText: 'Stop managing growth manually.',
+    bodyScript: 'Full script for version 2 draft.',
+    cta: 'Comment "OS" for breakdown.',
+    platform: 'LINKEDIN',
+    createdBy: 'AI_GENERATOR',
+    approvalStatus: 'DRAFT'
+  });
+  assert.strictEqual(v2.status, 201);
+  assert.strictEqual(v2.body.version.versionNumber, 2);
+
+  // Save Version 3 (APPROVED by founder)
+  const v3 = await request('POST', `/api/contents/${contentId}/versions`, {
+    hookText: 'Stop managing growth manually (Approved).',
+    bodyScript: 'Full script for version 3 approved.',
+    cta: 'DM "GROWTH" for breakdown.',
+    platform: 'LINKEDIN',
+    createdBy: 'HUMAN_OPERATOR',
+    approvalStatus: 'APPROVED'
+  });
+  assert.strictEqual(v3.status, 201);
+  assert.strictEqual(v3.body.version.versionNumber, 3);
+  assert.strictEqual(v3.body.content.lifecycle_status, 'APPROVED');
+
+  // Fetch Version History (newest first)
+  const history = await request('GET', `/api/contents/${contentId}/versions`);
+  assert.strictEqual(history.status, 200);
+  assert.strictEqual(history.body.length, 3);
+  assert.strictEqual(history.body[0].version_number, 3);
+});
+
