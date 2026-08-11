@@ -531,9 +531,71 @@ const AttributionEventSchema = z.object({
   contentId: optStr,
   distributionId: optStr,
   campaignId: optStr,
+  source: optStr,
+  platform: optStr,
   eventType: z.string().min(1, 'eventType is required'),
+  eventValue: z.number().optional().default(0),
   revenueAmount: z.number().optional().default(0),
+  metadata: z.record(z.any()).optional().default({}),
   timestamp: optStr
+});
+
+// ── 15b. ATTENTION OS MEASUREMENT & INTELLIGENCE SCHEMAS ─────────────────────
+const AttributionEventTypeEnum = z.enum([
+  'content',
+  'interaction',
+  'visitor',
+  'lead',
+  'qualified_lead',
+  'conversation',
+  'opportunity',
+  'customer',
+  'revenue'
+]);
+
+const ContentPerformanceRecordSchema = z.object({
+  contentId: z.string().min(1, 'contentId is required'),
+  distributionId: optStr.default(''),
+  platform: optStr.default(''),
+  recordedAt: optStr,
+  // Reach
+  impressions: z.number().int().min(0).optional().default(0),
+  reach: z.number().int().min(0).optional().default(0),
+  views: z.number().int().min(0).optional().default(0),
+  // Engagement
+  likes: z.number().int().min(0).optional().default(0),
+  comments: z.number().int().min(0).optional().default(0),
+  shares: z.number().int().min(0).optional().default(0),
+  saves: z.number().int().min(0).optional().default(0),
+  // Intent
+  profileVisits: z.number().int().min(0).optional().default(0),
+  clicks: z.number().int().min(0).optional().default(0),
+  ctaClicks: z.number().int().min(0).optional().default(0),
+  // Acquisition
+  leads: z.number().int().min(0).optional().default(0),
+  qualifiedLeads: z.number().int().min(0).optional().default(0),
+  conversations: z.number().int().min(0).optional().default(0),
+  // Commercial
+  opportunities: z.number().int().min(0).optional().default(0),
+  customers: z.number().int().min(0).optional().default(0),
+  revenueInfluenced: z.number().min(0).optional().default(0),
+  // When true (default for programmatic ingestion), the record explicitly
+  // asserts that acquisition/commercial columns were measured, even if zero.
+  metricsTracked: z.boolean().optional().default(true)
+});
+
+const PerformanceRecordBatchSchema = z.object({
+  records: z.array(ContentPerformanceRecordSchema).min(1).max(500)
+});
+
+const AttributionEventLogSchema = z.object({
+  events: z.array(AttributionEventSchema).min(1).max(500)
+});
+
+const IntelligenceFilterSchema = z.object({
+  dimension: z.enum(['content', 'pillar', 'format', 'platform', 'audience']).optional().default('content'),
+  days: z.number().int().min(1).max(1825).optional(),
+  businessId: optStr.default('biz_default')
 });
 
 const AuthorityAssetFullSchema = z.object({
@@ -663,6 +725,13 @@ module.exports = {
   LeadCaptureSchema,
   LeadUpdateSchema,
   AttributionEventSchema,
+
+  // Attention OS Measurement & Intelligence Schemas
+  AttributionEventTypeEnum,
+  ContentPerformanceRecordSchema,
+  PerformanceRecordBatchSchema,
+  AttributionEventLogSchema,
+  IntelligenceFilterSchema,
 
   // Acquisition Support Systems Schemas
   AuthorityAssetFullSchema,

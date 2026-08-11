@@ -242,14 +242,36 @@ async function initDb() {
           id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, asset_type TEXT NOT NULL, proof_summary TEXT NOT NULL, link TEXT DEFAULT '#', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
         )`);
 
-        // 25. ContentPerformance
+        // 25. ContentPerformance — Attention OS measurement layer.
+        // Tracks the 5 attention categories separately from business impact so
+        // reach can never masquerade as revenue:
+        //   Reach:      impressions, reach, views
+        //   Engagement: likes, comments, shares, saves
+        //   Intent:     profile_visits, clicks, cta_clicks
+        //   Acquisition: leads, qualified_leads, conversations
+        //   Commercial: opportunities, customers, revenue_influenced
         await run(`CREATE TABLE IF NOT EXISTS content_performances (
-          id TEXT PRIMARY KEY, content_id TEXT NOT NULL, distribution_id TEXT, views INTEGER DEFAULT 0, engagements INTEGER DEFAULT 0, intent_clicks INTEGER DEFAULT 0, dms_generated INTEGER DEFAULT 0, qualified_leads INTEGER DEFAULT 0, revenue_influenced REAL DEFAULT 0, recorded_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, content_id TEXT NOT NULL, distribution_id TEXT DEFAULT '',
+          platform TEXT DEFAULT '', recorded_at TEXT,
+          impressions INTEGER DEFAULT 0, reach INTEGER DEFAULT 0, views INTEGER DEFAULT 0,
+          likes INTEGER DEFAULT 0, comments INTEGER DEFAULT 0, shares INTEGER DEFAULT 0, saves INTEGER DEFAULT 0,
+          profile_visits INTEGER DEFAULT 0, clicks INTEGER DEFAULT 0, cta_clicks INTEGER DEFAULT 0,
+          leads INTEGER DEFAULT 0, qualified_leads INTEGER DEFAULT 0, conversations INTEGER DEFAULT 0,
+          opportunities INTEGER DEFAULT 0, customers INTEGER DEFAULT 0, revenue_influenced REAL DEFAULT 0,
+          metrics_tracked INTEGER DEFAULT 0
         )`);
 
-        // 26. AttributionEvent
+        // 26. AttributionEvent — the attention -> business impact event chain.
+        // Content -> Interaction -> Visitor -> Lead -> Qualified Lead ->
+        // Conversation -> Opportunity -> Customer -> Revenue.
+        // Every event carries the provenance needed to answer "what content,
+        // from which source/platform/campaign, produced this outcome".
         await run(`CREATE TABLE IF NOT EXISTS attribution_events (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, content_id TEXT, lead_id TEXT, event_type TEXT NOT NULL, revenue_amount REAL DEFAULT 0, timestamp TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, event_type TEXT NOT NULL,
+          content_id TEXT, distribution_id TEXT DEFAULT '', lead_id TEXT, campaign_id TEXT DEFAULT '',
+          source TEXT DEFAULT '', platform TEXT DEFAULT '',
+          event_value REAL DEFAULT 0, revenue_amount REAL DEFAULT 0,
+          metadata_json TEXT DEFAULT '{}', timestamp TEXT
         )`);
 
         // 27. AIInteraction
@@ -603,6 +625,66 @@ When you replace random agency retainers with a production-grade Growth Operatin
           await run(
             `INSERT OR IGNORE INTO platforms (id, name, handle, is_connected, updated_at) VALUES (?, ?, ?, 0, ?)`,
             [p.id, p.name, p.handle, now]
+          );
+        }
+
+        // ── ATTENTION OS MEASUREMENT SEEDS ────────────────────────────────────
+        // Time-series content performance across the 5 tracked categories.
+        // `metrics_tracked = 1` marks records where acquisition/commercial
+        // columns were deliberately measured (even when zero) — this is what
+        // lets the intelligence layer distinguish "measured flat" from
+        // "unmeasured / insufficient data".
+        const perfSeeds = [
+          // cnt_1 — Positioning pillar: high reach, zero business outcome.
+          { id: 'perf_cnt1_d1', contentId: 'cnt_1', platform: 'LINKEDIN', recordedAt: new Date(Date.now() - 3 * 86400000).toISOString(), impressions: 8800, reach: 6100, views: 4100, likes: 410, comments: 86, shares: 22, saves: 31, profileVisits: 14, clicks: 38, ctaClicks: 3, leads: 0, qualifiedLeads: 0, conversations: 0, opportunities: 0, customers: 0, revenue: 0, tracked: 1 },
+          { id: 'perf_cnt1_d2', contentId: 'cnt_1', platform: 'LINKEDIN', recordedAt: new Date(Date.now() - 1 * 86400000).toISOString(), impressions: 5200, reach: 4100, views: 2400, likes: 268, comments: 41, shares: 9, saves: 18, profileVisits: 8, clicks: 21, ctaClicks: 2, leads: 0, qualifiedLeads: 0, conversations: 0, opportunities: 0, customers: 0, revenue: 0, tracked: 1 },
+          // cnt_2 — Mechanism pillar: compounding qualified attention + commercial.
+          { id: 'perf_cnt2_d1', contentId: 'cnt_2', platform: 'X_TWITTER', recordedAt: new Date(Date.now() - 3 * 86400000).toISOString(), impressions: 7400, reach: 5300, views: 3900, likes: 182, comments: 64, shares: 71, saves: 22, profileVisits: 66, clicks: 310, ctaClicks: 9, leads: 11, qualifiedLeads: 6, conversations: 5, opportunities: 2, customers: 0, revenue: 0, tracked: 1 },
+          { id: 'perf_cnt2_d2', contentId: 'cnt_2', platform: 'X_TWITTER', recordedAt: new Date(Date.now() - 1 * 86400000).toISOString(), impressions: 9300, reach: 6900, views: 5100, likes: 241, comments: 97, shares: 118, saves: 35, profileVisits: 102, clicks: 470, ctaClicks: 15, leads: 13, qualifiedLeads: 8, conversations: 7, opportunities: 3, customers: 1, revenue: 12500, tracked: 1 },
+          // cnt_3 — Proof pillar: the strongest business impact per unit attention.
+          { id: 'perf_cnt3_d1', contentId: 'cnt_3', platform: 'LINKEDIN', recordedAt: new Date(Date.now() - 3 * 86400000).toISOString(), impressions: 21000, reach: 15700, views: 11200, likes: 940, comments: 210, shares: 96, saves: 140, profileVisits: 205, clicks: 680, ctaClicks: 26, leads: 19, qualifiedLeads: 11, conversations: 9, opportunities: 4, customers: 1, revenue: 12500, tracked: 1 },
+          { id: 'perf_cnt3_d2', contentId: 'cnt_3', platform: 'LINKEDIN', recordedAt: new Date(Date.now() - 1 * 86400000).toISOString(), impressions: 14200, reach: 10800, views: 7600, likes: 620, comments: 148, shares: 51, saves: 96, profileVisits: 131, clicks: 415, ctaClicks: 18, leads: 14, qualifiedLeads: 8, conversations: 7, opportunities: 3, customers: 1, revenue: 12500, tracked: 1 }
+        ];
+        for (const p of perfSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO content_performances (id, business_id, content_id, distribution_id, platform, recorded_at, impressions, reach, views, likes, comments, shares, saves, profile_visits, clicks, cta_clicks, leads, qualified_leads, conversations, opportunities, customers, revenue_influenced, metrics_tracked)
+             VALUES (?, 'biz_default', ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [p.id, p.contentId, p.platform, p.recordedAt, p.impressions, p.reach, p.views, p.likes, p.comments, p.shares, p.saves, p.profileVisits, p.clicks, p.ctaClicks, p.leads, p.qualifiedLeads, p.conversations, p.opportunities, p.customers, p.revenue, p.tracked]
+          );
+        }
+
+        // ── ATTRIBUTION EVENT CHAIN SEEDS ─────────────────────────────────────
+        // Content -> Interaction -> Visitor -> Lead -> Qualified Lead ->
+        // Conversation -> Opportunity -> Customer -> Revenue.
+        // Each event carries source / platform / campaign / content / lead so
+        // every business outcome can be traced back to the content that earned it.
+        const daysAgo = (d) => new Date(Date.now() - d * 86400000).toISOString();
+        const chainSeeds = [
+          { id: 'attr_cnt1_int', contentId: 'cnt_1', eventType: 'interaction', source: 'ORGANIC', platform: 'LINKEDIN', campaignId: 'cmp_q1_authority', ts: daysAgo(2) },
+          { id: 'attr_cnt1_vis', contentId: 'cnt_1', eventType: 'visitor', source: 'ORGANIC', platform: 'LINKEDIN', campaignId: 'cmp_q1_authority', ts: daysAgo(2) },
+          { id: 'attr_cnt2_vis', contentId: 'cnt_2', eventType: 'visitor', source: 'ORGANIC', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(2) },
+          { id: 'attr_cnt2_lead1', contentId: 'cnt_2', leadId: 'lead_m', eventType: 'lead', source: 'CTA_CLICK', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(2) },
+          { id: 'attr_cnt2_ql1', contentId: 'cnt_2', leadId: 'lead_m', eventType: 'qualified_lead', source: 'CTA_CLICK', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(1) },
+          { id: 'attr_cnt2_con1', contentId: 'cnt_2', leadId: 'lead_m', eventType: 'conversation', source: 'CTA_CLICK', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(1) },
+          { id: 'attr_cnt2_opp1', contentId: 'cnt_2', leadId: 'lead_m', eventType: 'opportunity', source: 'CTA_CLICK', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', eventValue: 12500, ts: daysAgo(1) },
+          { id: 'attr_cnt2_cust1', contentId: 'cnt_2', leadId: 'lead_m', eventType: 'customer', source: 'CTA_CLICK', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(1) },
+          { id: 'attr_cnt2_rev1', contentId: 'cnt_2', leadId: 'lead_m', eventType: 'revenue', source: 'CTA_CLICK', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', revenueAmount: 12500, ts: daysAgo(1) },
+          { id: 'attr_cnt2_lead2', contentId: 'cnt_2', leadId: 'lead_v', eventType: 'lead', source: 'ORGANIC', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(1) },
+          { id: 'attr_cnt2_ql2', contentId: 'cnt_2', leadId: 'lead_v', eventType: 'qualified_lead', source: 'ORGANIC', platform: 'X_TWITTER', campaignId: 'cmp_q1_mechanism', ts: daysAgo(0) },
+          { id: 'attr_cnt3_vis', contentId: 'cnt_3', eventType: 'visitor', source: 'ORGANIC', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', ts: daysAgo(2) },
+          { id: 'attr_cnt3_lead1', contentId: 'cnt_3', leadId: 'lead_a', eventType: 'lead', source: 'DM', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', ts: daysAgo(2) },
+          { id: 'attr_cnt3_ql1', contentId: 'cnt_3', leadId: 'lead_a', eventType: 'qualified_lead', source: 'DM', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', ts: daysAgo(1) },
+          { id: 'attr_cnt3_con1', contentId: 'cnt_3', leadId: 'lead_a', eventType: 'conversation', source: 'DM', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', ts: daysAgo(1) },
+          { id: 'attr_cnt3_opp1', contentId: 'cnt_3', leadId: 'lead_a', eventType: 'opportunity', source: 'DM', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', eventValue: 12500, ts: daysAgo(1) },
+          { id: 'attr_cnt3_cust1', contentId: 'cnt_3', leadId: 'lead_a', eventType: 'customer', source: 'DM', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', ts: daysAgo(1) },
+          { id: 'attr_cnt3_rev1', contentId: 'cnt_3', leadId: 'lead_a', eventType: 'revenue', source: 'DM', platform: 'LINKEDIN', campaignId: 'cmp_q1_proof', revenueAmount: 12500, ts: daysAgo(1) },
+          { id: 'attr_cnt1_rev0', contentId: 'cnt_1', leadId: null, eventType: 'visitor', source: 'ORGANIC', platform: 'LINKEDIN', campaignId: 'cmp_q1_authority', ts: daysAgo(0) }
+        ];
+        for (const e of chainSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO attribution_events (id, business_id, event_type, content_id, distribution_id, lead_id, campaign_id, source, platform, event_value, revenue_amount, metadata_json, timestamp)
+             VALUES (?, 'biz_default', ?, ?, '', ?, ?, ?, ?, ?, ?, '{}', ?)`,
+            [e.id, e.eventType, e.contentId || '', e.leadId || '', e.campaignId || '', e.source || '', e.platform || '', e.eventValue || 0, e.revenueAmount || 0, e.ts]
           );
         }
 

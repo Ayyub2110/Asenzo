@@ -2,6 +2,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const { get, all, run, logAudit } = require('./db');
 const {
   FounderProfileFullSchema,
@@ -35,6 +36,10 @@ const {
   LeadCaptureSchema,
   LeadUpdateSchema,
   AttributionEventSchema,
+  ContentPerformanceRecordSchema,
+  PerformanceRecordBatchSchema,
+  AttributionEventLogSchema,
+  IntelligenceFilterSchema,
   AuthorityAssetFullSchema,
   MarketSignalFullSchema,
   OutreachProspectFullSchema,
@@ -1663,18 +1668,701 @@ app.delete('/api/contents/:id', async (req, res) => {
   }
 });
 
-app.get('/api/attention/analytics', async (req, res) => {
+// ── ATTENTION OS MEASUREMENT & INTELLIGENCE ENGINE ──────────────────────────
+// Distinguishes attention from business impact. Every conclusion is derived
+// from recorded performance rows + attribution events. When a conclusion
+// cannot be supported by the data, the engine says so — it never infers
+// performance from absence of measurement.
+const EVENT_CHAIN = ['content', 'interaction', 'visitor', 'lead', 'qualified_lead', 'conversation', 'opportunity', 'customer', 'revenue'];
+
+const BUSINESS_EVENT_TYPES = new Set(['lead', 'qualified_lead', 'conversation', 'opportunity', 'customer', 'revenue']);
+
+// Sufficiency guards — tuned so the engine refuses to draw conclusions from
+// thin or absent measurement.
+const MIN_ATTENTION_VIEWS = 500;       // below this, "high attention" is not a claim
+const MIN_TRACKED_RECORDS = 2;         // measured periods required to call a result "flat"
+const MIN_REPEAT_PERIODS = 2;          // distinct periods required for "repeated" qualified attention
+
+const PERF_COLUMNS = {
+  impressions: 'impressions', reach: 'reach', views: 'views',
+  likes: 'likes', comments: 'comments', shares: 'shares', saves: 'saves',
+  profileVisits: 'profile_visits', clicks: 'clicks', ctaClicks: 'cta_clicks',
+  leads: 'leads', qualifiedLeads: 'qualified_leads', conversations: 'conversations',
+  opportunities: 'opportunities', customers: 'customers', revenue: 'revenue_influenced'
+};
+
+function emptyMetrics() {
+  const m = { recordCount: 0, trackedCount: 0, periodCount: 0, periods: new Set() };
+  for (const k of Object.keys(PERF_COLUMNS)) m[k] = 0;
+  return m;
+}
+
+function sumPerformanceRows(rows) {
+  const m = emptyMetrics();
+  m.recordCount = rows.length;
+  m.trackedCount = rows.filter(r => Number(r.metrics_tracked || 0) === 1).length;
+  for (const r of rows) {
+    for (const [key, col] of Object.entries(PERF_COLUMNS)) m[key] += Number(r[col] || 0);
+    if (r.recorded_at) m.periods.add(String(r.recorded_at).slice(0, 10));
+  }
+  m.periodCount = m.periods.size;
+  return m;
+}
+
+function emptyEvents() {
+  const e = { total: 0, revenue: 0, byType: {} };
+  for (const t of EVENT_CHAIN) e.byType[t] = 0;
+  return e;
+}
+
+function sumEvents(rows) {
+  const e = emptyEvents();
+  for (const r of rows) {
+    e.total += 1;
+    const t = r.event_type;
+    if (t in e.byType) e.byType[t] += 1;
+    if (t === 'revenue') e.revenue += Number(r.revenue_amount || 0);
+    if (t === 'opportunity') e.revenue += Number(r.event_value || 0);
+  }
+  return e;
+}
+
+// Merge business outcomes. Attribution events are the canonical chain; the
+// acquisition/commercial columns on performance rows are only trusted when no
+// business events were logged for that content (so nothing is double counted).
+function mergeBusiness(events, perf) {
+  const hasBusinessEvents = [...BUSINESS_EVENT_TYPES].some(t => (events.byType[t] || 0) > 0);
+  if (hasBusinessEvents) {
+    return {
+      source: 'attribution_events',
+      leads: events.byType.lead,
+      qualifiedLeads: events.byType.qualified_lead,
+      conversations: events.byType.conversation,
+      opportunities: events.byType.opportunity,
+      customers: events.byType.customer,
+      revenue: events.revenue
+    };
+  }
+  return {
+    source: 'performance_records',
+    leads: perf.leads,
+    qualifiedLeads: perf.qualifiedLeads,
+    conversations: perf.conversations,
+    opportunities: perf.opportunities,
+    customers: perf.customers,
+    revenue: perf.revenue
+  };
+}
+
+function compoundingIndex(b) {
+  return (b.qualifiedLeads * 0.5) + (b.conversations * 1) + (b.opportunities * 2) + (b.customers * 3) + ((b.revenue || 0) / 12500) * 2;
+}
+
+function businessMeasured(b) {
+  return (b.leads > 0 || b.qualifiedLeads > 0 || b.conversations > 0 || b.opportunities > 0 || b.customers > 0 || b.revenue > 0);
+}
+
+// Classify a single content piece (or dimension group) into compounding /
+// flat / insufficient-data with an explicit, auditable reason.
+function classifyUnit(agg) {
+  const attention = {
+    impressions: agg.impressions, views: agg.views,
+    engagement: agg.likes + agg.comments + agg.shares + agg.saves,
+    intent: agg.profileVisits + agg.clicks + agg.ctaClicks
+  };
+  const business = mergeBusiness(agg.events, agg);
+  const attentionPresent = attention.views >= MIN_ATTENTION_VIEWS;
+  const hasPositiveOutcome = businessMeasured(business);
+  const businessWasTracked = (agg.trackedCount >= 1) || agg.events.total > 0;
+
+  let classification;
+  let reason;
+  if (hasPositiveOutcome) {
+    if (business.revenue > 0 || business.customers > 0 || business.opportunities > 0 ||
+        (business.qualifiedLeads >= 2 && agg.periodCount >= MIN_REPEAT_PERIODS)) {
+      classification = 'compounding';
+      reason = business.source === 'attribution_events'
+        ? `Attribution events confirm ${business.qualifiedLeads} qualified lead(s), ${business.conversations} conversation(s), ${business.opportunities} opportunity(ies), ${business.customers} customer(s) and $${(business.revenue || 0).toLocaleString()} revenue traced to this asset.`
+        : `Recorded performance confirms ${business.qualifiedLeads} qualified lead(s), ${business.conversations} conversation(s), ${business.opportunities} opportunity(ies), ${business.customers} customer(s) and $${(business.revenue || 0).toLocaleString()} revenue influenced.`;
+    } else {
+      classification = 'emerging';
+      reason = `Business signal exists (${business.qualifiedLeads} qualified lead(s)) but is not yet repeated across ${MIN_REPEAT_PERIODS}+ distinct periods or commercial stages — track before doubling down.`;
+    }
+  } else if (!attentionPresent) {
+    classification = 'insufficient';
+    reason = `Only ${attention.views.toLocaleString()} views recorded (floor is ${MIN_ATTENTION_VIEWS.toLocaleString()}) — too little attention to judge either way.`;
+  } else if (!businessWasTracked) {
+    classification = 'insufficient';
+    reason = `${attention.views.toLocaleString()} views observed but no attribution events and no tracked performance records — business impact was never measured, so no conclusion can be drawn.`;
+  } else if (agg.trackedCount < MIN_TRACKED_RECORDS) {
+    classification = 'insufficient';
+    reason = `Attention is high (${attention.views.toLocaleString()} views) but business metrics were only tracked ${agg.trackedCount} time(s) — a ${MIN_TRACKED_RECORDS}-period minimum is required before calling this flat.`;
+  } else {
+    classification = 'flat';
+    reason = `${attention.views.toLocaleString()} views / ${attention.engagement.toLocaleString()} engagements earned across ${agg.periodCount} measured period(s) while business outcome was measured at zero (0 leads, 0 qualified, $0 revenue) — high attention without business impact.`;
+  }
+
+  return {
+    classification,
+    reason,
+    attention,
+    business,
+    businessWasTracked,
+    metrics: {
+      recordCount: agg.recordCount,
+      trackedCount: agg.trackedCount,
+      periodCount: agg.periodCount,
+      viewsPerRecord: agg.recordCount ? Math.round(attention.views / agg.recordCount) : 0
+    }
+  };
+}
+
+async function loadIntelligenceDataset(businessId = 'biz_default', days = 90) {
+  const since = days ? new Date(Date.now() - days * 86400000).toISOString() : null;
+  const inWindow = (ts) => !since || !ts || String(ts) >= since;
+
+  const [contents, perfs, events, pillars, ideas] = await Promise.all([
+    all(`SELECT * FROM contents WHERE business_id = ? AND deleted_at IS NULL`, [businessId]),
+    all(`SELECT * FROM content_performances WHERE business_id = ?`, [businessId]),
+    all(`SELECT * FROM attribution_events WHERE business_id = ?`, [businessId]),
+    all(`SELECT * FROM content_pillars WHERE business_id = ? AND deleted_at IS NULL`, [businessId]),
+    all(`SELECT * FROM content_ideas WHERE business_id = ? AND deleted_at IS NULL`, [businessId])
+  ]);
+
+  const pillarById = new Map(pillars.map(p => [p.id, p]));
+  const ideaById = new Map(ideas.map(i => [i.id, i]));
+
+  const perfByContent = new Map();
+  for (const r of perfs) {
+    if (!inWindow(r.recorded_at)) continue;
+    if (!perfByContent.has(r.content_id)) perfByContent.set(r.content_id, []);
+    perfByContent.get(r.content_id).push(r);
+  }
+  const eventByContent = new Map();
+  for (const e of events) {
+    if (!inWindow(e.timestamp)) continue;
+    const key = e.content_id || '';
+    if (!eventByContent.has(key)) eventByContent.set(key, []);
+    eventByContent.get(key).push(e);
+  }
+
+  const contentsOut = [];
+  for (const c of contents) {
+    const perf = sumPerformanceRows(perfByContent.get(c.id) || []);
+    const eventsFor = sumEvents(eventByContent.get(c.id) || []);
+    const pillar = c.pillar_id ? pillarById.get(c.pillar_id) : null;
+    const idea = c.idea_id ? ideaById.get(c.idea_id) : null;
+    let format = 'UNKNOWN';
+    if (idea && idea.content_format) format = idea.content_format;
+    else if (pillar) {
+      const formats = JSON.parse(pillar.content_formats || '[]');
+      if (formats.length) format = String(formats[0]).toUpperCase().replace(/\s+/g, '_');
+    }
+    const audience = (pillar && pillar.target_audience) ? pillar.target_audience : 'UNKNOWN';
+    contentsOut.push({
+      id: c.id,
+      title: c.title,
+      pillarId: c.pillar_id || '',
+      pillarName: pillar ? pillar.name : 'UNKNOWN',
+      pillarType: pillar ? pillar.pillar_type : 'UNKNOWN',
+      format,
+      platform: c.primary_platform || 'UNKNOWN',
+      audience,
+      perf,
+      events: eventsFor,
+      classified: null
+    });
+  }
+
+  // Classify each content unit.
+  for (const c of contentsOut) {
+    c.classified = classifyUnit({
+      ...c.perf,
+      events: c.events
+    });
+  }
+
+  return { contents: contentsOut, pillars, ideas, fromDays: days, since };
+}
+
+function buildDimensionAnalysis(contents, dimension) {
+  const groups = new Map();
+  const valueFor = (c) => c[dimension] || 'UNKNOWN';
+
+  for (const c of contents) {
+    const value = valueFor(c);
+    if (!groups.has(value)) {
+      groups.set(value, {
+        dimension,
+        value,
+        contentIds: new Set(),
+        perf: emptyMetrics(),
+        events: emptyEvents()
+      });
+    }
+    const g = groups.get(value);
+    g.contentIds.add(c.id);
+    // Merge perf rows and events.
+    for (const k of Object.keys(PERF_COLUMNS)) g.perf[k] += c.perf[k] || 0;
+    g.perf.recordCount += c.perf.recordCount;
+    g.perf.trackedCount += c.perf.trackedCount;
+    for (const p of (c.perf.periods || [])) g.perf.periods.add(p);
+    for (const t of EVENT_CHAIN) g.events.byType[t] += c.events.byType[t] || 0;
+    g.events.total += c.events.total;
+    g.events.revenue += c.events.revenue;
+    g.perf.periodCount = g.perf.periods.size;
+  }
+
+  const out = [];
+  for (const [value, g] of groups) {
+    const classified = classifyUnit({ ...g.perf, events: g.events });
+    out.push({
+      dimension,
+      value,
+      contentCount: g.contentIds.size,
+      contentIds: [...g.contentIds],
+      ...classified
+    });
+  }
+  out.sort((a, b) => (b.business.revenue || 0) - (a.business.revenue || 0) || b.attention.views - a.attention.views);
+  return out;
+}
+
+function computePlatformAnalysis(contents) {
+  // Platform analysis runs over per-row platforms so cross-platform publishing
+  // is attributed to the platform that actually earned the attention.
+  const groups = new Map();
+  for (const c of contents) {
+    const platform = c.platform || 'UNKNOWN';
+    if (!groups.has(platform)) groups.set(platform, { perf: emptyMetrics(), events: emptyEvents(), contentIds: new Set() });
+    const g = groups.get(platform);
+    g.contentIds.add(c.id);
+    for (const k of Object.keys(PERF_COLUMNS)) g.perf[k] += c.perf[k] || 0;
+    g.perf.recordCount += c.perf.recordCount;
+    g.perf.trackedCount += c.perf.trackedCount;
+    for (const t of EVENT_CHAIN) g.events.byType[t] += c.events.byType[t] || 0;
+    g.events.total += c.events.total;
+    g.events.revenue += c.events.revenue;
+  }
+  const out = [];
+  for (const [value, g] of groups) {
+    const classified = classifyUnit({ ...g.perf, events: g.events });
+    out.push({ dimension: 'platform', value, contentCount: g.contentIds.size, contentIds: [...g.contentIds], ...classified });
+  }
+  out.sort((a, b) => (b.business.revenue || 0) - (a.business.revenue || 0) || b.attention.views - a.attention.views);
+  return out;
+}
+
+// ── RECOMMENDATION GENERATOR ────────────────────────────────────────────────
+// Three verbs, each gated by data sufficiency:
+//   DOUBLE_DOWN — confirmed, repeated business impact.
+//   REDUCE       — high attention, measured business outcome at zero.
+//   TEST         — attention exists but business impact is unproven/unmeasured.
+//   DATA_GAP     — the dataset itself cannot support any action yet.
+function generateRecommendations(dataset, dimensions) {
+  const recs = [];
+  const compounding = dataset.contents.filter(c => c.classified.classification === 'compounding');
+  const flat = dataset.contents.filter(c => c.classified.classification === 'flat');
+  const insufficient = dataset.contents.filter(c => c.classified.classification === 'insufficient');
+
+  // Compounding contents, ranked by compounding index.
+  const doubleDown = compounding
+    .map(c => ({ unit: c, score: compoundingIndex(c.classified.business), ctx: { dim: 'content', value: c.title } }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  for (const { unit, score } of doubleDown) {
+    const b = unit.classified.business;
+    const views = unit.classified.attention.views;
+    const per10k = views >= MIN_ATTENTION_VIEWS ? (b.qualifiedLeads / (views / 10000)).toFixed(1) : null;
+    recs.push({
+      id: `rec_${crypto.createHash('sha1').update(`DOUBLE_DOWN|content|${unit.id}`).digest('hex').slice(0, 12)}`,
+      action: 'DOUBLE_DOWN',
+      headline: `Double down on "${unit.title}"`,
+      subject: unit.id,
+      dimension: 'content',
+      confidence: score >= 10 ? 'HIGH' : 'MEDIUM',
+      dataSufficient: true,
+      reasoning: `This asset is the strongest confirmed business generator: ${b.qualifiedLeads} qualified lead(s), ${b.conversations} conversation(s), ${b.opportunities} opportunity(ies), ${b.customers} customer(s), $${(b.revenue || 0).toLocaleString()} revenue attributed (source: ${b.source}) across ${unit.classified.metrics.periodCount} measured period(s). Repurpose or sequence it before spending new creative budget.`,
+      evidence: [
+        { metric: 'Qualified leads', value: b.qualifiedLeads },
+        { metric: 'Conversations', value: b.conversations },
+        { metric: 'Opportunities', value: b.opportunities },
+        { metric: 'Customers', value: b.customers },
+        { metric: 'Revenue attributed', value: b.revenue, format: 'currency' },
+        { metric: 'Measured periods', value: unit.classified.metrics.periodCount },
+        ...(per10k ? [{ metric: 'Qualified leads per 10k views', value: per10k }] : [])
+      ]
+    });
+  }
+
+  // Flat contents: high attention, measured-at-zero business outcome.
+  const reduce = flat
+    .map(c => ({ unit: c, attention: c.classified.attention.views + c.classified.attention.impressions }))
+    .sort((a, b) => b.attention - a.attention)
+    .slice(0, 3);
+
+  for (const { unit } of reduce) {
+    const a = unit.classified.attention;
+    recs.push({
+      id: `rec_${crypto.createHash('sha1').update(`REDUCE|content|${unit.id}`).digest('hex').slice(0, 12)}`,
+      action: 'REDUCE',
+      headline: `Reduce investment in "${unit.title}"`,
+      subject: unit.id,
+      dimension: 'content',
+      confidence: 'MEDIUM',
+      dataSufficient: true,
+      reasoning: `${a.views.toLocaleString()} views and ${a.engagement.toLocaleString()} engagements were measured across ${unit.classified.metrics.periodCount} period(s) while business outcome was explicitly tracked to zero (0 leads, 0 qualified, $0 revenue). Attention is high but does not convert — reduce frequency or replace the angle.`,
+      evidence: [
+        { metric: 'Views', value: a.views },
+        { metric: 'Engagements', value: a.engagement },
+        { metric: 'Qualified leads', value: 0 },
+        { metric: 'Revenue attributed', value: 0 },
+        { metric: 'Measured periods', value: unit.classified.metrics.periodCount }
+      ]
+    });
+  }
+
+  // High-attention units with unproven business impact → test.
+  const testCandidates = dataset.contents
+    .filter(c => c.classified.classification === 'insufficient' && c.classified.attention.views >= MIN_ATTENTION_VIEWS)
+    .map(c => ({ unit: c, attention: c.classified.attention.views }))
+    .sort((a, b) => b.attention - a.attention)
+    .slice(0, 3);
+
+  for (const { unit } of testCandidates) {
+    const a = unit.classified.attention;
+    recs.push({
+      id: `rec_${crypto.createHash('sha1').update(`TEST|content|${unit.id}`).digest('hex').slice(0, 12)}`,
+      action: 'TEST',
+      headline: `Test a conversion hook on "${unit.title}"`,
+      subject: unit.id,
+      dimension: 'content',
+      confidence: 'LOW',
+      dataSufficient: false,
+      reasoning: `${a.views.toLocaleString()} views and ${a.intent.toLocaleString()} intent actions were recorded, but business impact is currently unmeasured (${unit.classified.reason}). Run a tracked CTA test before judging this asset — do not infer performance from missing data.`,
+      evidence: [
+        { metric: 'Views', value: a.views },
+        { metric: 'Intent actions', value: a.intent },
+        { metric: 'Tracking status', value: 'business impact unmeasured' }
+      ]
+    });
+  }
+
+  // Dimension-level recommendations (pillar / format / platform / audience).
+  for (const dim of ['pillar', 'format', 'platform', 'audience']) {
+    const groups = dim === 'platform' ? computePlatformAnalysis(dataset.contents) : buildDimensionAnalysis(dataset.contents, dim);
+    const valid = groups.filter(g => g.contentCount >= 2 || dim === 'content');
+    const dCompounding = valid.filter(g => g.classification === 'compounding').sort((a, b) => compoundingIndex(b.business) - compoundingIndex(a.business)).slice(0, 2);
+    const dFlat = valid.filter(g => g.classification === 'flat').sort((a, b) => b.attention.views - a.attention.views).slice(0, 1);
+
+    for (const g of dCompounding) {
+      const b = g.business;
+      const label = g.value === 'UNKNOWN' ? 'Unknown' : g.value;
+      recs.push({
+        id: `rec_${crypto.createHash('sha1').update(`DOUBLE_DOWN|${dim}|${g.value}`).digest('hex').slice(0, 12)}`,
+        action: 'DOUBLE_DOWN',
+        headline: `Double down on the "${label}" ${dim === 'pillar' ? 'pillar' : dim}`,
+        subject: g.value,
+        dimension: dim,
+        confidence: g.contentCount >= 3 ? 'HIGH' : 'MEDIUM',
+        dataSufficient: true,
+        reasoning: `Across ${g.contentCount} content asset(s), this ${dim} produced ${b.qualifiedLeads} qualified lead(s), ${b.opportunities} opportunity(ies) and $${(b.revenue || 0).toLocaleString()} revenue (source: ${b.source}). It outperforms other ${dim}s in confirmed business impact — shift allocation toward it.`,
+        evidence: [
+          { metric: 'Content assets', value: g.contentCount },
+          { metric: 'Qualified leads', value: b.qualifiedLeads },
+          { metric: 'Opportunities', value: b.opportunities },
+          { metric: 'Revenue attributed', value: b.revenue, format: 'currency' }
+        ]
+      });
+    }
+
+    for (const g of dFlat) {
+      const a = g.attention;
+      recs.push({
+        id: `rec_${crypto.createHash('sha1').update(`REDUCE|${dim}|${g.value}`).digest('hex').slice(0, 12)}`,
+        action: 'REDUCE',
+        headline: `Reduce allocation to the "${g.value === 'UNKNOWN' ? 'Unknown' : g.value}" ${dim === 'pillar' ? 'pillar' : dim}`,
+        subject: g.value,
+        dimension: dim,
+        confidence: 'MEDIUM',
+        dataSufficient: true,
+        reasoning: `${g.contentCount} asset(s) in this ${dim} accumulated ${a.views.toLocaleString()} views but business outcome was measured at zero (0 qualified leads, $0 revenue) across ${g.metrics.periodCount} period(s). Attention without measured business impact — deprioritize or re-angle.`,
+        evidence: [
+          { metric: 'Content assets', value: g.contentCount },
+          { metric: 'Views', value: a.views },
+          { metric: 'Qualified leads', value: 0 },
+          { metric: 'Revenue attributed', value: 0 }
+        ]
+      });
+    }
+  }
+
+  // Global data-gap recommendation when the dataset cannot support decisions.
+  const totalBusinessTracked = dataset.contents.filter(c => c.classified.businessWasTracked || c.classified.metrics.trackedCount >= 1).length;
+  if (dataset.contents.length === 0 || totalBusinessTracked === 0) {
+    recs.push({
+      id: 'rec_data_gap',
+      action: 'DATA_GAP',
+      headline: 'Insufficient measurement to act — start logging attribution',
+      subject: 'business',
+      dimension: 'all',
+      confidence: 'LOW',
+      dataSufficient: false,
+      reasoning: `No business measurement exists yet (${dataset.contents.length} content asset(s), ${totalBusinessTracked} with tracked business outcomes). Before any double-down/reduce decision, record content performance and attribution events. No performance conclusion is drawn from this absence of data.`,
+      evidence: [
+        { metric: 'Content assets', value: dataset.contents.length },
+        { metric: 'Business-tracked assets', value: totalBusinessTracked },
+        { metric: 'Action taken', value: 'none — data gap' }
+      ]
+    });
+  }
+
+  return recs;
+}
+
+// Persist generated recommendations (idempotent) so the operator queue stays fresh.
+async function persistRecommendations(recs, businessId = 'biz_default') {
+  const now = new Date().toISOString();
+  for (const r of recs) {
+    try {
+      await run(
+        `INSERT OR IGNORE INTO recommendations (id, business_id, category, observation, rationale, proposed_action, confidence_score, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)`,
+        [r.id, businessId, r.action, r.headline, r.reasoning, r.subject, r.confidence, now, now]
+      );
+    } catch (err) {
+      // Persistence is best-effort; never fail the intelligence response.
+      console.error('Recommendation persist skipped:', err.message);
+    }
+  }
+}
+
+// ── ATTENTION OS MEASUREMENT ENDPOINTS ──────────────────────────────────────
+app.post('/api/attention/metrics', async (req, res) => {
   try {
-    const items = await all(`SELECT * FROM contents WHERE business_id = 'biz_default' AND deleted_at IS NULL`);
-    const totalViews = 43700;
-    const totalDms = 64;
-    const totalQualifiedLeads = 26;
-    const totalAdCandidates = items.filter(i => i.is_ad_candidate).length;
+    const parsed = PerformanceRecordBatchSchema.parse(req.body);
+    const now = new Date().toISOString();
+    let count = 0;
+    for (const rec of parsed.records) {
+      const id = rec.distributionId
+        ? `perf_${rec.distributionId}_${Date.now()}_${count}`
+        : `perf_${rec.contentId}_${Date.now()}_${count}`;
+      await run(
+        `INSERT INTO content_performances (id, business_id, content_id, distribution_id, platform, recorded_at, impressions, reach, views, likes, comments, shares, saves, profile_visits, clicks, cta_clicks, leads, qualified_leads, conversations, opportunities, customers, revenue_influenced, metrics_tracked)
+         VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id, rec.contentId, rec.distributionId || '', rec.platform || '',
+          rec.recordedAt || now,
+          rec.impressions, rec.reach, rec.views, rec.likes, rec.comments, rec.shares, rec.saves,
+          rec.profileVisits, rec.clicks, rec.ctaClicks, rec.leads, rec.qualifiedLeads, rec.conversations,
+          rec.opportunities, rec.customers, rec.revenueInfluenced, rec.metricsTracked ? 1 : 0
+        ]
+      );
+      count++;
+    }
+    await logAudit('CREATE', 'content_performances', parsed.records[0].contentId, { records: count });
+    res.status(201).json({ message: `Recorded ${count} performance row(s)`, count });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/attention/metrics', async (req, res) => {
+  try {
+    let sql = `SELECT * FROM content_performances WHERE business_id = 'biz_default'`;
+    const params = [];
+    if (req.query.contentId) { sql += ` AND content_id = ?`; params.push(req.query.contentId); }
+    if (req.query.platform) { sql += ` AND platform = ?`; params.push(req.query.platform); }
+    if (req.query.from) { sql += ` AND (recorded_at IS NULL OR recorded_at >= ?)`; params.push(req.query.from); }
+    if (req.query.to) { sql += ` AND (recorded_at IS NULL OR recorded_at <= ?)`; params.push(req.query.to); }
+    sql += ` ORDER BY recorded_at ASC`;
+    const rows = await all(sql, params);
+    const summary = sumPerformanceRows(rows);
+    delete summary.periods;
+    res.json({ rows, summary });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/attention/attribution-events', async (req, res) => {
+  try {
+    const parsed = AttributionEventLogSchema.parse(req.body);
+    const now = new Date().toISOString();
+    let count = 0;
+    for (const ev of parsed.events) {
+      const id = `attr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${count}`;
+      await run(
+        `INSERT INTO attribution_events (id, business_id, event_type, content_id, distribution_id, lead_id, campaign_id, source, platform, event_value, revenue_amount, metadata_json, timestamp)
+         VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id, ev.eventType, ev.contentId || '', ev.distributionId || '', ev.leadId || '', ev.campaignId || '',
+          ev.source || '', ev.platform || '', ev.eventValue || 0, ev.revenueAmount || 0,
+          JSON.stringify(ev.metadata || {}), ev.timestamp || now
+        ]
+      );
+      count++;
+    }
+    await logAudit('CREATE', 'attribution_events', parsed.events[0].leadId || parsed.events[0].contentId || 'unknown', { events: count });
+    res.status(201).json({ message: `Logged ${count} attribution event(s)`, count });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/attention/attribution-events', async (req, res) => {
+  try {
+    let sql = `SELECT * FROM attribution_events WHERE business_id = 'biz_default'`;
+    const params = [];
+    if (req.query.contentId) { sql += ` AND content_id = ?`; params.push(req.query.contentId); }
+    if (req.query.leadId) { sql += ` AND lead_id = ?`; params.push(req.query.leadId); }
+    if (req.query.eventType) { sql += ` AND event_type = ?`; params.push(req.query.eventType); }
+    if (req.query.campaignId) { sql += ` AND campaign_id = ?`; params.push(req.query.campaignId); }
+    if (req.query.from) { sql += ` AND (timestamp IS NULL OR timestamp >= ?)`; params.push(req.query.from); }
+    sql += ` ORDER BY timestamp ASC`;
+    const rows = await all(sql, params);
+    res.json(rows.map(r => ({ ...r, metadata: JSON.parse(r.metadata_json || '{}') })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── INTELLIGENCE ENDPOINT: COMPOUNDING vs FLAT DETECTOR ─────────────────────
+app.get('/api/attention/intelligence', async (req, res) => {
+  try {
+    const filter = IntelligenceFilterSchema.parse(req.query);
+    const dataset = await loadIntelligenceDataset(filter.businessId, filter.days || 90);
+
+    const contents = dataset.contents.map(c => ({
+      id: c.id,
+      title: c.title,
+      pillarId: c.pillarId,
+      pillarName: c.pillarName,
+      pillarType: c.pillarType,
+      format: c.format,
+      platform: c.platform,
+      audience: c.audience,
+      classification: c.classified.classification,
+      reason: c.classified.reason,
+      attention: c.classified.attention,
+      business: c.classified.business,
+      metrics: c.classified.metrics
+    }));
+
+    const dimensionAnalysis = {
+      pillar: buildDimensionAnalysis(dataset.contents, 'pillar'),
+      format: buildDimensionAnalysis(dataset.contents, 'format'),
+      platform: computePlatformAnalysis(dataset.contents),
+      audience: buildDimensionAnalysis(dataset.contents, 'audience'),
+      content: buildDimensionAnalysis(dataset.contents, 'content')
+    };
+    for (const g of [...dimensionAnalysis.pillar, ...dimensionAnalysis.format, ...dimensionAnalysis.platform, ...dimensionAnalysis.audience, ...dimensionAnalysis.content]) {
+      delete g.perf.periods;
+    }
+
+    const recommendations = generateRecommendations(dataset, dimensionAnalysis);
+    await persistRecommendations(recommendations, filter.businessId);
+
+    // Chain totals across the event set.
+    const allEvents = sumEvents((await all(`SELECT * FROM attribution_events WHERE business_id = ?`, [filter.businessId])));
+    const chain = EVENT_CHAIN.map(t => ({ eventType: t, count: allEvents.byType[t] }));
+
+    const count = (cls) => contents.filter(c => c.classification === cls).length;
+    const detector = {
+      compoundingCount: count('compounding'),
+      flatCount: count('flat'),
+      emergingCount: count('emerging'),
+      insufficientCount: count('insufficient'),
+      totalContents: contents.length
+    };
 
     res.json({
-      summary: { totalContentItems: items.length, totalViews: `${(totalViews / 1000).toFixed(1)}k`, totalDms, totalQualifiedLeads, conversionRate: '40.6%', adCandidatesCount: totalAdCandidates },
-      funnel: { reach: totalViews, engagement: Math.round(totalViews * 0.08), intent: Math.round(totalViews * 0.015), leads: totalDms, qualifiedLeads: totalQualifiedLeads, conversations: Math.round(totalQualifiedLeads * 0.85), opportunities: Math.round(totalQualifiedLeads * 0.5), revenueImpact: totalQualifiedLeads * 3500 },
-      compoundingDetector: { status: totalQualifiedLeads > 15 ? 'Compounding Authority' : 'Flat Reach', trajectoryScore: '92/100', insight: 'Mechanism and Proof content pillars generate 3.4x more qualified DMs than general authority content.' }
+      fromDays: filter.days || 90,
+      generatedAt: new Date().toISOString(),
+      chain,
+      contents,
+      dimensionAnalysis,
+      recommendations,
+      dataCoverage: {
+        totalContent: dataset.contents.length,
+        withPerformanceRecords: dataset.contents.filter(c => c.perf.recordCount > 0).length,
+        withBusinessMeasurement: dataset.contents.filter(c => (c.classified.metrics.trackedCount >= 1) || c.events.total > 0).length,
+        compounding: count('compounding'),
+        flat: count('flat'),
+        insufficient: count('insufficient')
+      }
+    });
+  } catch (err) {
+    console.error('Intelligence engine error:', err.stack || err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ATTENTION OS ANALYTICS (REAL DATA, NOT HARDCODED) ───────────────────────
+app.get('/api/attention/analytics', async (req, res) => {
+  try {
+    const dataset = await loadIntelligenceDataset('biz_default', 365);
+    const items = dataset.contents;
+
+    const reach = { impressions: 0, reach: 0, views: 0 };
+    const engagement = { likes: 0, comments: 0, shares: 0, saves: 0 };
+    const intent = { profileVisits: 0, clicks: 0, ctaClicks: 0 };
+    const acquisition = { leads: 0, qualifiedLeads: 0, conversations: 0 };
+    const commercial = { opportunities: 0, customers: 0, revenueInfluenced: 0 };
+
+    for (const c of items) {
+      reach.impressions += c.perf.impressions; reach.reach += c.perf.reach; reach.views += c.perf.views;
+      engagement.likes += c.perf.likes; engagement.comments += c.perf.comments; engagement.shares += c.perf.shares; engagement.saves += c.perf.saves;
+      intent.profileVisits += c.perf.profileVisits; intent.clicks += c.perf.clicks; intent.ctaClicks += c.perf.ctaClicks;
+      const b = mergeBusiness(c.events, c.perf);
+      acquisition.leads += b.leads; acquisition.qualifiedLeads += b.qualifiedLeads; acquisition.conversations += b.conversations;
+      commercial.opportunities += b.opportunities; commercial.customers += b.customers; commercial.revenueInfluenced += b.revenue;
+    }
+
+    const compounding = items.filter(c => c.classified.classification === 'compounding').length;
+    const flat = items.filter(c => c.classified.classification === 'flat').length;
+    const measured = items.filter(c => (c.classified.metrics.trackedCount >= 1) || c.events.total > 0).length;
+    const trajectory = measured > 0 ? Math.round((compounding / measured) * 100) : 0;
+
+    const conversionRate = acquisition.leads > 0 ? ((acquisition.qualifiedLeads / acquisition.leads) * 100).toFixed(1) + '%' : 'n/a';
+    const totalViews = reach.views;
+    const funnel = {
+      reach: totalViews,
+      engagement: engagement.likes + engagement.comments + engagement.shares + engagement.saves,
+      intent: intent.profileVisits + intent.clicks + intent.ctaClicks,
+      leads: acquisition.leads,
+      qualifiedLeads: acquisition.qualifiedLeads,
+      conversations: acquisition.conversations,
+      opportunities: commercial.opportunities,
+      revenueImpact: commercial.revenueInfluenced
+    };
+
+    let detectorStatus;
+    if (measured === 0) {
+      detectorStatus = { status: 'Insufficient Data', trajectoryScore: 'n/a', insight: 'No business outcomes are measured yet. Log content performance and attribution events before drawing any conclusion.' };
+    } else if (compounding >= flat) {
+      detectorStatus = { status: 'Compounding Authority', trajectoryScore: `${trajectory}/100`, insight: `${compounding} of ${measured} measured content asset(s) show confirmed business impact (${flat} confirmed flat). Allocation toward compounding assets is data-backed.` };
+    } else {
+      detectorStatus = { status: 'Flat Reach Detected', trajectoryScore: `${trajectory}/100`, insight: `${flat} of ${measured} measured asset(s) earn attention but convert to zero business outcome. Time to re-angle or reduce.` };
+    }
+
+    res.json({
+      summary: {
+        totalContentItems: items.length,
+        totalViews: totalViews >= 1000 ? `${(totalViews / 1000).toFixed(1)}k` : String(totalViews),
+        totalDms: acquisition.leads,
+        totalQualifiedLeads: acquisition.qualifiedLeads,
+        conversionRate,
+        adCandidatesCount: 0,
+        totalBusinessTracked: measured,
+        compoundingCount: compounding,
+        flatCount: flat
+      },
+      categories: { reach, engagement, intent, acquisition, commercial },
+      funnel,
+      chain: EVENT_CHAIN.map(t => ({ eventType: t, count: items.reduce((s, c) => s + (c.events.byType[t] || 0), 0) })),
+      compoundingDetector: detectorStatus
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
