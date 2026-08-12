@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
+const { initDbPromise } = require('../db');
+
 
 let serverInstance;
 let PORT;
@@ -49,6 +51,7 @@ function apiRequest(path, method = 'GET', body = null, headers = {}) {
 }
 
 test.before(async () => {
+  await initDbPromise;
   const { app } = require('../server');
   serverInstance = app.listen(0);
   PORT = serverInstance.address().port;
@@ -170,7 +173,7 @@ test('POST /api/sales-calls/:id/analyze-coaching runs post-call AI coaching engi
   assert.ok(log.overall_call_score >= 0 && log.overall_call_score <= 100);
   assert.ok(Array.isArray(log.coachingTips));
   assert.ok(log.coachingTips.length >= 1);
-  assert.ok(log.coachingTips.some(t => t.includes('Mechanism Pitch Gap') || t.includes('Pricing ROI Reframing')));
+  assert.ok(log.coachingTips.some(t => (typeof t === 'string' ? t : t.problem).includes('Mechanism Pitch Gap') || (typeof t === 'string' ? t : t.problem).includes('Pricing ROI Reframing')));
 });
 
 test('POST /api/proposals creates proposal and advances deal stage to PROPOSAL_SENT', async () => {
@@ -213,7 +216,19 @@ test('POST /api/contracts and PUT /api/contracts/:id/sign executes contract sign
 });
 
 test('POST /api/deals/:id/win executes deal-won automation & delivery handoff', async () => {
-  // Deal 2 has signed contract from previous test
+  // Create completed payment first to satisfy verified billing checks
+  const payRes = await apiRequest('/payments', 'POST', {
+    dealId: 'deal_2',
+    contractId: 'ctr_deal_2',
+    amount: 15000,
+    currency: 'USD',
+    paymentMethod: 'STRIPE_CREDIT_CARD',
+    transactionId: 'txn_api_test_won_99',
+    status: 'COMPLETED'
+  });
+  assert.equal(payRes.status, 201);
+
+  // Deal 2 has signed contract and completed payment now
   const winRes = await apiRequest('/deals/deal_2/win', 'POST');
   assert.equal(winRes.status, 200);
   assert.equal(winRes.body.deal.stage, 'CLOSED_WON');

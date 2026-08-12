@@ -766,7 +766,10 @@ const SalesCallFullSchema = z.object({
   callType: z.string().nullable().optional().default('DISCOVERY_DEMO'),
   outcome: CallOutcomeEnum.default('ADVANCED'),
   founderCallRating: z.number().int().min(1).max(5).optional().default(4),
-  isBenchmarkCall: z.boolean().optional().default(false)
+  isBenchmarkCall: z.boolean().optional().default(false),
+  isTopPerforming: z.boolean().optional().default(false),
+  isSuccessful: z.boolean().optional().default(false),
+  isRepresentative: z.boolean().optional().default(false)
 });
 
 const PostCallCoachingFullSchema = z.object({
@@ -810,7 +813,11 @@ const ProposalFullSchema = z.object({
   customTerms: z.string().nullable().optional().default('90-day installation support with weekly founder review.'),
   status: ProposalStatusEnum.default('DRAFT'),
   sentAt: z.string().nullable().optional().default(''),
-  acceptedAt: z.string().nullable().optional().default('')
+  acceptedAt: z.string().nullable().optional().default(''),
+  version: z.number().int().optional().default(1),
+  templateId: optStr.default('template_growth_os'),
+  variablesJson: z.record(z.any()).optional().default({}),
+  scope: optStr.default('Full installation of Attention OS and Conversion OS CRM Triage.')
 });
 
 const ContractFullSchema = z.object({
@@ -852,6 +859,24 @@ const DeliveryHandoffFullSchema = z.object({
   ]),
   assignedOwner: z.string().nullable().optional().default('Alex Morgan'),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).default('PENDING')
+});
+
+const DealClosingWorkflowSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  proposalId: optStr.default(''),
+  contractId: optStr.default(''),
+  paymentId: optStr.default(''),
+  handoffId: optStr.default(''),
+  status: z.enum(['INITIATED', 'PROPOSAL_CREATED', 'CONTRACT_CREATED', 'CONTRACT_SIGNED', 'INVOICE_SENT', 'PAYMENT_CONFIRMED', 'ONBOARDING_HANDOFF', 'COMPLETED', 'FAILED']).default('INITIATED'),
+  lastAction: optStr.default(''),
+  nextAction: optStr.default(''),
+  failureReason: optStr.default(''),
+  retryCount: z.number().int().optional().default(0),
+  auditTrailJson: z.array(z.record(z.any())).optional().default([]),
+  createdAt: optStr,
+  updatedAt: optStr
 });
 
 
@@ -1236,6 +1261,7 @@ module.exports = {
   ContractFullSchema,
   PaymentFullSchema,
   DeliveryHandoffFullSchema,
+  DealClosingWorkflowSchema,
 
   // Granular Conversion Domain Schemas
   SalesPipelineSchema,

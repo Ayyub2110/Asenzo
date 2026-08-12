@@ -64,7 +64,7 @@ async function initDb() {
             'ai_interactions', 'recommendations', 'market_intel', 'audit_logs', 'lead_campaigns', 'landing_surfaces',
             'landing_forms', 'lead_ctas', 'conversion_vsl_funnels', 'dm_qualifiers', 'story_sequences', 'deals',
             'sales_calls', 'founder_sales_patterns', 'post_call_coaching_logs', 'objection_library', 'proposals',
-            'contracts', 'payments', 'delivery_handoffs'
+            'contracts', 'payments', 'delivery_handoffs', 'deal_closing_workflows'
           ];
 
           for (const tbl of tablesToDrop) {
@@ -306,7 +306,7 @@ async function initDb() {
 
         // 34. Sales Calls
         await run(`CREATE TABLE IF NOT EXISTS sales_calls (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, lead_id TEXT DEFAULT '', scheduled_at TEXT DEFAULT '', completed_at TEXT DEFAULT '', recording_url TEXT DEFAULT '', transcript_text TEXT NOT NULL, duration_seconds INTEGER DEFAULT 1800, call_type TEXT DEFAULT 'DISCOVERY_DEMO', outcome TEXT DEFAULT 'ADVANCED', founder_call_rating INTEGER DEFAULT 4, is_benchmark_call INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, lead_id TEXT DEFAULT '', scheduled_at TEXT DEFAULT '', completed_at TEXT DEFAULT '', recording_url TEXT DEFAULT '', transcript_text TEXT NOT NULL, duration_seconds INTEGER DEFAULT 1800, call_type TEXT DEFAULT 'DISCOVERY_DEMO', outcome TEXT DEFAULT 'ADVANCED', founder_call_rating INTEGER DEFAULT 4, is_benchmark_call INTEGER DEFAULT 0, is_top_performing INTEGER DEFAULT 0, is_successful INTEGER DEFAULT 0, is_representative INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
         )`);
 
         // 35. Founder Sales Patterns
@@ -316,7 +316,7 @@ async function initDb() {
 
         // 36. Post Call Coaching Logs
         await run(`CREATE TABLE IF NOT EXISTS post_call_coaching_logs (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, sales_call_id TEXT NOT NULL, deal_id TEXT NOT NULL, benchmark_call_id TEXT DEFAULT '', trust_score INTEGER DEFAULT 85, mechanism_clarity_score INTEGER DEFAULT 88, objection_handling_score INTEGER DEFAULT 82, overall_call_score INTEGER DEFAULT 85, benchmark_comparison_json TEXT DEFAULT '{}', founder_pattern_matches_json TEXT DEFAULT '{}', coaching_tips_json TEXT DEFAULT '[]', objections_detected_json TEXT DEFAULT '[]', human_reviewed INTEGER DEFAULT 0, created_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, sales_call_id TEXT NOT NULL, deal_id TEXT NOT NULL, benchmark_call_id TEXT DEFAULT '', trust_score INTEGER DEFAULT 85, mechanism_clarity_score INTEGER DEFAULT 88, objection_handling_score INTEGER DEFAULT 82, overall_call_score INTEGER DEFAULT 85, benchmark_comparison_json TEXT DEFAULT '{}', founder_pattern_matches_json TEXT DEFAULT '{}', coaching_tips_json TEXT DEFAULT '[]', objections_detected_json TEXT DEFAULT '[]', human_reviewed INTEGER DEFAULT 0, feedback_status TEXT DEFAULT 'PENDING', feedback_comments TEXT DEFAULT '', edited_coaching_tips_json TEXT DEFAULT '[]', analysis_version TEXT DEFAULT '1.0.0', model_version TEXT DEFAULT 'gemini-3.5-flash', created_at TEXT
         )`);
 
         // 37. Objection Library
@@ -326,7 +326,7 @@ async function initDb() {
 
         // 38. Proposals
         await run(`CREATE TABLE IF NOT EXISTS proposals (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, title TEXT NOT NULL, deliverables_json TEXT DEFAULT '[]', pricing_amount REAL DEFAULT 12500, payment_terms TEXT DEFAULT '', custom_terms TEXT DEFAULT '', status TEXT DEFAULT 'DRAFT', sent_at TEXT DEFAULT '', accepted_at TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, title TEXT NOT NULL, deliverables_json TEXT DEFAULT '[]', pricing_amount REAL DEFAULT 12500, payment_terms TEXT DEFAULT '', custom_terms TEXT DEFAULT '', status TEXT DEFAULT 'DRAFT', sent_at TEXT DEFAULT '', accepted_at TEXT DEFAULT '', version INTEGER DEFAULT 1, template_id TEXT DEFAULT 'template_growth_os', variables_json TEXT DEFAULT '{}', scope TEXT DEFAULT '', created_at TEXT, updated_at TEXT
         )`);
 
         // 39. Contracts
@@ -342,6 +342,11 @@ async function initDb() {
         // 41. Delivery Handoffs
         await run(`CREATE TABLE IF NOT EXISTS delivery_handoffs (
           id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, client_name TEXT NOT NULL, onboarding_checklist_json TEXT DEFAULT '[]', assigned_owner TEXT DEFAULT 'Alex Morgan', status TEXT DEFAULT 'PENDING', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 41b. Deal Closing Workflows
+        await run(`CREATE TABLE IF NOT EXISTS deal_closing_workflows (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT UNIQUE NOT NULL, proposal_id TEXT DEFAULT '', contract_id TEXT DEFAULT '', payment_id TEXT DEFAULT '', handoff_id TEXT DEFAULT '', status TEXT DEFAULT 'INITIATED', last_action TEXT DEFAULT '', next_action TEXT DEFAULT '', failure_reason TEXT DEFAULT '', retry_count INTEGER DEFAULT 0, audit_trail_json TEXT DEFAULT '[]', created_at TEXT, updated_at TEXT
         )`);
 
         // 42. Sales Pipelines & Configurable Stages
@@ -501,6 +506,20 @@ async function initDb() {
         await addColumn('follow_up_messages', 'message_variant', "TEXT DEFAULT 'A'");
         await addColumn('follow_up_messages', 'channel', "TEXT DEFAULT 'EMAIL'");
         await addColumn('follow_up_messages', 'approved', "INTEGER DEFAULT 0");
+
+        // Conversion Engine Tag and closing workflow migrations
+        await addColumn('sales_calls', 'is_top_performing', "INTEGER DEFAULT 0");
+        await addColumn('sales_calls', 'is_successful', "INTEGER DEFAULT 0");
+        await addColumn('sales_calls', 'is_representative', "INTEGER DEFAULT 0");
+        await addColumn('post_call_coaching_logs', 'feedback_status', "TEXT DEFAULT 'PENDING'");
+        await addColumn('post_call_coaching_logs', 'feedback_comments', "TEXT DEFAULT ''");
+        await addColumn('post_call_coaching_logs', 'edited_coaching_tips_json', "TEXT DEFAULT '[]'");
+        await addColumn('post_call_coaching_logs', 'analysis_version', "TEXT DEFAULT '1.0.0'");
+        await addColumn('post_call_coaching_logs', 'model_version', "TEXT DEFAULT 'gemini-3.5-flash'");
+        await addColumn('proposals', 'version', "INTEGER DEFAULT 1");
+        await addColumn('proposals', 'template_id', "TEXT DEFAULT 'template_growth_os'");
+        await addColumn('proposals', 'variables_json', "TEXT DEFAULT '{}'");
+        await addColumn('proposals', 'scope', "TEXT DEFAULT ''");
 
         const now = new Date().toISOString();
 

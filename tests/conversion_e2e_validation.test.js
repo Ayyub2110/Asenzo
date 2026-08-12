@@ -177,7 +177,7 @@ test('Conversion OS 30-Step End-to-End Lifecycle & Guardrail Validation', async 
   const coachLog = coachRes.body.coachingLog;
   assert.ok(coachLog.overall_call_score >= 0 && coachLog.overall_call_score <= 100);
   assert.ok(Array.isArray(coachLog.coachingTips));
-  assert.ok(coachLog.coachingTips.some(t => t.includes('Mechanism Pitch Gap') || t.includes('Pricing ROI Reframing')));
+  assert.ok(coachLog.coachingTips.some(t => (typeof t === 'string' ? t : t.problem).includes('Mechanism Pitch Gap') || (typeof t === 'string' ? t : t.problem).includes('Pricing ROI Reframing')));
   console.log('✓ Step 14-17: Post-Call AI Coaching Engine evaluated call against founder benchmark patterns cleanly.');
 
   // STEP 18: Query Founder Objection Library
