@@ -977,6 +977,7 @@ const ANGLE_VARIANTS = [
 ];
 
 async function generateContentIdeas(source, count, pillarId) {
+  const safeCount = Math.min(Math.max(1, count || 10), 15);
   const ctx = await loadIdeaContext();
   const picker = IDEA_GENERATORS[source] || IDEA_GENERATORS.AI_GENERATED;
   const drafts = picker(ctx, null);
@@ -988,9 +989,10 @@ async function generateContentIdeas(source, count, pillarId) {
   const baseUsage = {};
   let cursor = 0;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < safeCount; i++) {
     let draft = null;
     let attempts = 0;
+    let parentIdeaId = null;
     while (attempts < drafts.length * 3 && !draft) {
       const candidate = drafts[cursor % drafts.length];
       cursor++;
@@ -1008,10 +1010,16 @@ async function generateContentIdeas(source, count, pillarId) {
       const usedCount = baseUsage[baseKey] || 0;
       draft = ANGLE_VARIANTS[usedCount % ANGLE_VARIANTS.length](base);
       baseUsage[baseKey] = usedCount + 1;
+      parentIdeaId = baseKey;
     }
 
     const { pillar, idx } = pickPillar(ctx, pillarId, i);
     const ideaRecord = await finalizeIdeaDraft(ctx, { ...draft, contentFormat: pickFormat(ctx, pillar, idx), platform: pickPlatform(ctx, pillar, idx) }, pillar);
+
+    if (parentIdeaId) {
+      ideaRecord.parentIdeaId = parentIdeaId;
+      ideaRecord.variantOf = parentIdeaId;
+    }
 
     // Duplicate check against existing ideas + content
     const dup = detectDuplicateIdeas(ideaRecord.title, ideaRecord.premise, ctx.ideas.map(x => ({ id: x.id, title: x.title, premise: x.premise })), ctx.successful);
@@ -3402,9 +3410,18 @@ function validateContentGuardrails(ctx, scriptText = '', structuredSections = {}
       ...(ctx.chunks.map(c => c.chunk_text))
     ].filter(Boolean).join(' ').toLowerCase();
 
-    const textNumWords = tokenize(text).filter(w => /[0-9]/.test(w));
-    const proofNumWords = tokenize(proofPool).filter(w => /[0-9]/.test(w));
-    const verified = textNumWords.length > 0 && textNumWords.every(nw => proofNumWords.includes(nw) || proofPool.includes(nw));
+    const extractNumTokens = (str) => {
+      const matches = String(str || '').match(/\$?[0-9,]+(?:\.[0-9]+)?k?m?b?\%?/gi) || [];
+      return matches.map(m => m.toLowerCase().replace(/,/g, '')).filter(m => /[0-9]/.test(m));
+    };
+
+    const textNumWords = extractNumTokens(text);
+    const proofNumWords = extractNumTokens(proofPool);
+    const verified = textNumWords.length > 0 && textNumWords.every(nw => {
+      const digitsOnly = nw.replace(/[^0-9]/g, '');
+      if (digitsOnly.length === 0) return true;
+      return proofNumWords.some(pw => pw === nw || pw.replace(/[^0-9]/g, '') === digitsOnly);
+    });
 
     claimsVerification.push({
       claim: 'Numeric/percentage metric claim detected',
@@ -5715,6 +5732,36 @@ app.get('/api/conversion/intelligence', async (req, res) => {
 
 // ── 13. CONVERSION OS PROFILE FUNNEL & VSL SYSTEM ──────────────────────────
 
+function formatProfileFunnel(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    title: row.title,
+    slug: row.slug || 'growth-os-audit',
+    publishingStatus: row.publishing_status || 'DRAFT',
+    headline: row.headline,
+    targetIcpSummary: row.target_icp_summary || '',
+    coreProblem: row.core_problem || '',
+    desiredOutcome: row.desired_outcome || '',
+    uniqueMechanism: row.unique_mechanism || '',
+    vslTitle: row.vsl_title || '',
+    vslVideoUrl: row.vsl_video_url || '',
+    vslHook: row.vsl_hook || '',
+    vslProblem: row.vsl_problem || '',
+    vslMechanism: row.vsl_mechanism || '',
+    vslProofSummary: row.vsl_proof_summary || '',
+    vslCtaText: row.vsl_cta_text || '',
+    bookingUrl: row.booking_url || '',
+    authorityAssetIdsJson: JSON.parse(row.authority_asset_ids_json || '[]'),
+    objectionIdsJson: JSON.parse(row.objection_ids_json || '[]'),
+    version: row.version || 1,
+    isActive: row.is_active === 1 || row.is_active === true,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 // GET active/draft profile funnel
 app.get('/api/conversion/profile-funnel', async (req, res) => {
   try {
@@ -5725,11 +5772,7 @@ app.get('/api/conversion/profile-funnel', async (req, res) => {
     if (!funnel) {
       return res.status(404).json({ error: 'No profile funnel found' });
     }
-    res.json({
-      ...funnel,
-      authorityAssetIdsJson: JSON.parse(funnel.authority_asset_ids_json || '[]'),
-      objectionIdsJson: JSON.parse(funnel.objection_ids_json || '[]')
-    });
+    res.json(formatProfileFunnel(funnel));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -5738,7 +5781,19 @@ app.get('/api/conversion/profile-funnel', async (req, res) => {
 // Save or Update Profile Funnel draft
 app.post('/api/conversion/profile-funnels', async (req, res) => {
   try {
-    const parsed = ProfileFunnelFullSchema.parse(req.body);
+    let base = {};
+    if (req.body && req.body.id) {
+      const existing = await get(`SELECT * FROM profile_funnels WHERE id = ?`, [req.body.id]);
+      if (existing) {
+        base = formatProfileFunnel(existing);
+      }
+    } else {
+      const active = await get(`SELECT * FROM profile_funnels WHERE business_id = 'biz_default' AND is_active = 1 ORDER BY updated_at DESC LIMIT 1`);
+      if (active) base = formatProfileFunnel(active);
+    }
+
+    const payload = { ...base, ...req.body };
+    const parsed = ProfileFunnelFullSchema.parse(payload);
     const id = parsed.id || makeId('pfunnel');
     const now = new Date().toISOString();
 
@@ -5746,23 +5801,19 @@ app.post('/api/conversion/profile-funnels', async (req, res) => {
       `INSERT OR REPLACE INTO profile_funnels (id, business_id, title, slug, publishing_status, headline, target_icp_summary, core_problem, desired_outcome, unique_mechanism, vsl_title, vsl_video_url, vsl_hook, vsl_problem, vsl_mechanism, vsl_proof_summary, vsl_cta_text, booking_url, authority_asset_ids_json, objection_ids_json, version, is_active, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        id, parsed.businessId, parsed.title, parsed.slug || 'growth-os-audit',
-        parsed.publishingStatus, parsed.headline, parsed.targetIcpSummary || '',
+        id, parsed.businessId || 'biz_default', parsed.title, parsed.slug || 'growth-os-audit',
+        parsed.publishingStatus || 'DRAFT', parsed.headline, parsed.targetIcpSummary || '',
         parsed.coreProblem || '', parsed.desiredOutcome || '', parsed.uniqueMechanism || '',
         parsed.vslTitle, parsed.vslVideoUrl || '', parsed.vslHook, parsed.vslProblem,
         parsed.vslMechanism, parsed.vslProofSummary || '', parsed.vslCtaText,
-        parsed.bookingUrl || '', JSON.stringify(parsed.authorityAssetIdsJson),
-        JSON.stringify(parsed.objectionIdsJson), parsed.version, parsed.isActive ? 1 : 0, now, now
+        parsed.bookingUrl || '', JSON.stringify(parsed.authorityAssetIdsJson || []),
+        JSON.stringify(parsed.objectionIdsJson || []), parsed.version || 1, parsed.isActive ? 1 : 0, now, now
       ]
     );
 
     await logAudit('UPDATE', 'profile_funnels', id, parsed);
     const updated = await get(`SELECT * FROM profile_funnels WHERE id = ?`, [id]);
-    res.status(200).json({
-      ...updated,
-      authorityAssetIdsJson: JSON.parse(updated.authority_asset_ids_json || '[]'),
-      objectionIdsJson: JSON.parse(updated.objection_ids_json || '[]')
-    });
+    res.status(200).json(formatProfileFunnel(updated));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -5775,36 +5826,36 @@ app.post('/api/conversion/profile-funnels/generate-from-dna', async (req, res) =
       get(`SELECT * FROM icps WHERE business_id = 'biz_default' LIMIT 1`),
       get(`SELECT * FROM positionings WHERE business_id = 'biz_default' LIMIT 1`),
       get(`SELECT * FROM offers WHERE business_id = 'biz_default' LIMIT 1`),
-      all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND is_permissioned = 1 LIMIT 3`),
+      all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND permission_status = 'APPROVED' LIMIT 3`),
       all(`SELECT * FROM objection_library WHERE business_id = 'biz_default' LIMIT 3`)
     ]);
 
     const headline = pos
-      ? `Turn Organic Attention into High-ARR Sales Calls with the ${pos.unique_mechanism || 'Growth OS'}`
+      ? `Turn Organic Attention into High-ARR Sales Calls with the ${pos.mechanism || 'Growth OS'}`
       : 'Turn Qualified Organic Attention into High-ARR Sales Calls without Agency Retainers';
 
     const targetIcpSummary = icp
-      ? `${icp.vertical || 'B2B Founders'} doing ${icp.company_size || '$20k-$100k/mo'} struggling with ${icp.primary_pains || 'sales bottlenecks'}`
+      ? `${icp.industry || 'B2B Founders'} doing ${icp.revenue_range || '$20k-$100k/mo'} struggling with ${icp.name || 'sales bottlenecks'}`
       : 'Bootstrapped B2B Founders & Agencies doing $15k–$50k/mo';
 
     const coreProblem = pos
-      ? pos.problem_statement || 'Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales'
+      ? pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales'
       : 'Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales';
 
     const desiredOutcome = offer
-      ? `${offer.core_promise || 'Scale to $100k/mo'} with ${offer.guarantee || '90-day installation support'}`
+      ? `${offer.promise || 'Scale to $100k/mo'}`
       : 'Scale to $100k/mo while increasing Founder Independence Score from 30 to 85+';
 
     const uniqueMechanism = pos
-      ? pos.unique_mechanism || 'The ASENZO 5-Engine Growth OS Architecture'
+      ? pos.mechanism || 'The ASENZO 5-Engine Growth OS Architecture'
       : 'The ASENZO 5-Engine Growth OS Architecture';
 
     const vslTitle = `How Founders Use ${uniqueMechanism} to Scale to $100k/mo ARR`;
     const vslHook = `If you spend 20+ hours a week repeating your sales pitch manually, your growth architecture is the bottleneck.`;
     const vslProblem = `Most founders rely on random organic posting and brute-force 1:1 calls. When you stop manual outreach, qualified leads collapse.`;
     const vslMechanism = `${uniqueMechanism} connects Attention OS content directly into Conversion OS DM qualification, automatically capturing your sales behavior as reusable intelligence.`;
-    const vslProofSummary = proofAssets.length > 0
-      ? proofAssets.map(a => `${a.title}: ${a.result_summary}`).join(' | ')
+    const vslProofSummary = (proofAssets && proofAssets.length > 0)
+      ? proofAssets.map(a => `${a.title}: ${a.proof_summary}`).join(' | ')
       : 'Case study: SaaSify scaled from $25k to $60k/mo ARR in 90 days with 68% close rate.';
 
     const now = new Date().toISOString();
@@ -5813,7 +5864,7 @@ app.post('/api/conversion/profile-funnels/generate-from-dna', async (req, res) =
     const generated = {
       id,
       businessId: 'biz_default',
-      title: `${pos ? pos.unique_mechanism : 'Growth OS'} VSL Profile Funnel`,
+      title: `${pos ? pos.mechanism : 'Growth OS'} VSL Profile Funnel`,
       slug: 'growth-os-audit',
       publishingStatus: 'DRAFT',
       headline,
@@ -5829,8 +5880,8 @@ app.post('/api/conversion/profile-funnels/generate-from-dna', async (req, res) =
       vslProofSummary,
       vslCtaText: 'Book Your 1:1 Founder Growth Audit',
       bookingUrl: 'https://cal.com/asenzo/growth-audit',
-      authorityAssetIdsJson: proofAssets.map(a => a.id),
-      objectionIdsJson: objections.map(o => o.id),
+      authorityAssetIdsJson: (proofAssets || []).map(a => a.id),
+      objectionIdsJson: (objections || []).map(o => o.id),
       version: 1,
       isActive: true
     };
@@ -5850,7 +5901,7 @@ app.post('/api/conversion/profile-funnels/generate-from-dna', async (req, res) =
       ]
     );
 
-    res.status(201).json(generated);
+    res.status(201).json(formatProfileFunnel(await get(`SELECT * FROM profile_funnels WHERE id = ?`, [id])));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -5883,11 +5934,7 @@ app.post('/api/conversion/profile-funnels/:id/publish', async (req, res) => {
     await logAudit('VERSION_CREATE', 'profile_funnels', id, { newVersion, changeSummary });
 
     const updated = await get(`SELECT * FROM profile_funnels WHERE id = ?`, [id]);
-    res.json({
-      ...updated,
-      authorityAssetIdsJson: JSON.parse(updated.authority_asset_ids_json || '[]'),
-      objectionIdsJson: JSON.parse(updated.objection_ids_json || '[]')
-    });
+    res.json(formatProfileFunnel(updated));
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -5899,8 +5946,14 @@ app.get('/api/conversion/profile-funnels/:id/versions', async (req, res) => {
     const { id } = req.params;
     const versions = await all(`SELECT * FROM funnel_versions WHERE funnel_id = ? ORDER BY version_number DESC`, [id]);
     res.json(versions.map(v => ({
-      ...v,
-      snapshotJson: JSON.parse(v.snapshot_json || '{}')
+      id: v.id,
+      funnelId: v.funnel_id,
+      businessId: v.business_id,
+      versionNumber: v.version_number,
+      snapshotJson: JSON.parse(v.snapshot_json || '{}'),
+      createdBy: v.created_by,
+      changeSummary: v.change_summary,
+      createdAt: v.created_at
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5925,7 +5978,7 @@ app.get('/api/conversion/profile-funnels/:id/preview', async (req, res) => {
       const placeholders = proofAssetIds.map(() => '?').join(',');
       proofAssets = await all(`SELECT * FROM authority_assets WHERE id IN (${placeholders})`, proofAssetIds);
     } else {
-      proofAssets = await all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND is_permissioned = 1 LIMIT 3`);
+      proofAssets = await all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND permission_status = 'APPROVED' LIMIT 3`);
     }
 
     let objections = [];
@@ -5966,9 +6019,9 @@ app.get('/api/conversion/profile-funnels/:id/preview', async (req, res) => {
         proofSummary: funnel.vsl_proof_summary,
         ctaText: funnel.vsl_cta_text
       },
-      proofAssets: proofAssets.map(p => ({ id: p.id, title: p.title, assetType: p.asset_type, resultSummary: p.result_summary })),
+      proofAssets: proofAssets.map(p => ({ id: p.id, title: p.title, assetType: p.asset_type, resultSummary: p.proof_summary })),
       objections: objections.map(o => ({ id: o.id, objectionText: o.objection_text, founderResponseScript: o.founder_response_script })),
-      connectedContent: connectedContent.map(c => ({ id: c.id, title: c.title, platform: c.target_platform || 'LINKEDIN' }))
+      connectedContent: connectedContent.map(c => ({ id: c.id, title: c.title, platform: c.primary_platform || 'LINKEDIN' }))
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -5987,8 +6040,8 @@ app.post('/api/conversion/profile-funnels/:id/events', async (req, res) => {
       `INSERT INTO funnel_analytics_events (id, funnel_id, business_id, event_type, visitor_id, source_content_id, environment, metadata_json, timestamp)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        eventId, id, parsed.businessId, parsed.eventType, parsed.visitorId || '',
-        parsed.sourceContentId || '', parsed.environment, JSON.stringify(parsed.metadataJson), timestamp
+        eventId, id, parsed.businessId || 'biz_default', parsed.eventType, parsed.visitorId || '',
+        parsed.sourceContentId || '', parsed.environment, JSON.stringify(parsed.metadataJson || {}), timestamp
       ]
     );
 
