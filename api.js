@@ -6,30 +6,53 @@
 
 const API_BASE = 'http://localhost:3001/api';
 
-async function apiFetch(endpoint, options = {}) {
-  try {
-    const config = {
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-      ...options
-    };
+async function apiFetch(endpoint, options = {}, retries = 3) {
+  const method = (options.method || 'GET').toUpperCase();
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer token_biz_default',
+      ...(options.headers || {})
+    },
+    ...options
+  };
 
-    if (options.body && typeof options.body === 'object') {
-      config.body = JSON.stringify(options.body);
-    }
-
-    const res = await fetch(`${API_BASE}${endpoint}`, config);
-    const data = await res.json();
-
-    if (!res.ok) {
-      const msg = data.error || data.details?.[0]?.message || 'API request failed';
-      throw new Error(msg);
-    }
-
-    return data;
-  } catch (err) {
-    console.warn(`[ASENZO API Warning] ${endpoint}:`, err.message);
-    throw err;
+  if (options.body && typeof options.body === 'object') {
+    config.body = JSON.stringify(options.body);
   }
+
+  let attempt = 0;
+  let lastError;
+
+  while (attempt < retries) {
+    try {
+      attempt++;
+      const res = await fetch(`${API_BASE}${endpoint}`, config);
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = data.error || data.details?.[0]?.message || `API request failed (${res.status})`;
+        // Only retry 5xx transient server errors on idempotent GET requests
+        if (res.status >= 500 && method === 'GET' && attempt < retries) {
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 150));
+          continue;
+        }
+        throw new Error(msg);
+      }
+
+      return data;
+    } catch (err) {
+      lastError = err;
+      if (method === 'GET' && attempt < retries && !err.message.includes('40')) {
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 150));
+        continue;
+      }
+      break;
+    }
+  }
+
+  console.warn(`[ASENZO API Warning] ${endpoint}:`, lastError ? lastError.message : 'Failed request');
+  throw lastError;
 }
 
 window.ASENZO_API = {

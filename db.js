@@ -222,26 +222,6 @@ async function initDb() {
           id TEXT PRIMARY KEY, business_id TEXT NOT NULL, lead_magnet_id TEXT DEFAULT '', campaign_id TEXT DEFAULT '', campaign_name TEXT DEFAULT '', landing_surface_id TEXT DEFAULT '', form_id TEXT DEFAULT '', cta_id TEXT DEFAULT '', content_id TEXT DEFAULT '', distribution_id TEXT DEFAULT '', platform TEXT DEFAULT 'LINKEDIN', channel TEXT DEFAULT 'web', subchannel TEXT DEFAULT '', source TEXT DEFAULT 'FORM', source_url TEXT DEFAULT '', name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT DEFAULT '', company TEXT DEFAULT '', message TEXT DEFAULT '', intent_score INTEGER DEFAULT 0, status TEXT DEFAULT 'NEW', notes TEXT DEFAULT '', tags_json TEXT DEFAULT '[]', custom_fields_json TEXT DEFAULT '{}', utm_source TEXT DEFAULT '', utm_medium TEXT DEFAULT '', utm_campaign TEXT DEFAULT '', utm_content TEXT DEFAULT '', utm_term TEXT DEFAULT '', captured_at TEXT, created_at TEXT, updated_at TEXT, deleted_at TEXT
         )`);
 
-        // 21. OutreachProspect
-        await run(`CREATE TABLE IF NOT EXISTS outreach_prospects (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, handle TEXT NOT NULL, platform TEXT DEFAULT 'LINKEDIN', icp_score INTEGER DEFAULT 50, status TEXT DEFAULT 'NEW', created_at TEXT, updated_at TEXT
-        )`);
-
-        // 22. OutreachMessage
-        await run(`CREATE TABLE IF NOT EXISTS outreach_messages (
-          id TEXT PRIMARY KEY, prospect_id TEXT NOT NULL, message_text TEXT NOT NULL, status TEXT DEFAULT 'QUEUED', sent_at TEXT DEFAULT ''
-        )`);
-
-        // 23. OutreachReply
-        await run(`CREATE TABLE IF NOT EXISTS outreach_replies (
-          id TEXT PRIMARY KEY, message_id TEXT NOT NULL, reply_text TEXT NOT NULL, sentiment TEXT DEFAULT 'NEUTRAL', received_at TEXT
-        )`);
-
-        // 24. AuthorityAsset
-        await run(`CREATE TABLE IF NOT EXISTS authority_assets (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, asset_type TEXT NOT NULL, proof_summary TEXT NOT NULL, link TEXT DEFAULT '#', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
-        )`);
-
         // 25. ContentPerformance — Attention OS measurement layer.
         // Tracks the 5 attention categories separately from business impact so
         // reach can never masquerade as revenue:
@@ -648,7 +628,7 @@ When you replace random agency retainers with a production-grade Growth Operatin
         for (const p of perfSeeds) {
           await run(
             `INSERT OR IGNORE INTO content_performances (id, business_id, content_id, distribution_id, platform, recorded_at, impressions, reach, views, likes, comments, shares, saves, profile_visits, clicks, cta_clicks, leads, qualified_leads, conversations, opportunities, customers, revenue_influenced, metrics_tracked)
-             VALUES (?, 'biz_default', ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             VALUES (?, 'biz_default', ?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [p.id, p.contentId, p.platform, p.recordedAt, p.impressions, p.reach, p.views, p.likes, p.comments, p.shares, p.saves, p.profileVisits, p.clicks, p.ctaClicks, p.leads, p.qualifiedLeads, p.conversations, p.opportunities, p.customers, p.revenue, p.tracked]
           );
         }

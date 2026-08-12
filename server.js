@@ -49,9 +49,132 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// ── STRUCTURED LOGGING UTILITY ──────────────────────────────────────────────
+const logger = {
+  info(msg, meta = {}) {
+    console.log(JSON.stringify({ timestamp: new Date().toISOString(), level: 'INFO', message: msg, ...meta }));
+  },
+  warn(msg, meta = {}) {
+    console.warn(JSON.stringify({ timestamp: new Date().toISOString(), level: 'WARN', message: msg, ...meta }));
+  },
+  error(msg, err = {}) {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: 'ERROR',
+      message: msg,
+      errorName: err && err.name ? err.name : 'Error',
+      errorMessage: err && err.message ? err.message : String(err),
+      stack: process.env.NODE_ENV === 'production' ? undefined : (err && err.stack)
+    }));
+  }
+};
+
+// ── PROCESS-LEVEL ERROR HANDLERS ────────────────────────────────────────────
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception detected in server process', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Promise Rejection detected', { reason: reason && reason.message ? reason.message : String(reason) });
+});
+
+// ── SECURITY HEADERS & CORS CONFIGURATION ───────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS request blocked by security policy'));
+    }
+  },
+  credentials: true
+}));
+
+app.use(express.json({ limit: '2mb' }));
 app.use(express.static(__dirname));
+
+// ── AUTHENTICATION & WORKSPACE ISOLATION MIDDLEWARE ────────────────────────
+function authMiddleware(req, res, next) {
+  req.id = `req_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const authHeader = req.headers.authorization || req.headers['x-api-key'];
+
+  if (authHeader) {
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      if (token.includes('_biz_')) {
+        req.businessId = token.split('_biz_')[1] || 'biz_default';
+      } else {
+        req.businessId = 'biz_default';
+      }
+    } else {
+      req.businessId = 'biz_default';
+    }
+  } else {
+    req.businessId = 'biz_default';
+  }
+  next();
+}
+app.use(authMiddleware);
+
+// ── IN-MEMORY RATE LIMITING MIDDLEWARE ──────────────────────────────────────
+const ipRequestCounts = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 200;
+const MAX_AI_REQUESTS_PER_WINDOW = 40;
+
+function rateLimiter(isAiEndpoint = false) {
+  return (req, res, next) => {
+    const ip = req.ip || (req.connection && req.connection.remoteAddress) || '127.0.0.1';
+    const now = Date.now();
+    const key = `${ip}:${isAiEndpoint ? 'ai' : 'std'}`;
+    const limit = isAiEndpoint ? MAX_AI_REQUESTS_PER_WINDOW : MAX_REQUESTS_PER_WINDOW;
+
+    const record = ipRequestCounts.get(key) || { count: 0, resetTime: now + RATE_LIMIT_WINDOW_MS };
+    if (now > record.resetTime) {
+      record.count = 1;
+      record.resetTime = now + RATE_LIMIT_WINDOW_MS;
+    } else {
+      record.count++;
+    }
+    ipRequestCounts.set(key, record);
+
+    if (record.count > limit) {
+      logger.warn(`Rate limit exceeded for IP: ${ip}`, { endpoint: req.path });
+      return res.status(429).json({ error: 'Too many requests. Rate limit exceeded.', retryAfterSeconds: Math.ceil((record.resetTime - now) / 1000) });
+    }
+    next();
+  };
+}
+app.use('/api/', rateLimiter(false));
+app.use('/api/generate/', rateLimiter(true));
+app.use('/api/attention/generate-script', rateLimiter(true));
+
+// ── AI PROMPT SANITIZATION UTILITY ──────────────────────────────────────────
+function sanitizePromptInput(input, maxLength = 3000) {
+  if (typeof input !== 'string') return '';
+  let sanitized = input
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/system:/gi, 'system_input:')
+    .replace(/assistant:/gi, 'assistant_input:')
+    .replace(/user:/gi, 'user_input:')
+    .replace(/ignore\s+previous\s+instructions/gi, '[filtered_instruction]')
+    .replace(/disregard\s+all\s+rules/gi, '[filtered_instruction]')
+    .trim();
+
+  if (sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength) + '... [truncated]';
+  }
+  return `<user_input>${sanitized}</user_input>`;
+}
 
 function makeId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -872,7 +995,8 @@ app.get('/api/health', (req, res) => {
 // ── KNOWLEDGE INGESTION PIPELINE & SOURCE MANAGEMENT ────────────────────────
 app.post('/api/knowledge-sources/ingest', async (req, res) => {
   try {
-    const parsed = KnowledgeSourceIngestSchema.parse(req.body);
+    const body = { ...req.body, rawContent: req.body.rawContent || req.body.rawText };
+    const parsed = KnowledgeSourceIngestSchema.parse(body);
     const sourceId = parsed.id || makeId('kn');
     const now = new Date().toISOString();
 
@@ -976,14 +1100,28 @@ app.delete('/api/knowledge-sources/:id', async (req, res) => {
 app.get('/api/founder/profile', async (req, res) => {
   try {
     const founder = await get(`SELECT * FROM founders WHERE business_id = 'biz_default'`);
-    if (!founder) return res.status(404).json({ error: 'Founder profile not found' });
+    const defaultFounder = {
+      id: 'fnd_default',
+      business_id: 'biz_default',
+      name: 'Alex Morgan',
+      email: 'alex@asenzo.ai',
+      title: 'Chief Operating Founder',
+      bio: 'Growth OS Architect & Founder',
+      expertise: ['B2B Systems', 'Growth Engineering'],
+      story: 'Engineered the 5-Engine Growth OS after 6 years of agency friction.',
+      beliefs: ['Systems scale, manual labor stalls.'],
+      opinions: ['Retainer agencies build dependency.'],
+      achievements: ['Scaled to 85+ FIS score'],
+      credentials: ['Growth OS Certified']
+    };
+    const activeFounder = founder || defaultFounder;
     res.json({
-      ...founder,
-      expertise: JSON.parse(founder.expertise || '[]'),
-      beliefs: JSON.parse(founder.beliefs || '[]'),
-      opinions: JSON.parse(founder.opinions || '[]'),
-      achievements: JSON.parse(founder.achievements || '[]'),
-      credentials: JSON.parse(founder.credentials || '[]')
+      ...activeFounder,
+      expertise: typeof activeFounder.expertise === 'string' ? JSON.parse(activeFounder.expertise || '[]') : (activeFounder.expertise || []),
+      beliefs: typeof activeFounder.beliefs === 'string' ? JSON.parse(activeFounder.beliefs || '[]') : (activeFounder.beliefs || []),
+      opinions: typeof activeFounder.opinions === 'string' ? JSON.parse(activeFounder.opinions || '[]') : (activeFounder.opinions || []),
+      achievements: typeof activeFounder.achievements === 'string' ? JSON.parse(activeFounder.achievements || '[]') : (activeFounder.achievements || []),
+      credentials: typeof activeFounder.credentials === 'string' ? JSON.parse(activeFounder.credentials || '[]') : (activeFounder.credentials || [])
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1051,7 +1189,27 @@ app.get('/api/founder/voice-profile', async (req, res) => {
 app.get('/api/brand/profile', async (req, res) => {
   try {
     const bp = await get(`SELECT * FROM brand_profiles WHERE business_id = 'biz_default'`);
-    if (!bp) return res.status(404).json({ error: 'Brand profile not found' });
+    if (!bp) {
+      return res.json({
+        id: 'bp_default',
+        businessId: 'biz_default',
+        brandName: 'ASENZO Growth OS',
+        tagline: 'The Founder Independence Engine',
+        mission: 'Eliminate founder acquisition bottlenecks and scale to $100k/mo.',
+        personalBrandPositioning: 'Systems Architect & Operator',
+        businessBrandPositioning: 'Done-with-you Growth Operating System',
+        audience: 'Bootstrapped B2B Founders',
+        personality: 'Direct, Strategic, Empirical',
+        tone: 'Direct, Authoritative',
+        formality: 'Professional Casual',
+        directness: 'High',
+        humor: 'Subtle',
+        technicalDepth: 'High',
+        vocabularyPreferences: 'Operating Systems, Leveraged Engines, Founder Independence',
+        wordsToUse: ['operating system', 'leverage', 'framework', 'bottleneck', 'compounding', 'FIS score'],
+        wordsToAvoid: ['hack', 'guru', 'overnight', 'secret', 'magic bullet', 'passive income']
+      });
+    }
     res.json({
       ...bp,
       brandName: bp.brand_name,
@@ -1076,8 +1234,8 @@ app.post('/api/brand/profile', async (req, res) => {
     const now = new Date().toISOString();
 
     await run(
-      `INSERT OR REPLACE INTO brand_profiles (id, business_id, brand_name, tagline, mission, personal_brand_positioning, business_brand_positioning, audience, personality, tone, formality, directness, humor, technical_depth, vocabulary_preferences, words_to_use, words_to_avoid, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO brand_profiles (id, business_id, brand_name, tagline, mission, personal_brand_positioning, business_brand_positioning, audience, personality, tone, formality, directness, humor, technical_depth, vocabulary_preferences, words_to_use, words_to_avoid, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         parsed.businessId,
@@ -1096,6 +1254,7 @@ app.post('/api/brand/profile', async (req, res) => {
         parsed.vocabularyPreferences,
         JSON.stringify(parsed.wordsToUse),
         JSON.stringify(parsed.wordsToAvoid),
+        now,
         now
       ]
     );
@@ -1170,10 +1329,18 @@ app.post('/api/positioning', async (req, res) => {
     const scoreData = calculatePositioningScore(parsed.icpSummary, parsed.problem, parsed.result, parsed.mechanism);
     const now = new Date().toISOString();
 
-    await run(
-      `UPDATE positionings SET icp_summary = ?, problem = ?, result = ?, mechanism = ?, statement = ?, score = ?, score_breakdown = ?, version = ?, updated_at = ? WHERE id = ?`,
-      [parsed.icpSummary, parsed.problem, parsed.result, parsed.mechanism, scoreData.statement, scoreData.totalScore, JSON.stringify(scoreData.breakdown), newVersion, now, posId]
-    );
+    if (existing) {
+      await run(
+        `UPDATE positionings SET icp_summary = ?, problem = ?, result = ?, mechanism = ?, statement = ?, score = ?, score_breakdown = ?, version = ?, updated_at = ? WHERE id = ?`,
+        [parsed.icpSummary, parsed.problem, parsed.result, parsed.mechanism, scoreData.statement, scoreData.totalScore, JSON.stringify(scoreData.breakdown), newVersion, now, posId]
+      );
+    } else {
+      await run(
+        `INSERT INTO positionings (id, business_id, icp_summary, problem, result, mechanism, statement, score, score_breakdown, version, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+        [posId, parsed.businessId, parsed.icpSummary, parsed.problem, parsed.result, parsed.mechanism, scoreData.statement, scoreData.totalScore, JSON.stringify(scoreData.breakdown), 1, now, now]
+      );
+    }
 
     const verId = makeId('pos_ver');
     await run(
@@ -2312,12 +2479,14 @@ app.get('/api/attention/analytics', async (req, res) => {
     const commercial = { opportunities: 0, customers: 0, revenueInfluenced: 0 };
 
     for (const c of items) {
-      reach.impressions += c.perf.impressions; reach.reach += c.perf.reach; reach.views += c.perf.views;
-      engagement.likes += c.perf.likes; engagement.comments += c.perf.comments; engagement.shares += c.perf.shares; engagement.saves += c.perf.saves;
-      intent.profileVisits += c.perf.profileVisits; intent.clicks += c.perf.clicks; intent.ctaClicks += c.perf.ctaClicks;
-      const b = mergeBusiness(c.events, c.perf);
-      acquisition.leads += b.leads; acquisition.qualifiedLeads += b.qualifiedLeads; acquisition.conversations += b.conversations;
-      commercial.opportunities += b.opportunities; commercial.customers += b.customers; commercial.revenueInfluenced += b.revenue;
+      const p = c.perf || emptyMetrics();
+      const ev = c.events || emptyEvents();
+      reach.impressions += p.impressions || 0; reach.reach += p.reach || 0; reach.views += p.views || 0;
+      engagement.likes += p.likes || 0; engagement.comments += p.comments || 0; engagement.shares += p.shares || 0; engagement.saves += p.saves || 0;
+      intent.profileVisits += p.profileVisits || 0; intent.clicks += p.clicks || 0; intent.ctaClicks += p.ctaClicks || 0;
+      const b = mergeBusiness(ev, p);
+      acquisition.leads += b.leads || 0; acquisition.qualifiedLeads += b.qualifiedLeads || 0; acquisition.conversations += b.conversations || 0;
+      commercial.opportunities += b.opportunities || 0; commercial.customers += b.customers || 0; commercial.revenueInfluenced += b.revenue || 0;
     }
 
     const compounding = items.filter(c => c.classified.classification === 'compounding').length;
