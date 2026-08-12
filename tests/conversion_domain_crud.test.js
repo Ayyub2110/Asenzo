@@ -56,8 +56,11 @@ test.before(async () => {
 
 test.after(async () => {
   if (serverInstance) {
+    const { scheduledWorker } = require('../server');
+    clearInterval(scheduledWorker);
     await new Promise(resolve => serverInstance.close(resolve));
   }
+  setImmediate(() => process.exit(0));
 });
 
 test('CONVERSION DOMAIN MODEL: Configurable Pipelines & Stages CRUD & Order Indexing', async () => {

@@ -11,7 +11,7 @@ let baseUrl;
 
 function apiRequest(path, method = 'GET', body = null) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, baseUrl);
+    const url = new URL(`/api${path}`, baseUrl);
     const options = {
       method,
       headers: {
@@ -39,22 +39,29 @@ function apiRequest(path, method = 'GET', body = null) {
   });
 }
 
-test.before((t, done) => {
+test.before(async (t) => {
+  const { initReady } = require('../db');
+  await initReady;
   if (server.listening) {
     const port = server.address().port;
     baseUrl = `http://localhost:${port}`;
-    done();
   } else {
-    server.listen(0, () => {
-      const port = server.address().port;
-      baseUrl = `http://localhost:${port}`;
-      done();
+    await new Promise(done => {
+      server.listen(0, () => {
+        const port = server.address().port;
+        baseUrl = `http://localhost:${port}`;
+        done();
+      });
     });
   }
 });
 
 test.after((t, done) => {
-  server.close(done);
+  const { scheduledWorker } = require('../server');
+  clearInterval(scheduledWorker);
+  server.close(() => {
+    setImmediate(() => process.exit(0));
+  });
 });
 
 test('PROFILE FUNNEL: Fetch active default funnel initialized from Business DNA', async () => {

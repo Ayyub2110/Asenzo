@@ -6043,4 +6043,4 @@ const server = app.listen(PORT, () => {
   console.log(`ASENZO OS Backend running on http://localhost:${PORT}`);
 });
 
-module.exports = { app, server };
+module.exports = { app, server, scheduledWorker };
