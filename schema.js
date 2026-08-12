@@ -744,7 +744,13 @@ const DealFullSchema = z.object({
   wonAt: z.string().nullable().optional().default(''),
   lostAt: z.string().nullable().optional().default(''),
   lostReason: z.string().nullable().optional().default(''),
-  notes: z.string().nullable().optional().default('')
+  notes: z.string().nullable().optional().default(''),
+  owner: z.string().nullable().optional().default('Alex Morgan'),
+  source: z.string().nullable().optional().default('CONVERSION_OS'),
+  risk: z.string().nullable().optional().default('None'),
+  stageEnteredAt: z.string().nullable().optional().default(''),
+  blockingFactor: z.string().nullable().optional().default(''),
+  whatIsHappening: z.string().nullable().optional().default('')
 });
 
 const SalesCallFullSchema = z.object({
@@ -865,6 +871,10 @@ const PipelineStageSchema = z.object({
   orderIndex: z.number().int().min(1).default(1),
   stageType: z.enum(['QUALIFICATION', 'BOOKING', 'CALL', 'FOLLOWUP', 'CLOSING', 'WON', 'LOST']).default('QUALIFICATION'),
   description: z.string().nullable().optional().default(''),
+  entryConditions: z.string().nullable().optional().default(''),
+  exitConditions: z.string().nullable().optional().default(''),
+  expectedNextAction: z.string().nullable().optional().default(''),
+  probability: z.number().int().min(0).max(100).optional().default(50),
   isActive: z.boolean().optional().default(true)
 });
 

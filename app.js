@@ -2524,6 +2524,8 @@ let CONVERSION_OBJECTIONS = [];
 let CONVERSION_COACHING_RESULT = null;
 let CONVERSION_CLOSER_PREP = null;
 let CONVERSION_INTELLIGENCE = null;
+let CALENDAR_SLOTS = [];
+let CLOSER_ROOM_TAB = 'precall';
 
 // New state stores for Profile Funnel, AI Qualifier, and Story Sequence
 let CONVERSION_FUNNEL = null;
@@ -2990,24 +2992,314 @@ function renderConversionCloserSubTab() {
   `;
 }
 
+function switchCloserRoomTab(tab) {
+  CLOSER_ROOM_TAB = tab;
+  const display = document.getElementById('closer-prep-display');
+  if (display && CONVERSION_CLOSER_PREP) {
+    display.innerHTML = renderCloserPrepContent(CONVERSION_CLOSER_PREP);
+  }
+}
+
+async function handleBookCalendarSlot(dealId) {
+  const dateInput = document.getElementById('booking-date-input');
+  const slotSelect = document.getElementById('booking-slot-select');
+  if (!dateInput || !slotSelect) return;
+  const date = dateInput.value;
+  const slotTime = slotSelect.value;
+  if (!slotTime) {
+    showToast('Please select an available calendar slot');
+    return;
+  }
+  try {
+    if (window.ASENZO_API) {
+      const res = await window.ASENZO_API.bookCalendarSlot({ dealId, slotTime, date });
+      showToast(res.message || 'Call successfully booked on calendar!');
+      await loadCloserPrepSheet(dealId);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleSaveCloserCall(dealId) {
+  const notesText = document.getElementById('post-call-notes').value.trim();
+  const outcomeVal = document.getElementById('post-call-outcome').value;
+  const objectionsText = document.getElementById('post-call-objections').value.trim();
+  const commitmentsText = document.getElementById('post-call-commitments').value.trim();
+  const isBenchmark = document.getElementById('post-call-benchmark').value === '1';
+
+  if (!notesText) {
+    showToast('Please enter call notes and outcome context.');
+    return;
+  }
+
+  try {
+    if (window.ASENZO_API) {
+      const payload = {
+        dealId,
+        transcriptText: `Manually logged closer notes: ${notesText}. Objections raised: ${objectionsText}. Commitments: ${commitmentsText}.`,
+        durationSeconds: 1800,
+        outcome: outcomeVal,
+        callType: 'DISCOVERY_DEMO',
+        isBenchmarkCall: isBenchmark
+      };
+      await window.ASENZO_API.createSalesCall(payload);
+      
+      if (outcomeVal === 'CLOSED_WON') {
+        await window.ASENZO_API.updateDeal(dealId, { stage: 'CLOSED_WON', status: 'WON' });
+        showToast('Sales call logged and deal marked as CLOSED_WON!');
+      } else if (outcomeVal === 'CLOSED_LOST') {
+        await window.ASENZO_API.updateDeal(dealId, { stage: 'CLOSED_LOST', status: 'LOST', lostReason: objectionsText || 'Lost during call' });
+        showToast('Sales call logged and deal marked as CLOSED_LOST.');
+      } else {
+        await window.ASENZO_API.updateDeal(dealId, { stage: 'CALL_COMPLETED', nextAction: commitmentsText || 'Follow-up' });
+        showToast('Sales call logged and deal advanced to CALL_COMPLETED.');
+      }
+      
+      await loadCloserPrepSheet(dealId);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
 function renderCloserPrepContent(prep) {
   const deal = prep.deal || {};
-  const pos = prep.positioning || POSITIONING;
+  const pos = prep.positioning || {};
+  const brief = prep.preCallBrief || {};
+  const prompts = prep.closerPrompts || {};
+
+  const freeSlots = CALENDAR_SLOTS.filter(s => s.status === 'FREE');
+
+  let stageBadgeColor = '#0EA5E9';
+  if (deal.stage === 'CLOSED_WON') stageBadgeColor = '#10B981';
+  if (deal.stage === 'CLOSED_LOST') stageBadgeColor = '#EF4444';
+
+  const showBookingSimulator = ['QUALIFIED_LEAD', 'BOOKING_PENDING'].includes(deal.stage);
+
+  let tabContentHtml = '';
+  if (CLOSER_ROOM_TAB === 'precall') {
+    const who = brief.whoIsThis || {};
+    const likelyObjections = brief.likelyObjections || [];
+
+    tabContentHtml = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Who is this?</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">
+              <strong>Name:</strong> ${who.name || 'N/A'}<br/>
+              <strong>Company:</strong> ${who.company || 'N/A'}<br/>
+              <strong>Email:</strong> ${who.email || 'N/A'}<br/>
+              <strong>Owner:</strong> ${who.owner || 'Alex Morgan'} | <strong>Source:</strong> ${who.source || 'CONVERSION_OS'}
+            </div>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Why are they here?</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whyAreTheyHere || 'N/A'}</div>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What problem do they have?</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.problem || 'N/A'}</div>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What do they want?</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatTheyWant || 'N/A'}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What do we know? (Grounded Facts Only)</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatWeKnow || 'N/A'}</div>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What don't we know?</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatWeDontKnow || 'N/A'}</div>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What should we investigate?</div>
+            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatToInvestigate || 'N/A'}</div>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What objections are likely?</div>
+            <div style="font-size:12.5px;color:#0F172A;margin-top:4px;display:flex;flex-direction:column;gap:6px">
+              ${likelyObjections.length > 0 ? likelyObjections.map(o => `
+                <div style="padding:6px;background:#FFF;border-radius:6px;border:1px solid #CBD5E1">
+                  <strong>Objection:</strong> "${o.objectionText}"<br/>
+                  <strong>Winning Angle:</strong> ${o.winningAngle}
+                </div>
+              `).join('') : 'None predicted.'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (CLOSER_ROOM_TAB === 'incall') {
+    const disc = prompts.discovery || [];
+    const mech = prompts.mechanism || [];
+    const prf = prompts.proof || [];
+    const obj = prompts.objections || [];
+    const nxt = prompts.nextSteps || [];
+
+    tabContentHtml = `
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+        <div style="padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;font-size:12.5px;color:#1E40AF;font-weight:600">
+          💡 AI Assistive Guardrail: Keep prompts concise. Guide the call flow; let the prospect speak 70% of the time.
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">🔍 Discovery Prompts</div>
+            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+              ${disc.map(p => `<li>${p}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">⚙️ Mechanism Prompts</div>
+            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+              ${mech.map(p => `<li>${p}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">📊 Proof & Authority Prompts</div>
+            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+              ${prf.map(p => `<li>${p}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">🛡️ Objection Scripts</div>
+            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+              ${obj.map(p => `<li>${p}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+
+        <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+          <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">🚀 Next Step Closing Prompts</div>
+          <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+            ${nxt.map(p => `<li>${p}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  } else if (CLOSER_ROOM_TAB === 'postcall') {
+    tabContentHtml = `
+      <div style="margin-top:14px;background:#F8FAFC;padding:14px;border-radius:8px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:700;font-size:14px;color:#0F172A">Log Call Transcripts & Commitments</div>
+        
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Call Outcome *</label>
+            <select id="post-call-outcome">
+              <option value="ADVANCED">ADVANCED (Pipeline Progress)</option>
+              <option value="CLOSED_WON">CLOSED_WON (Mark Won)</option>
+              <option value="CLOSED_LOST">CLOSED_LOST (Mark Lost)</option>
+              <option value="NO_SHOW">NO_SHOW (No Attendance)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Founder Benchmark Call?</label>
+            <select id="post-call-benchmark">
+              <option value="0">No — Routine Call</option>
+              <option value="1">Yes — Tag as Benchmark Call</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0">
+          <label>Sales Call Notes / Observations</label>
+          <textarea id="post-call-notes" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:13px" placeholder="Stated bottlenecks, current conversion rates, tech stack issues..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Objections Raised</label>
+            <input id="post-call-objections" placeholder="e.g. Price, monthly support structure" />
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Next Step Commitments</label>
+            <input id="post-call-commitments" placeholder="e.g. Custom deliverables proposal due Monday" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="margin-top:10px" onclick="handleSaveCloserCall('${deal.id}')">
+          Log Call & Save Outcomes
+        </button>
+      </div>
+    `;
+  }
 
   return `
-    <div style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;padding:16px">
-      <div style="font-size:16px;font-weight:800;color:#0F172A;margin-bottom:4px">Pre-Call Prep: ${deal.deal_name} (${deal.contact_name})</div>
-      <div style="font-size:12px;color:#64748B;margin-bottom:12px">Stage: ${deal.stage} | Target Value: $${(deal.amount || 12500).toLocaleString()}</div>
+    <div style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;padding:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #E2E8F0;padding-bottom:12px">
+        <div>
+          <div style="font-size:17px;font-weight:800;color:#0F172A">${deal.deal_name || deal.dealName}</div>
+          <div style="font-size:12px;color:#64748B;margin-top:4px">
+            Contact: <strong>${deal.contact_name}</strong> | Owner: <strong>${deal.owner || 'Alex Morgan'}</strong> | Risk: <strong>${deal.risk || 'None'}</strong>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <span class="sb-badge" style="background:${stageBadgeColor};color:#FFF;font-weight:700;padding:4px 8px;border-radius:6px;font-size:11px">${deal.stage}</span>
+          <div style="font-size:14px;font-weight:800;color:#0EA5E9;margin-top:4px">$${(deal.amount || 12500).toLocaleString()}</div>
+        </div>
+      </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div style="background:#F8FAFC;padding:10px;border-radius:8px;border:1px solid #E2E8F0">
-          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Core ICP Pain</div>
-          <div style="font-size:12.5px;font-weight:600;color:#0F172A;margin-top:2px">${pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck'}</div>
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px;background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+        <div>
+          <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase">What is happening?</div>
+          <div style="font-size:12px;font-weight:600;color:#0F172A;margin-top:2px">${deal.what_is_happening || deal.whatIsHappening || 'Discovery Stage'}</div>
         </div>
-        <div style="background:#F8FAFC;padding:10px;border-radius:8px;border:1px solid #E2E8F0">
-          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Unique Mechanism</div>
-          <div style="font-size:12.5px;font-weight:600;color:#0F172A;margin-top:2px">${pos.mechanism || 'The ASENZO 5-Engine Growth OS Framework'}</div>
+        <div>
+          <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase">What is blocking this deal?</div>
+          <div style="font-size:12px;font-weight:600;color:#D97706;margin-top:2px">${deal.blocking_factor || deal.blockingFactor || 'No active blocks'}</div>
         </div>
+        <div>
+          <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase">What happens next?</div>
+          <div style="font-size:12px;font-weight:600;color:#0EA5E9;margin-top:2px">${deal.next_action || deal.nextAction || 'Log Discovery call outcome'}</div>
+        </div>
+      </div>
+
+      ${showBookingSimulator ? `
+        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px;margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;color:#B45309">📅 Abstraction Layer: Book Audit Call</div>
+          <div style="font-size:12px;color:#78350F;margin:4px 0">Retrieved in real-time. No availability is faked.</div>
+          
+          <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+            <input type="date" id="booking-date-input" value="2026-08-15" style="padding:6px;border-radius:6px;border:1px solid #CBD5E1;font-size:12.5px" />
+            <select id="booking-slot-select" style="padding:6px;border-radius:6px;border:1px solid #CBD5E1;font-size:12.5px;flex-grow:1">
+              ${freeSlots.length > 0 ? freeSlots.map(s => `<option value="${s.time}">${s.time} (Available)</option>`).join('') : '<option value="">No Slots Available</option>'}
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="handleBookCalendarSlot('${deal.id}')">Book Call</button>
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="display:flex;gap:4px;border-bottom:2px solid #E2E8F0;padding-bottom:2px">
+        <button class="btn ${CLOSER_ROOM_TAB === 'precall' ? 'btn-primary' : 'btn-secondary'}" style="font-size:12px;padding:6px 12px;border-radius:6px 6px 0 0" onclick="switchCloserRoomTab('precall')">
+          1. Pre-Call Brief
+        </button>
+        <button class="btn ${CLOSER_ROOM_TAB === 'incall' ? 'btn-primary' : 'btn-secondary'}" style="font-size:12px;padding:6px 12px;border-radius:6px 6px 0 0" onclick="switchCloserRoomTab('incall')">
+          2. In-Call Assistive Prompts
+        </button>
+        <button class="btn ${CLOSER_ROOM_TAB === 'postcall' ? 'btn-primary' : 'btn-secondary'}" style="font-size:12px;padding:6px 12px;border-radius:6px 6px 0 0" onclick="switchCloserRoomTab('postcall')">
+          3. Post-Call Logger
+        </button>
+      </div>
+
+      <div id="closer-tab-content">
+        ${tabContentHtml}
       </div>
     </div>
   `;
@@ -3053,6 +3345,12 @@ function openDealModal(dealId) {
   document.getElementById('deal-priority').value = 'HIGH';
   document.getElementById('deal-attention').value = '0';
   document.getElementById('deal-attention-reason').value = '';
+  document.getElementById('deal-what-happening').value = '';
+  document.getElementById('deal-blocking-factor').value = '';
+  document.getElementById('deal-owner').value = 'Alex Morgan';
+  document.getElementById('deal-source').value = 'CONVERSION_OS';
+  document.getElementById('deal-risk').value = 'None';
+  document.getElementById('deal-loss-reason').value = '';
   document.getElementById('deal-notes').value = '';
 
   if (dealId) {
@@ -3067,6 +3365,12 @@ function openDealModal(dealId) {
       document.getElementById('deal-priority').value = d.priority || 'HIGH';
       document.getElementById('deal-attention').value = d.founder_attention_required ? '1' : '0';
       document.getElementById('deal-attention-reason').value = d.attention_reason || d.attentionReason || '';
+      document.getElementById('deal-what-happening').value = d.what_is_happening || d.whatIsHappening || '';
+      document.getElementById('deal-blocking-factor').value = d.blocking_factor || d.blockingFactor || '';
+      document.getElementById('deal-owner').value = d.owner || 'Alex Morgan';
+      document.getElementById('deal-source').value = d.source || 'CONVERSION_OS';
+      document.getElementById('deal-risk').value = d.risk || 'None';
+      document.getElementById('deal-loss-reason').value = d.lost_reason || d.lostReason || d.loss_reason || d.lossReason || '';
       document.getElementById('deal-notes').value = d.notes || '';
     }
   }
@@ -3090,6 +3394,12 @@ async function handleCreateDeal(e) {
     priority: document.getElementById('deal-priority').value,
     founderAttentionRequired: document.getElementById('deal-attention').value === '1',
     attentionReason: document.getElementById('deal-attention-reason').value.trim(),
+    whatIsHappening: document.getElementById('deal-what-happening').value.trim(),
+    blockingFactor: document.getElementById('deal-blocking-factor').value.trim(),
+    owner: document.getElementById('deal-owner').value.trim(),
+    source: document.getElementById('deal-source').value.trim(),
+    risk: document.getElementById('deal-risk').value,
+    lostReason: document.getElementById('deal-loss-reason').value.trim(),
     notes: document.getElementById('deal-notes').value.trim()
   };
 

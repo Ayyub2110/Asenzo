@@ -301,7 +301,7 @@ async function initDb() {
 
         // 33. CRM Deals / Opportunities
         await run(`CREATE TABLE IF NOT EXISTS deals (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, lead_id TEXT DEFAULT '', prospect_id TEXT DEFAULT '', deal_name TEXT NOT NULL, contact_name TEXT NOT NULL, company_name TEXT DEFAULT '', contact_email TEXT DEFAULT '', stage TEXT DEFAULT 'QUALIFIED_LEAD', amount REAL DEFAULT 12500, close_probability INTEGER DEFAULT 50, priority TEXT DEFAULT 'HIGH', founder_attention_required INTEGER DEFAULT 0, attention_reason TEXT DEFAULT '', next_action TEXT DEFAULT '', next_action_due_at TEXT DEFAULT '', status TEXT DEFAULT 'OPEN', won_at TEXT DEFAULT '', lost_at TEXT DEFAULT '', lost_reason TEXT DEFAULT '', notes TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, lead_id TEXT DEFAULT '', prospect_id TEXT DEFAULT '', deal_name TEXT NOT NULL, contact_name TEXT NOT NULL, company_name TEXT DEFAULT '', contact_email TEXT DEFAULT '', stage TEXT DEFAULT 'QUALIFIED_LEAD', amount REAL DEFAULT 12500, close_probability INTEGER DEFAULT 50, priority TEXT DEFAULT 'HIGH', founder_attention_required INTEGER DEFAULT 0, attention_reason TEXT DEFAULT '', next_action TEXT DEFAULT '', next_action_due_at TEXT DEFAULT '', status TEXT DEFAULT 'OPEN', won_at TEXT DEFAULT '', lost_at TEXT DEFAULT '', lost_reason TEXT DEFAULT '', notes TEXT DEFAULT '', owner TEXT DEFAULT 'Alex Morgan', source TEXT DEFAULT 'CONVERSION_OS', risk TEXT DEFAULT 'None', stage_entered_at TEXT DEFAULT '', blocking_factor TEXT DEFAULT '', what_is_happening TEXT DEFAULT '', loss_reason TEXT DEFAULT '', created_at TEXT, updated_at TEXT
         )`);
 
         // 34. Sales Calls
@@ -350,7 +350,7 @@ async function initDb() {
         )`);
 
         await run(`CREATE TABLE IF NOT EXISTS pipeline_stages (
-          id TEXT PRIMARY KEY, pipeline_id TEXT NOT NULL, business_id TEXT NOT NULL, name TEXT NOT NULL, order_index INTEGER NOT NULL, stage_type TEXT DEFAULT 'QUALIFICATION', description TEXT DEFAULT '', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, pipeline_id TEXT NOT NULL, business_id TEXT NOT NULL, name TEXT NOT NULL, order_index INTEGER NOT NULL, stage_type TEXT DEFAULT 'QUALIFICATION', description TEXT DEFAULT '', entry_conditions TEXT DEFAULT '', exit_conditions TEXT DEFAULT '', expected_next_action TEXT DEFAULT '', probability INTEGER DEFAULT 50, is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
         )`);
 
         await run(`CREATE TABLE IF NOT EXISTS deal_stage_histories (
@@ -460,6 +460,33 @@ async function initDb() {
         await run(`CREATE INDEX IF NOT EXISTS idx_deal_hist_deal ON deal_stage_histories (deal_id)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_activities_deal ON sales_activities (deal_id)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_funnel_analytics ON funnel_analytics_events (funnel_id, environment, event_type)`);
+
+        // Migration Check for SQLite tables
+        const addColumn = async (table, column, definition) => {
+          try {
+            const info = await all(`PRAGMA table_info(${table})`);
+            const exists = info.some(col => col.name === column);
+            if (!exists) {
+              await run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+              console.log(`Migration: Added column ${column} to table ${table}`);
+            }
+          } catch (err) {
+            console.warn(`Migration warning on ${table}.${column}:`, err.message);
+          }
+        };
+
+        await addColumn('pipeline_stages', 'entry_conditions', "TEXT DEFAULT ''");
+        await addColumn('pipeline_stages', 'exit_conditions', "TEXT DEFAULT ''");
+        await addColumn('pipeline_stages', 'expected_next_action', "TEXT DEFAULT ''");
+        await addColumn('pipeline_stages', 'probability', "INTEGER DEFAULT 50");
+
+        await addColumn('deals', 'owner', "TEXT DEFAULT 'Alex Morgan'");
+        await addColumn('deals', 'source', "TEXT DEFAULT 'CONVERSION_OS'");
+        await addColumn('deals', 'risk', "TEXT DEFAULT 'None'");
+        await addColumn('deals', 'stage_entered_at', "TEXT DEFAULT ''");
+        await addColumn('deals', 'blocking_factor', "TEXT DEFAULT ''");
+        await addColumn('deals', 'what_is_happening', "TEXT DEFAULT ''");
+        await addColumn('deals', 'loss_reason', "TEXT DEFAULT ''");
 
         const now = new Date().toISOString();
 
@@ -892,22 +919,22 @@ When you replace random agency retainers with a production-grade Growth Operatin
         );
 
         const defaultStages = [
-          { id: 'stage_1', name: 'New Lead', index: 1, type: 'QUALIFICATION' },
-          { id: 'stage_2', name: 'Qualified', index: 2, type: 'QUALIFICATION' },
-          { id: 'stage_3', name: 'Call Booked', index: 3, type: 'BOOKING' },
-          { id: 'stage_4', name: 'Call Done', index: 4, type: 'CALL' },
-          { id: 'stage_5', name: 'Follow-up', index: 5, type: 'FOLLOWUP' },
-          { id: 'stage_6', name: 'Proposal & Contract', index: 6, type: 'CLOSING' },
-          { id: 'stage_7', name: 'Payment Pending', index: 7, type: 'CLOSING' },
-          { id: 'stage_8', name: 'Closed Won', index: 8, type: 'WON' },
-          { id: 'stage_9', name: 'Closed Lost', index: 9, type: 'LOST' }
+          { id: 'stage_1', name: 'New Lead', index: 1, type: 'QUALIFICATION', desc: 'Inbound prospect qualified from landing page/VSL/DM.', entry: 'Lead captured & qualified', exit: 'Triage complete', action: 'Schedule audit call', prob: 20 },
+          { id: 'stage_2', name: 'Qualified', index: 2, type: 'QUALIFICATION', desc: 'Lead matches Business DNA ICP revenue and target bottleneck parameters.', entry: 'Triage status updated to QUALIFIED', exit: 'Ready for booking', action: 'Route to booking page', prob: 30 },
+          { id: 'stage_3', name: 'Call Booked', index: 3, type: 'BOOKING', desc: 'Discovery audit call booked on calendar. Pre-call intelligence brief generated.', entry: 'Meeting scheduled in calendar', exit: 'Pre-call prep checklist complete', action: 'Prepare Brief & prep sheets', prob: 40 },
+          { id: 'stage_4', name: 'Call Done', index: 4, type: 'CALL', desc: 'Closer Room prep loaded, sales call completed with transcripts and notes.', entry: 'Closer Prep loaded & call done', exit: 'Call outcome logged & transcript analyzed', action: 'Send recap follow-up sequence', prob: 60 },
+          { id: 'stage_5', name: 'Follow-up', index: 5, type: 'FOLLOWUP', desc: 'Nurture sequence triggered with platform-adapted authority proof content.', entry: 'Followup stage entered manually or via rule', exit: 'Followup completed', action: 'Draft custom proposal', prob: 70 },
+          { id: 'stage_6', name: 'Proposal & Contract', index: 6, type: 'CLOSING', desc: 'Growth OS installation deliverables outlined, proposal sent & signed.', entry: 'Proposal sent to prospect', exit: 'Contract signed digitally', action: 'Verify Stripe payment invoice', prob: 90 },
+          { id: 'stage_7', name: 'Payment Pending', index: 7, type: 'CLOSING', desc: 'Stripe transaction pending verification.', entry: 'Contract signed, billing invoice sent', exit: 'Transaction ID verified', action: 'Approve Payment & trigger win automation', prob: 95 },
+          { id: 'stage_8', name: 'Closed Won', index: 8, type: 'WON', desc: 'Delivery OS handoff checklists active, client onboarding completed.', entry: 'Stripe payment transaction complete', exit: 'Delivery handoffs assigned', action: 'Kickoff strategy call', prob: 100 },
+          { id: 'stage_9', name: 'Closed Lost', index: 9, type: 'LOST', desc: 'Deal lost or archived.', entry: 'Deal marked lost', exit: 'None', action: 'Archive lead', prob: 0 }
         ];
 
         for (const stg of defaultStages) {
           await run(
-            `INSERT OR IGNORE INTO pipeline_stages (id, pipeline_id, business_id, name, order_index, stage_type, description, is_active, created_at, updated_at)
-             VALUES (?, 'pipe_default', 'biz_default', ?, ?, ?, ?, 1, ?, ?)`,
-            [stg.id, stg.name, stg.index, stg.type, `Configurable stage: ${stg.name}`, now, now]
+            `INSERT OR IGNORE INTO pipeline_stages (id, pipeline_id, business_id, name, order_index, stage_type, description, entry_conditions, exit_conditions, expected_next_action, probability, is_active, created_at, updated_at)
+             VALUES (?, 'pipe_default', 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+            [stg.id, stg.name, stg.index, stg.type, stg.desc, stg.entry, stg.exit, stg.action, stg.prob, now, now]
           );
         }
 

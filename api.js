@@ -239,5 +239,7 @@ window.ASENZO_API = {
   async trackFunnelEvent(id, payload) { return apiFetch(`/conversion/profile-funnels/${id}/events`, { method: 'POST', body: payload }); },
   async getProfileFunnelAnalytics(id, environment = 'PRODUCTION') { return apiFetch(`/conversion/profile-funnels/${id}/analytics?environment=${environment}`); },
   async qualifyDmConversation(id) { return apiFetch(`/dm-conversations/${id}/qualify`, { method: 'POST' }); },
-  async generateStorySequence(payload) { return apiFetch('/conversion/story-sequences/generate', { method: 'POST', body: payload }); }
+  async generateStorySequence(payload) { return apiFetch('/conversion/story-sequences/generate', { method: 'POST', body: payload }); },
+  async getCalendarSlots() { return apiFetch('/conversion/calendar/slots'); },
+  async bookCalendarSlot(payload) { return apiFetch('/conversion/calendar/book', { method: 'POST', body: payload }); }
 };

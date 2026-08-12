@@ -229,6 +229,41 @@
           <label>Founder Attention Reason / Next Action</label>
           <input id="deal-attention-reason" placeholder="e.g. Proposal sent 3 days ago; requested custom payment review." />
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>What is happening? (Current Status)</label>
+            <input id="deal-what-happening" placeholder="e.g. Completed discovery; pending proposal presentation." />
+          </div>
+          <div class="form-group">
+            <label>What is blocking this deal? (Bottlenecks / Objections)</label>
+            <input id="deal-blocking-factor" placeholder="e.g. Pricing objections, co-founder scheduling delay, etc." />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Deal Owner</label>
+            <input id="deal-owner" value="Alex Morgan" placeholder="Alex Morgan" />
+          </div>
+          <div class="form-group">
+            <label>Deal Source</label>
+            <input id="deal-source" value="CONVERSION_OS" placeholder="CONVERSION_OS" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Deal Risk Factor</label>
+            <select id="deal-risk">
+              <option value="None">None</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Loss Reason (If Closed Lost)</label>
+            <input id="deal-loss-reason" placeholder="e.g. Went with agency competitor, budget constraints." />
+          </div>
+        </div>
         <div class="form-group">
           <label>Deal Notes / Context</label>
           <textarea id="deal-notes" rows="2" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Meeting background, key objections, decision timeframe..."></textarea>

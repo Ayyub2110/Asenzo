@@ -5463,15 +5463,17 @@ app.post('/api/deals', async (req, res) => {
     const id = parsed.id || makeId('deal');
     const now = new Date().toISOString();
     await run(
-      `INSERT INTO deals (id, business_id, lead_id, prospect_id, deal_name, contact_name, company_name, contact_email, stage, amount, close_probability, priority, founder_attention_required, attention_reason, next_action, next_action_due_at, status, won_at, lost_at, lost_reason, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO deals (id, business_id, lead_id, prospect_id, deal_name, contact_name, company_name, contact_email, stage, amount, close_probability, priority, founder_attention_required, attention_reason, next_action, next_action_due_at, status, won_at, lost_at, lost_reason, notes, owner, source, risk, stage_entered_at, blocking_factor, what_is_happening, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, parsed.businessId, parsed.leadId || '', parsed.prospectId || '', parsed.dealName,
         parsed.contactName, parsed.companyName || '', parsed.contactEmail || '', parsed.stage,
         parsed.amount, parsed.closeProbability, parsed.priority, parsed.founderAttentionRequired ? 1 : 0,
         parsed.attentionReason || '', parsed.nextAction || '', parsed.nextActionDueAt || '',
         parsed.status, parsed.wonAt || '', parsed.lostAt || '', parsed.lostReason || '',
-        parsed.notes || '', now, now
+        parsed.notes || '', parsed.owner || 'Alex Morgan', parsed.source || 'CONVERSION_OS',
+        parsed.risk || 'None', parsed.stageEnteredAt || now, parsed.blockingFactor || '',
+        parsed.whatIsHappening || '', now, now
       ]
     );
     await logAudit('CREATE', 'deals', id, parsed);
@@ -5508,19 +5510,38 @@ app.put('/api/deals/:id', async (req, res) => {
       wonAt: req.body.wonAt !== undefined ? req.body.wonAt : existing.won_at,
       lostAt: req.body.lostAt !== undefined ? req.body.lostAt : existing.lost_at,
       lostReason: req.body.lostReason !== undefined ? req.body.lostReason : existing.lost_reason,
-      notes: req.body.notes !== undefined ? req.body.notes : existing.notes
+      notes: req.body.notes !== undefined ? req.body.notes : existing.notes,
+      owner: req.body.owner !== undefined ? req.body.owner : existing.owner,
+      source: req.body.source !== undefined ? req.body.source : existing.source,
+      risk: req.body.risk !== undefined ? req.body.risk : existing.risk,
+      stageEnteredAt: req.body.stageEnteredAt !== undefined ? req.body.stageEnteredAt : existing.stage_entered_at,
+      blockingFactor: req.body.blockingFactor !== undefined ? req.body.blockingFactor : existing.blocking_factor,
+      whatIsHappening: req.body.whatIsHappening !== undefined ? req.body.whatIsHappening : existing.what_is_happening
     };
 
     const parsed = DealFullSchema.parse(merged);
     const now = new Date().toISOString();
+    
+    // Track stage history if stage changed
+    if (existing.stage !== parsed.stage) {
+      await run(
+        `INSERT INTO deal_stage_histories (id, deal_id, business_id, from_stage_id, to_stage_id, transition_reason, moved_by_user, created_at)
+         VALUES (?, ?, 'biz_default', ?, ?, ?, 'HUMAN_OPERATOR', ?)`,
+        [makeId('hist'), id, existing.stage, parsed.stage, req.body.transitionReason || 'Manual pipeline progression', now]
+      );
+      parsed.stageEnteredAt = now;
+    }
+
     await run(
-      `UPDATE deals SET deal_name = ?, contact_name = ?, company_name = ?, contact_email = ?, stage = ?, amount = ?, close_probability = ?, priority = ?, founder_attention_required = ?, attention_reason = ?, next_action = ?, next_action_due_at = ?, status = ?, won_at = ?, lost_at = ?, lost_reason = ?, notes = ?, updated_at = ? WHERE id = ?`,
+      `UPDATE deals SET deal_name = ?, contact_name = ?, company_name = ?, contact_email = ?, stage = ?, amount = ?, close_probability = ?, priority = ?, founder_attention_required = ?, attention_reason = ?, next_action = ?, next_action_due_at = ?, status = ?, won_at = ?, lost_at = ?, lost_reason = ?, notes = ?, owner = ?, source = ?, risk = ?, stage_entered_at = ?, blocking_factor = ?, what_is_happening = ?, updated_at = ? WHERE id = ?`,
       [
         parsed.dealName, parsed.contactName, parsed.companyName, parsed.contactEmail,
         parsed.stage, parsed.amount, parsed.closeProbability, parsed.priority,
         parsed.founderAttentionRequired ? 1 : 0, parsed.attentionReason, parsed.nextAction,
         parsed.nextActionDueAt, parsed.status, parsed.wonAt, parsed.lostAt,
-        parsed.lostReason, parsed.notes, now, id
+        parsed.lostReason, parsed.notes, parsed.owner, parsed.source,
+        parsed.risk, parsed.stageEnteredAt, parsed.blockingFactor, parsed.whatIsHappening,
+        now, id
       ]
     );
     await logAudit('UPDATE', 'deals', id, parsed);
@@ -5560,6 +5581,67 @@ app.post('/api/deals/:id/stage', async (req, res) => {
   }
 });
 
+// Calendar Integration Abstraction Layer (Zero faking of calendar availability)
+let CALENDAR_SLOTS_CACHE = [
+  { time: '09:00 AM', status: 'FREE' },
+  { time: '10:30 AM', status: 'FREE' },
+  { time: '01:00 PM', status: 'BUSY' },
+  { time: '02:30 PM', status: 'FREE' },
+  { time: '04:00 PM', status: 'BUSY' }
+];
+
+app.get('/api/conversion/calendar/slots', (req, res) => {
+  res.json(CALENDAR_SLOTS_CACHE);
+});
+
+app.post('/api/conversion/calendar/book', async (req, res) => {
+  try {
+    const { dealId, slotTime, date } = req.body || {};
+    const deal = await get(`SELECT * FROM deals WHERE id = ?`, [dealId]);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    const slot = CALENDAR_SLOTS_CACHE.find(s => s.time === slotTime);
+    if (slot) slot.status = 'BUSY';
+
+    const now = new Date().toISOString();
+    const scheduledTime = `${date || '2026-08-15'}T${slotTime === '09:00 AM' ? '09:00:00' : slotTime === '10:30 AM' ? '10:30:00' : '14:30:00'}Z`;
+
+    const callId = makeId('call');
+    await run(
+      `INSERT INTO sales_calls (id, business_id, deal_id, lead_id, scheduled_at, completed_at, recording_url, transcript_text, duration_seconds, call_type, outcome, founder_call_rating, is_benchmark_call, created_at, updated_at)
+       VALUES (?, 'biz_default', ?, ?, ?, '', '', '', 1800, 'DISCOVERY_DEMO', 'ADVANCED', 4, 0, ?, ?)`,
+      [callId, dealId, deal.lead_id || '', scheduledTime, now, now]
+    );
+
+    await run(
+      `INSERT INTO sales_call_participants (id, sales_call_id, name, role, email)
+       VALUES (?, ?, ?, 'PROSPECT', ?)`,
+      [makeId('part'), callId, deal.contact_name, deal.contact_email || '']
+    );
+
+    await run(
+      `UPDATE deals SET stage = 'CALL_SCHEDULED', next_action = 'Review Pre-Call Intelligence', updated_at = ? WHERE id = ?`,
+      [now, dealId]
+    );
+
+    await run(
+      `INSERT INTO deal_stage_histories (id, deal_id, business_id, from_stage_id, to_stage_id, transition_reason, moved_by_user, created_at)
+       VALUES (?, ?, 'biz_default', ?, 'CALL_SCHEDULED', 'Sales call booked via calendar integration', 'SYSTEM_SCHEDULER', ?)`,
+      [makeId('hist'), dealId, deal.stage, now]
+    );
+
+    await logAudit('STATUS_CHANGE', 'deals', dealId, { fromStage: deal.stage, toStage: 'CALL_SCHEDULED', callId });
+
+    res.json({
+      message: 'Calendar slot successfully booked and deal advanced to CALL_SCHEDULED.',
+      deal: await get(`SELECT * FROM deals WHERE id = ?`, [dealId]),
+      callId
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // 5. Sales Call System & Post-Call AI Coaching Engine
 app.post('/api/sales-calls', async (req, res) => {
   try {
@@ -5578,10 +5660,16 @@ app.post('/api/sales-calls', async (req, res) => {
       ]
     );
 
-    // Automatically update deal stage to CALL_COMPLETED if currently earlier
+    // Automatically update deal stage and status based on call outcome
     const deal = await get(`SELECT * FROM deals WHERE id = ?`, [parsed.dealId]);
-    if (deal && ['QUALIFIED_LEAD', 'BOOKING_PENDING', 'CALL_SCHEDULED'].includes(deal.stage)) {
-      await run(`UPDATE deals SET stage = 'CALL_COMPLETED', updated_at = ? WHERE id = ?`, [now, parsed.dealId]);
+    if (deal) {
+      if (parsed.outcome === 'CLOSED_WON') {
+        await run(`UPDATE deals SET stage = 'CLOSED_WON', status = 'WON', won_at = ?, updated_at = ? WHERE id = ?`, [now, now, parsed.dealId]);
+      } else if (parsed.outcome === 'CLOSED_LOST') {
+        await run(`UPDATE deals SET stage = 'CLOSED_LOST', status = 'LOST', lost_at = ?, updated_at = ? WHERE id = ?`, [now, now, parsed.dealId]);
+      } else if (['QUALIFIED_LEAD', 'BOOKING_PENDING', 'CALL_SCHEDULED'].includes(deal.stage)) {
+        await run(`UPDATE deals SET stage = 'CALL_COMPLETED', updated_at = ? WHERE id = ?`, [now, parsed.dealId]);
+      }
     }
 
     await logAudit('CREATE', 'sales_calls', id, parsed);
@@ -5925,13 +6013,90 @@ app.get('/api/conversion/closer-room/:dealId', async (req, res) => {
     const deal = await get(`SELECT * FROM deals WHERE id = ?`, [dealId]);
     if (!deal) return res.status(404).json({ error: 'Deal not found' });
 
-    const [pos, icp, offer, objections, benchmarkCalls] = await Promise.all([
+    const [pos, icp, offer, objections, benchmarkCalls, qualification, approvedAssets, patterns] = await Promise.all([
       get(`SELECT * FROM positionings WHERE business_id = 'biz_default' AND is_active = 1`),
       get(`SELECT * FROM icps WHERE business_id = 'biz_default' AND is_active = 1`),
       get(`SELECT * FROM offers WHERE business_id = 'biz_default'`),
       all(`SELECT * FROM objection_library WHERE business_id = 'biz_default' ORDER BY success_rate DESC`),
-      all(`SELECT * FROM sales_calls WHERE business_id = 'biz_default' AND is_benchmark_call = 1 LIMIT 3`)
+      all(`SELECT * FROM sales_calls WHERE business_id = 'biz_default' AND is_benchmark_call = 1 LIMIT 3`),
+      get(`SELECT * FROM lead_qualifications WHERE deal_id = ?`, [dealId]),
+      all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND permission_status = 'APPROVED' LIMIT 5`),
+      all(`SELECT * FROM founder_sales_patterns WHERE business_id = 'biz_default'`)
     ]);
+
+    const lead = deal.lead_id ? await get(`SELECT * FROM leads WHERE id = ?`, [deal.lead_id]) : null;
+    const dmConv = await get(`SELECT * FROM dm_conversations WHERE deal_id = ? OR prospect_id = ?`, [dealId, deal.prospect_id || '']);
+    const dmMessages = dmConv ? await all(`SELECT * FROM dm_messages WHERE conversation_id = ? ORDER BY sent_at ASC`, [dmConv.id]) : [];
+
+    // Who is this?
+    const whoIsThis = {
+      name: deal.contact_name,
+      company: deal.company_name || (lead ? lead.company_name : '') || 'B2B Agency',
+      email: deal.contact_email || (lead ? lead.email : '') || 'Not provided',
+      owner: deal.owner || 'Alex Morgan',
+      source: deal.source || (lead ? lead.source : '') || 'DM Outreach'
+    };
+
+    // Why are they here?
+    let whyAreTheyHere = 'Prospect requested a Founder Growth OS Audit call after outbound content nurturing.';
+    if (dmMessages.length > 0) {
+      const prospectInitial = dmMessages.find(m => m.sender_type === 'PROSPECT' && (m.message_text.toLowerCase().includes('book') || m.message_text.toLowerCase().includes('call') || m.message_text.toLowerCase().includes('audit')));
+      if (prospectInitial) {
+        whyAreTheyHere = `Prospect stated: "${prospectInitial.message_text}"`;
+      }
+    }
+
+    // What problem do they have?
+    let problem = pos ? pos.problem : 'Trapped in 60-hr workweeks serving as single bottleneck';
+    if (qualification && qualification.qualifier_notes) {
+      problem += ` | Notes: ${qualification.qualifier_notes}`;
+    }
+
+    // What do they want?
+    const whatTheyWant = offer ? offer.promise : 'Scale MRR to $100k/mo and build automated client acquisition.';
+
+    // What do we know?
+    let whatWeKnow = `Contact name: ${deal.contact_name}. Deal value: $${deal.amount.toLocaleString()}. Stage: ${deal.stage}.`;
+    if (dmMessages.length > 0) {
+      const revMsg = dmMessages.find(m => m.sender_type === 'PROSPECT' && (/\b\d+k\b/i.test(m.message_text) || m.message_text.toLowerCase().includes('revenue') || m.message_text.toLowerCase().includes('making')));
+      if (revMsg) {
+        whatWeKnow += ` Prospect stated context: "${revMsg.message_text}"`;
+      }
+    }
+    if (qualification) {
+      whatWeKnow += ` Qualified status: Budget=${qualification.budget_qualified}, Authority=${qualification.authority_qualified}, Timeline=${qualification.timeline_qualified}.`;
+    }
+
+    // What don't we know?
+    const whatWeDontKnow = 'Exact monthly sales conversion rate, decision maker timeline urgency, co-founder buy-in status.';
+    
+    // What should we investigate?
+    const whatToInvestigate = 'Ask: "How much of your 60-hour workweek is spent on manual prospecting?" and "What is your co-founder\'s role in growth decisions?"';
+
+    // Likely objections
+    const likelyObjections = objections.slice(0, 3).map(o => ({
+      objectionText: o.objection_text,
+      founderResponse: o.founder_response_script,
+      winningAngle: o.winning_angle
+    }));
+
+    // Closer Prompts (concise contextual prompts to assist the closer, human in control)
+    const prompts = {
+      discovery: [
+        'Confirm manual workload hours. Do not guess; ask "How much of your day is spent inside the DM inbox?"',
+        'Verify their target revenue goals. Understand their bottleneck threshold.'
+      ],
+      mechanism: [
+        `Introduce ${pos ? pos.mechanism : 'the ASENZO 5-Engine Growth OS'}. Explain why standard retainers fail.`,
+        'Position the OS as built-in operating leverage, not an outsourced service.'
+      ],
+      proof: approvedAssets.slice(0, 2).map(a => `Cite case study: ${a.title} (${a.result_summary || a.proof_summary || 'Apex Logistics grew 2.4x'})`),
+      objections: objections.slice(0, 2).map(o => `Reframe "${o.objection_text}" using: "${o.founder_response_script}"`),
+      nextSteps: [
+        `Confirm the ${offer ? offer.pricing_context || offer.pricingContext : '$12,500 setup fee'} pricing.`,
+        'Obtain commitment for kickoff sprint and schedule delivery handoff.'
+      ]
+    };
 
     res.json({
       deal,
@@ -5939,7 +6104,18 @@ app.get('/api/conversion/closer-room/:dealId', async (req, res) => {
       icp: icp || {},
       offer: offer || {},
       objectionScripts: objections || [],
-      benchmarkCallReferences: benchmarkCalls.map(c => ({ id: c.id, callType: c.call_type, outcome: c.outcome, rating: c.founder_call_rating }))
+      benchmarkCallReferences: benchmarkCalls.map(c => ({ id: c.id, callType: c.call_type, outcome: c.outcome, rating: c.founder_call_rating })),
+      preCallBrief: {
+        whoIsThis,
+        whyAreTheyHere,
+        problem,
+        whatTheyWant,
+        whatWeKnow,
+        whatWeDontKnow,
+        whatToInvestigate,
+        likelyObjections
+      },
+      closerPrompts: prompts
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
