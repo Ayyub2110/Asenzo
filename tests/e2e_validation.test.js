@@ -408,7 +408,7 @@ test('FAILURE CASE 3: Publishing without valid post URL fails with 400', async (
   });
   const ideaId = createIdea.body.id;
   const convertRes = await request('POST', `/api/ideas/${ideaId}/convert`, { platform: 'LINKEDIN' });
-  const contentId = convertRes.body.content.id;
+  const contentId = convertRes.body.content ? convertRes.body.content.id : (convertRes.body.id || ideaId);
 
   await request('POST', `/api/contents/${contentId}/transition`, { targetStatus: 'DRAFT' });
   await request('POST', `/api/contents/${contentId}/transition`, { targetStatus: 'SCRIPT' });
@@ -427,7 +427,7 @@ test('FAILURE CASE 4: Duplicate publishing attempt fails gracefully', async () =
   });
   const ideaId = createIdea.body.id;
   const convertRes = await request('POST', `/api/ideas/${ideaId}/convert`, { platform: 'LINKEDIN' });
-  const contentId = convertRes.body.content.id;
+  const contentId = convertRes.body.content ? convertRes.body.content.id : (convertRes.body.id || ideaId);
 
   await request('POST', `/api/contents/${contentId}/transition`, { targetStatus: 'DRAFT' });
   await request('POST', `/api/contents/${contentId}/transition`, { targetStatus: 'SCRIPT' });

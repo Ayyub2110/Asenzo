@@ -7,8 +7,9 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'asenzo.db');
+const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : path.join(dataDir, 'asenzo.db');
 const db = new sqlite3.Database(dbPath);
+db.configure('busyTimeout', 10000);
 
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
@@ -53,18 +54,22 @@ async function initDb() {
   return new Promise((resolve, reject) => {
     db.serialize(async () => {
       try {
-        const tablesToDrop = [
-          'businesses', 'founders', 'icps', 'positionings', 'positioning_versions', 'offers', 'brand_profiles',
-          'brand_voices', 'founder_knowledge_sources', 'founder_knowledge_chunks', 'founder_voice_profiles',
-          'content_pillars', 'content_ideas', 'contents', 'content_versions', 'content_assets', 'platforms',
-          'platform_accounts', 'distributions', 'integration_logs', 'lead_magnets', 'leads', 'outreach_prospects',
-          'outreach_messages', 'outreach_replies', 'authority_assets', 'content_performances', 'attribution_events',
-          'ai_interactions', 'recommendations', 'market_intel', 'audit_logs', 'lead_campaigns', 'landing_surfaces',
-          'landing_forms', 'lead_ctas'
-        ];
+        if (process.env.RESET_DB === 'true') {
+          const tablesToDrop = [
+            'businesses', 'founders', 'icps', 'positionings', 'positioning_versions', 'offers', 'brand_profiles',
+            'brand_voices', 'founder_knowledge_sources', 'founder_knowledge_chunks', 'founder_voice_profiles',
+            'content_pillars', 'content_ideas', 'contents', 'content_versions', 'content_assets', 'platforms',
+            'platform_accounts', 'distributions', 'integration_logs', 'lead_magnets', 'leads', 'outreach_prospects',
+            'outreach_messages', 'outreach_replies', 'authority_assets', 'content_performances', 'attribution_events',
+            'ai_interactions', 'recommendations', 'market_intel', 'audit_logs', 'lead_campaigns', 'landing_surfaces',
+            'landing_forms', 'lead_ctas', 'conversion_vsl_funnels', 'dm_qualifiers', 'story_sequences', 'deals',
+            'sales_calls', 'founder_sales_patterns', 'post_call_coaching_logs', 'objection_library', 'proposals',
+            'contracts', 'payments', 'delivery_handoffs'
+          ];
 
-        for (const tbl of tablesToDrop) {
-          await run(`DROP TABLE IF EXISTS ${tbl}`);
+          for (const tbl of tablesToDrop) {
+            await run(`DROP TABLE IF EXISTS ${tbl}`);
+          }
         }
 
         // 1. Business
@@ -269,6 +274,178 @@ async function initDb() {
           id TEXT PRIMARY KEY, business_id TEXT NOT NULL, action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, changes_json TEXT NOT NULL, user_id TEXT DEFAULT 'HUMAN_OPERATOR', timestamp TEXT
         )`);
 
+        // 29b. Authority Assets
+        await run(`CREATE TABLE IF NOT EXISTS authority_assets (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, asset_type TEXT DEFAULT 'CASE_STUDY', proof_summary TEXT NOT NULL, client_name TEXT DEFAULT '', quantified_metric TEXT DEFAULT '', problem_addressed TEXT DEFAULT '', result_delivered TEXT DEFAULT '', asset_url TEXT DEFAULT '', permission_status TEXT DEFAULT 'APPROVED', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 29c. Outreach Prospects
+        await run(`CREATE TABLE IF NOT EXISTS outreach_prospects (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, prospect_name TEXT NOT NULL, source TEXT DEFAULT '', platform TEXT DEFAULT 'LINKEDIN', initial_message TEXT DEFAULT '', contact_date TEXT DEFAULT '', follow_up_date TEXT DEFAULT '', latest_reply TEXT DEFAULT '', reply_classification TEXT DEFAULT 'NEUTRAL', conversation_history TEXT DEFAULT '[]', qualified_status TEXT DEFAULT 'UNQUALIFIED', icp_score INTEGER DEFAULT 85, status TEXT DEFAULT 'NEW', is_archived INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 30. Conversion VSL Funnels
+        await run(`CREATE TABLE IF NOT EXISTS conversion_vsl_funnels (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, headline TEXT NOT NULL, subheadline TEXT DEFAULT '', video_url TEXT DEFAULT '', duration_seconds INTEGER DEFAULT 1140, pitch_summary TEXT DEFAULT '', cta_button_text TEXT DEFAULT '', booking_url TEXT DEFAULT '', proof_asset_ids TEXT DEFAULT '[]', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 31. DM Qualifiers
+        await run(`CREATE TABLE IF NOT EXISTS dm_qualifiers (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, questions TEXT DEFAULT '[]', min_revenue_threshold TEXT DEFAULT '', disqualification_criteria TEXT DEFAULT '[]', objection_responses TEXT DEFAULT '{}', booking_trigger_score INTEGER DEFAULT 80, is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 32. Story Sequences
+        await run(`CREATE TABLE IF NOT EXISTS story_sequences (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, trigger_event TEXT DEFAULT 'QUALIFIED_LEAD_CAPTURED', steps TEXT DEFAULT '[]', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 33. CRM Deals / Opportunities
+        await run(`CREATE TABLE IF NOT EXISTS deals (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, lead_id TEXT DEFAULT '', prospect_id TEXT DEFAULT '', deal_name TEXT NOT NULL, contact_name TEXT NOT NULL, company_name TEXT DEFAULT '', contact_email TEXT DEFAULT '', stage TEXT DEFAULT 'QUALIFIED_LEAD', amount REAL DEFAULT 12500, close_probability INTEGER DEFAULT 50, priority TEXT DEFAULT 'HIGH', founder_attention_required INTEGER DEFAULT 0, attention_reason TEXT DEFAULT '', next_action TEXT DEFAULT '', next_action_due_at TEXT DEFAULT '', status TEXT DEFAULT 'OPEN', won_at TEXT DEFAULT '', lost_at TEXT DEFAULT '', lost_reason TEXT DEFAULT '', notes TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 34. Sales Calls
+        await run(`CREATE TABLE IF NOT EXISTS sales_calls (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, lead_id TEXT DEFAULT '', scheduled_at TEXT DEFAULT '', completed_at TEXT DEFAULT '', recording_url TEXT DEFAULT '', transcript_text TEXT NOT NULL, duration_seconds INTEGER DEFAULT 1800, call_type TEXT DEFAULT 'DISCOVERY_DEMO', outcome TEXT DEFAULT 'ADVANCED', founder_call_rating INTEGER DEFAULT 4, is_benchmark_call INTEGER DEFAULT 0, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 35. Founder Sales Patterns
+        await run(`CREATE TABLE IF NOT EXISTS founder_sales_patterns (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pattern_type TEXT NOT NULL, trigger_phrase TEXT NOT NULL, founder_response_technique TEXT NOT NULL, effectiveness_score INTEGER DEFAULT 90, sample_transcripts_json TEXT DEFAULT '[]', updated_at TEXT
+        )`);
+
+        // 36. Post Call Coaching Logs
+        await run(`CREATE TABLE IF NOT EXISTS post_call_coaching_logs (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, sales_call_id TEXT NOT NULL, deal_id TEXT NOT NULL, benchmark_call_id TEXT DEFAULT '', trust_score INTEGER DEFAULT 85, mechanism_clarity_score INTEGER DEFAULT 88, objection_handling_score INTEGER DEFAULT 82, overall_call_score INTEGER DEFAULT 85, benchmark_comparison_json TEXT DEFAULT '{}', founder_pattern_matches_json TEXT DEFAULT '{}', coaching_tips_json TEXT DEFAULT '[]', objections_detected_json TEXT DEFAULT '[]', human_reviewed INTEGER DEFAULT 0, created_at TEXT
+        )`);
+
+        // 37. Objection Library
+        await run(`CREATE TABLE IF NOT EXISTS objection_library (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, objection_text TEXT NOT NULL, category TEXT DEFAULT 'PRICING', founder_response_script TEXT NOT NULL, winning_angle TEXT DEFAULT '', frequency_count INTEGER DEFAULT 1, success_rate REAL DEFAULT 80, created_at TEXT, updated_at TEXT
+        )`);
+
+        // 38. Proposals
+        await run(`CREATE TABLE IF NOT EXISTS proposals (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, title TEXT NOT NULL, deliverables_json TEXT DEFAULT '[]', pricing_amount REAL DEFAULT 12500, payment_terms TEXT DEFAULT '', custom_terms TEXT DEFAULT '', status TEXT DEFAULT 'DRAFT', sent_at TEXT DEFAULT '', accepted_at TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 39. Contracts
+        await run(`CREATE TABLE IF NOT EXISTS contracts (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, proposal_id TEXT DEFAULT '', contract_type TEXT DEFAULT 'GROWTH_OS_INSTALLATION', document_url TEXT DEFAULT '', signature_proof TEXT DEFAULT '', status TEXT DEFAULT 'DRAFT', sent_at TEXT DEFAULT '', signed_at TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 40. Payments
+        await run(`CREATE TABLE IF NOT EXISTS payments (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, contract_id TEXT DEFAULT '', amount REAL NOT NULL, currency TEXT DEFAULT 'USD', payment_method TEXT DEFAULT 'STRIPE_CREDIT_CARD', transaction_id TEXT NOT NULL, status TEXT DEFAULT 'COMPLETED', paid_at TEXT DEFAULT '', created_at TEXT
+        )`);
+
+        // 41. Delivery Handoffs
+        await run(`CREATE TABLE IF NOT EXISTS delivery_handoffs (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, deal_id TEXT NOT NULL, client_name TEXT NOT NULL, onboarding_checklist_json TEXT DEFAULT '[]', assigned_owner TEXT DEFAULT 'Alex Morgan', status TEXT DEFAULT 'PENDING', created_at TEXT, updated_at TEXT
+        )`);
+
+        // 42. Sales Pipelines & Configurable Stages
+        await run(`CREATE TABLE IF NOT EXISTS sales_pipelines (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', is_default INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS pipeline_stages (
+          id TEXT PRIMARY KEY, pipeline_id TEXT NOT NULL, business_id TEXT NOT NULL, name TEXT NOT NULL, order_index INTEGER NOT NULL, stage_type TEXT DEFAULT 'QUALIFICATION', description TEXT DEFAULT '', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS deal_stage_histories (
+          id TEXT PRIMARY KEY, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, from_stage_id TEXT DEFAULT '', to_stage_id TEXT NOT NULL, transition_reason TEXT DEFAULT '', moved_by_user TEXT DEFAULT 'HUMAN_OPERATOR', created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS lead_qualifications (
+          id TEXT PRIMARY KEY, lead_id TEXT NOT NULL, deal_id TEXT DEFAULT '', business_id TEXT NOT NULL, score INTEGER DEFAULT 85, budget_qualified INTEGER DEFAULT 1, authority_qualified INTEGER DEFAULT 1, need_qualified INTEGER DEFAULT 1, timeline_qualified INTEGER DEFAULT 1, disqualification_reason TEXT DEFAULT '', qualifier_notes TEXT DEFAULT '', created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS dm_conversations (
+          id TEXT PRIMARY KEY, prospect_id TEXT DEFAULT '', deal_id TEXT DEFAULT '', business_id TEXT NOT NULL, platform TEXT DEFAULT 'LINKEDIN', participant_handle TEXT NOT NULL, status TEXT DEFAULT 'ACTIVE', created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS dm_messages (
+          id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, business_id TEXT NOT NULL, sender_type TEXT DEFAULT 'PROSPECT', message_text TEXT NOT NULL, sent_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_call_participants (
+          id TEXT PRIMARY KEY, sales_call_id TEXT NOT NULL, name TEXT NOT NULL, role TEXT DEFAULT 'PROSPECT', email TEXT DEFAULT ''
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_call_transcripts (
+          id TEXT PRIMARY KEY, sales_call_id TEXT NOT NULL, transcript_text TEXT NOT NULL, speaker_turns_json TEXT DEFAULT '[]', created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_call_notes (
+          id TEXT PRIMARY KEY, sales_call_id TEXT NOT NULL, note_text TEXT NOT NULL, author_name TEXT DEFAULT 'Alex Morgan', created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_call_outcomes (
+          id TEXT PRIMARY KEY, sales_call_id TEXT NOT NULL, deal_id TEXT NOT NULL, outcome_type TEXT NOT NULL, next_step_action TEXT DEFAULT '', next_step_due_at TEXT DEFAULT '', created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_methods (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, framework_summary TEXT NOT NULL, key_questions_json TEXT DEFAULT '[]', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS top_performing_calls (
+          id TEXT PRIMARY KEY, sales_call_id TEXT NOT NULL, business_id TEXT NOT NULL, benchmark_category TEXT DEFAULT 'MECHANISM_PITCH', why_top_performing TEXT NOT NULL, created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS closers (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL, role TEXT DEFAULT 'FOUNDER', quota_amount REAL DEFAULT 50000, is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS closer_performances (
+          id TEXT PRIMARY KEY, closer_id TEXT NOT NULL, business_id TEXT NOT NULL, period TEXT DEFAULT '2026-Q3', calls_taken INTEGER DEFAULT 0, deals_won INTEGER DEFAULT 0, revenue_closed REAL DEFAULT 0, win_rate REAL DEFAULT 0, avg_call_score REAL DEFAULT 85, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS follow_up_messages (
+          id TEXT PRIMARY KEY, sequence_id TEXT NOT NULL, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, step_index INTEGER DEFAULT 1, message_subject TEXT NOT NULL, message_text TEXT NOT NULL, status TEXT DEFAULT 'PENDING', sent_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS objection_occurrences (
+          id TEXT PRIMARY KEY, objection_id TEXT NOT NULL, sales_call_id TEXT DEFAULT '', deal_id TEXT NOT NULL, business_id TEXT NOT NULL, detected_in_text TEXT DEFAULT '', handling_success INTEGER DEFAULT 1, created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS objection_patterns (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, pattern_name TEXT NOT NULL, objection_ids_json TEXT DEFAULT '[]', best_counter_strategy TEXT NOT NULL, success_rate REAL DEFAULT 85, created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS deal_automations (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, trigger_event TEXT NOT NULL, condition_json TEXT DEFAULT '{}', action_type TEXT NOT NULL, action_payload_json TEXT DEFAULT '{}', is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_activities (
+          id TEXT PRIMARY KEY, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, activity_type TEXT NOT NULL, description TEXT NOT NULL, performed_by TEXT DEFAULT 'Alex Morgan', timestamp TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS conversion_events (
+          id TEXT PRIMARY KEY, deal_id TEXT DEFAULT '', business_id TEXT NOT NULL, event_name TEXT NOT NULL, value REAL DEFAULT 0, metadata_json TEXT DEFAULT '{}', timestamp TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS sales_recommendations (
+          id TEXT PRIMARY KEY, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, category TEXT DEFAULT 'PIPELINE_TRIAGE', observation TEXT NOT NULL, rationale TEXT NOT NULL, proposed_action TEXT NOT NULL, confidence_score REAL DEFAULT 90, status TEXT DEFAULT 'PENDING', created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS ai_coaching_sessions (
+          id TEXT PRIMARY KEY, sales_call_id TEXT NOT NULL, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, closer_id TEXT DEFAULT '', trust_score INTEGER DEFAULT 85, mechanism_clarity_score INTEGER DEFAULT 88, objection_handling_score INTEGER DEFAULT 82, overall_score INTEGER DEFAULT 85, coaching_tips_json TEXT DEFAULT '[]', human_reviewed INTEGER DEFAULT 0, created_at TEXT
+        )`);
+
+        // 43. Profile Funnel & VSL System
+        await run(`CREATE TABLE IF NOT EXISTS profile_funnels (
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, title TEXT NOT NULL, slug TEXT DEFAULT 'growth-os-audit', publishing_status TEXT DEFAULT 'DRAFT', headline TEXT NOT NULL, target_icp_summary TEXT DEFAULT '', core_problem TEXT DEFAULT '', desired_outcome TEXT DEFAULT '', unique_mechanism TEXT DEFAULT '', vsl_title TEXT NOT NULL, vsl_video_url TEXT DEFAULT '', vsl_hook TEXT NOT NULL, vsl_problem TEXT NOT NULL, vsl_mechanism TEXT NOT NULL, vsl_proof_summary TEXT DEFAULT '', vsl_cta_text TEXT NOT NULL, booking_url TEXT DEFAULT '', authority_asset_ids_json TEXT DEFAULT '[]', objection_ids_json TEXT DEFAULT '[]', version INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1, created_at TEXT, updated_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS funnel_versions (
+          id TEXT PRIMARY KEY, funnel_id TEXT NOT NULL, business_id TEXT NOT NULL, version_number INTEGER NOT NULL, snapshot_json TEXT DEFAULT '{}', created_by TEXT DEFAULT 'Alex Morgan', change_summary TEXT NOT NULL, created_at TEXT
+        )`);
+
+        await run(`CREATE TABLE IF NOT EXISTS funnel_analytics_events (
+          id TEXT PRIMARY KEY, funnel_id TEXT NOT NULL, business_id TEXT NOT NULL, event_type TEXT NOT NULL, visitor_id TEXT DEFAULT '', source_content_id TEXT DEFAULT '', environment TEXT DEFAULT 'PRODUCTION', metadata_json TEXT DEFAULT '{}', timestamp TEXT
+        )`);
+
         // Indexes
         await run(`CREATE INDEX IF NOT EXISTS idx_chunks_source ON founder_knowledge_chunks (source_id)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_chunks_biz ON founder_knowledge_chunks (business_id)`);
@@ -276,6 +453,13 @@ async function initDb() {
         await run(`CREATE INDEX IF NOT EXISTS idx_distributions_content ON distributions (content_id)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_distributions_status ON distributions (status)`);
         await run(`CREATE INDEX IF NOT EXISTS idx_leads_biz_attr ON leads (business_id, campaign_id, landing_surface_id, lead_magnet_id)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_deals_biz_stage ON deals (business_id, stage)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_deals_attention ON deals (business_id, founder_attention_required)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_sales_calls_deal ON sales_calls (deal_id)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_stages_pipeline ON pipeline_stages (pipeline_id, order_index)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_deal_hist_deal ON deal_stage_histories (deal_id)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_activities_deal ON sales_activities (deal_id)`);
+        await run(`CREATE INDEX IF NOT EXISTS idx_funnel_analytics ON funnel_analytics_events (funnel_id, environment, event_type)`);
 
         const now = new Date().toISOString();
 
@@ -665,6 +849,224 @@ When you replace random agency retainers with a production-grade Growth Operatin
             `INSERT OR IGNORE INTO attribution_events (id, business_id, event_type, content_id, distribution_id, lead_id, campaign_id, source, platform, event_value, revenue_amount, metadata_json, timestamp)
              VALUES (?, 'biz_default', ?, ?, '', ?, ?, ?, ?, ?, ?, '{}', ?)`,
             [e.id, e.eventType, e.contentId || '', e.leadId || '', e.campaignId || '', e.source || '', e.platform || '', e.eventValue || 0, e.revenueAmount || 0, e.ts]
+          );
+        }
+
+        // ── CONVERSION OS SEEDS ───────────────────────────────────────────────
+        await run(
+          `INSERT OR IGNORE INTO conversion_vsl_funnels (id, business_id, title, headline, subheadline, video_url, duration_seconds, pitch_summary, cta_button_text, booking_url, proof_asset_ids, is_active, created_at, updated_at)
+           VALUES ('vsl_default', 'biz_default', 'The ASENZO 5-Engine Growth OS Mechanism Breakdown', 'How Bootstrapped B2B Founders Scale to $100k/mo With 85+ Founder Independence', 'Replace retainer agencies with an internal growth operating system in 90 days.', 'https://vimeo.com/asenzo-growth-os-vsl', 1140, 'Detailed teardown showing how Engine 1 Attention OS and Engine 2 Conversion OS eliminate founder acquisition bottlenecks.', 'Book Your Founder Growth OS Audit', 'https://cal.com/asenzo/growth-audit', '[]', 1, ?, ?)`,
+          [now, now]
+        );
+
+        await run(
+          `INSERT OR IGNORE INTO dm_qualifiers (id, business_id, name, questions, min_revenue_threshold, disqualification_criteria, objection_responses, booking_trigger_score, is_active, created_at, updated_at)
+           VALUES ('dmq_default', 'biz_default', 'B2B Agency Founder DM Qualifier', ?, '$20k/mo', ?, '{}', 80, 1, ?, ?)`,
+          [
+            JSON.stringify(['What is your current monthly revenue range?', 'How many hours per week do you spend on marketing & sales?', 'What is your primary bottleneck right now?']),
+            JSON.stringify(['Pre-revenue', 'Looking for cheap outsourced DMs']),
+            now,
+            now
+          ]
+        );
+
+        await run(
+          `INSERT OR IGNORE INTO story_sequences (id, business_id, name, trigger_event, steps, is_active, created_at, updated_at)
+           VALUES ('seq_default', 'biz_default', '5-Day Founder Independence Story Nurture', 'QUALIFIED_LEAD_CAPTURED', ?, 1, ?, ?)`,
+          [
+            JSON.stringify([
+              { day: 1, subject: 'Why 60-hr workweeks kill agency valuation', storyAngle: 'The single bottleneck trap', ctaText: 'Read the FIS architecture breakdown' },
+              { day: 2, subject: 'How Mark doubled inbound qualified DMs in 30 days', storyAngle: 'SaaSify case study teardown', ctaText: 'Watch VSL Teardown' },
+              { day: 3, subject: 'Agency retainers vs Growth OS installation', storyAngle: 'Total cost of ownership math', ctaText: 'Audit your growth stack' },
+              { day: 4, subject: 'The 5-Engine Growth Operating Framework', storyAngle: 'Mechanism overview', ctaText: 'Book Strategy Call' }
+            ]),
+            now,
+            now
+          ]
+        );
+
+        await run(
+          `INSERT OR IGNORE INTO sales_pipelines (id, business_id, name, description, is_default, is_active, created_at, updated_at)
+           VALUES ('pipe_default', 'biz_default', 'Core Founder Sales Pipeline', 'Default configurable B2B founder growth operating pipeline', 1, 1, ?, ?)`,
+          [now, now]
+        );
+
+        const defaultStages = [
+          { id: 'stage_1', name: 'New Lead', index: 1, type: 'QUALIFICATION' },
+          { id: 'stage_2', name: 'Qualified', index: 2, type: 'QUALIFICATION' },
+          { id: 'stage_3', name: 'Call Booked', index: 3, type: 'BOOKING' },
+          { id: 'stage_4', name: 'Call Done', index: 4, type: 'CALL' },
+          { id: 'stage_5', name: 'Follow-up', index: 5, type: 'FOLLOWUP' },
+          { id: 'stage_6', name: 'Proposal & Contract', index: 6, type: 'CLOSING' },
+          { id: 'stage_7', name: 'Payment Pending', index: 7, type: 'CLOSING' },
+          { id: 'stage_8', name: 'Closed Won', index: 8, type: 'WON' },
+          { id: 'stage_9', name: 'Closed Lost', index: 9, type: 'LOST' }
+        ];
+
+        for (const stg of defaultStages) {
+          await run(
+            `INSERT OR IGNORE INTO pipeline_stages (id, pipeline_id, business_id, name, order_index, stage_type, description, is_active, created_at, updated_at)
+             VALUES (?, 'pipe_default', 'biz_default', ?, ?, ?, ?, 1, ?, ?)`,
+            [stg.id, stg.name, stg.index, stg.type, `Configurable stage: ${stg.name}`, now, now]
+          );
+        }
+
+        await run(
+          `INSERT OR IGNORE INTO closers (id, business_id, name, email, role, quota_amount, is_active, created_at, updated_at)
+           VALUES ('closer_default', 'biz_default', 'Alex Morgan', 'alex@asenzo.ai', 'FOUNDER', 100000, 1, ?, ?)`,
+          [now, now]
+        );
+
+        await run(
+          `INSERT OR IGNORE INTO sales_methods (id, business_id, name, framework_summary, key_questions_json, is_active, created_at, updated_at)
+           VALUES ('method_default', 'biz_default', 'ASENZO Founder-Led Mechanism Selling', 'Diagnoses 60-hr founder bottleneck, quantifies revenue gap, and demonstrates FIS growth OS mechanism.', ?, 1, ?, ?)`,
+          [
+            JSON.stringify(['What is your current monthly revenue and average deal size?', 'How many hours per week do you spend on sales calls manually?', 'What happens if you take 2 weeks off next month?']),
+            now,
+            now
+          ]
+        );
+        await run(
+          `INSERT OR IGNORE INTO profile_funnels (id, business_id, title, slug, publishing_status, headline, target_icp_summary, core_problem, desired_outcome, unique_mechanism, vsl_title, vsl_video_url, vsl_hook, vsl_problem, vsl_mechanism, vsl_proof_summary, vsl_cta_text, booking_url, authority_asset_ids_json, objection_ids_json, version, is_active, created_at, updated_at)
+           VALUES ('pfunnel_default', 'biz_default', 'ASENZO Founder Growth OS Audit', 'growth-os-audit', 'PUBLISHED', 'Turn Qualified Organic Attention into High-ARR Sales Calls without Agency Retainers', 'Bootstrapped B2B Founders & Agencies doing $15k–$50k/mo', 'Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales', 'Scale to $100k/mo while increasing Founder Independence Score from 30 to 85+', 'The ASENZO 5-Engine Growth OS Architecture', 'How Founders Build a Self-Compounding Growth Engine in 90 Days', 'https://vimeo.com/765432109', 'If you are spending 20+ hours a week repeating the same sales pitch, your growth system is broken.', 'Most founders rely on random organic posting and brute-force 1:1 calls, leading to unpredictable revenue stalls.', 'ASENZO embeds Attention OS and Conversion OS directly into your brand, capturing your sales behavior as reusable intelligence.', 'Case study: SaaSify scaled from $25k to $60k/mo ARR in 90 days with 68% close rate.', 'Book Your 1:1 Founder Growth Audit', 'https://cal.com/asenzo/growth-audit', ?, ?, 1, 1, ?, ?)`,
+          [
+            JSON.stringify(['asset_case_1', 'asset_review_1']),
+            JSON.stringify(['obj_price_1', 'obj_time_1']),
+            now,
+            now
+          ]
+        );
+
+        await run(
+          `INSERT OR IGNORE INTO funnel_versions (id, funnel_id, business_id, version_number, snapshot_json, created_by, change_summary, created_at)
+           VALUES ('fver_1', 'pfunnel_default', 'biz_default', 1, '{}', 'Alex Morgan', 'Initial published VSL Profile Funnel compiled from Business DNA', ?)`,
+          [now]
+        );
+
+        const dealSeeds = [
+          {
+            id: 'deal_1',
+            leadId: 'lead_a',
+            prospectId: 'prosp_1',
+            dealName: 'SaaSify Inc — Growth OS Installation',
+            contactName: 'Mark Vance',
+            companyName: 'SaaSify Inc',
+            contactEmail: 'mark@saasify.com',
+            stage: 'PROPOSAL_SENT',
+            amount: 12500,
+            closeProbability: 75,
+            priority: 'HIGH',
+            founderAttentionRequired: 1,
+            attentionReason: 'Proposal sent 3 days ago; client requested custom payment term review.',
+            nextAction: 'Follow up on proposal terms',
+            nextActionDueAt: new Date(Date.now() + 86400000).toISOString(),
+            status: 'OPEN'
+          },
+          {
+            id: 'deal_2',
+            leadId: 'lead_b',
+            prospectId: 'prosp_2',
+            dealName: 'Apex Logistics — Growth OS Implementation',
+            contactName: 'Sarah Jenkins',
+            companyName: 'Apex Logistics',
+            contactEmail: 'sarah@apexlogistics.com',
+            stage: 'CALL_SCHEDULED',
+            amount: 15000,
+            closeProbability: 60,
+            priority: 'HIGH',
+            founderAttentionRequired: 1,
+            attentionReason: 'Sales call scheduled today at 2:00 PM; review Closer Room prep sheet.',
+            nextAction: 'Conduct Discovery Demo Call',
+            nextActionDueAt: new Date().toISOString(),
+            status: 'OPEN'
+          },
+          {
+            id: 'deal_3',
+            leadId: 'lead_c',
+            prospectId: 'prosp_3',
+            dealName: 'Vanguard B2B — Operating System Architecture',
+            contactName: 'David Ross',
+            companyName: 'Vanguard B2B',
+            contactEmail: 'david@vanguardb2b.com',
+            stage: 'CLOSED_WON',
+            amount: 12500,
+            closeProbability: 100,
+            priority: 'MEDIUM',
+            founderAttentionRequired: 0,
+            attentionReason: 'Deal completed and onboarded cleanly.',
+            nextAction: 'Execute Delivery OS Handoff',
+            nextActionDueAt: new Date().toISOString(),
+            status: 'WON',
+            wonAt: new Date(Date.now() - 2 * 86400000).toISOString()
+          }
+        ];
+
+        for (const d of dealSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO deals (id, business_id, lead_id, prospect_id, deal_name, contact_name, company_name, contact_email, stage, amount, close_probability, priority, founder_attention_required, attention_reason, next_action, next_action_due_at, status, won_at, notes, created_at, updated_at)
+             VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, ?)`,
+            [d.id, d.leadId, d.prospectId, d.dealName, d.contactName, d.companyName, d.contactEmail, d.stage, d.amount, d.closeProbability, d.priority, d.founderAttentionRequired, d.attentionReason, d.nextAction, d.nextActionDueAt, d.status, d.wonAt || '', now, now]
+          );
+        }
+
+        const patternSeeds = [
+          {
+            id: 'pat_1',
+            patternType: 'MECHANISM_EXPLANATION',
+            triggerPhrase: 'How is this different from hiring another agency retainer?',
+            founderResponseTechnique: 'Frame retainer agencies as temporary labor rent vs ASENZO as internal capability building. Show FIS score progression from 30 to 85+.',
+            effectivenessScore: 94
+          },
+          {
+            id: 'pat_2',
+            patternType: 'PRICING_ROI',
+            triggerPhrase: 'Is $12,500 a high upfront investment for setup?',
+            founderResponseTechnique: 'Compare $12,500 one-time installation against $6,000/mo recurring agency retainer cost ($72,000/yr). Demonstrates 4.8x ROI in 90 days.',
+            effectivenessScore: 91
+          },
+          {
+            id: 'pat_3',
+            patternType: 'OBJECTION_REFRAMING',
+            triggerPhrase: 'Will this require too much of my weekly founder time?',
+            founderResponseTechnique: 'Show 90-day workload reduction curve: 60 hrs/wk -> 15 hrs/wk once Engines 1 & 2 operate.',
+            effectivenessScore: 89
+          }
+        ];
+
+        for (const p of patternSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO founder_sales_patterns (id, business_id, pattern_type, trigger_phrase, founder_response_technique, effectiveness_score, sample_transcripts_json, updated_at)
+             VALUES (?, 'biz_default', ?, ?, ?, ?, '[]', ?)`,
+            [p.id, p.patternType, p.triggerPhrase, p.founderResponseTechnique, p.effectivenessScore, now]
+          );
+        }
+
+        const objSeeds = [
+          {
+            id: 'obj_1',
+            objectionText: 'We already have a retainer marketing agency.',
+            category: 'COMPETITION',
+            founderResponseScript: 'Agency retainers rent labor; they do not build internal capability. When you stop paying, marketing stops. Growth OS builds software & data assets you own forever.',
+            winningAngle: 'Asset ownership vs labor dependency',
+            frequencyCount: 14,
+            successRate: 85
+          },
+          {
+            id: 'obj_2',
+            objectionText: 'The $12,500 setup price is higher than our budget.',
+            category: 'PRICING',
+            founderResponseScript: 'Compare one-time $12,500 installation to $6,000/mo agency retainer. In 3 months, Growth OS costs less than retainer services while giving you full autonomy.',
+            winningAngle: 'Pay once for system installation vs perpetual retainer bleed',
+            frequencyCount: 18,
+            successRate: 82
+          }
+        ];
+
+        for (const o of objSeeds) {
+          await run(
+            `INSERT OR IGNORE INTO objection_library (id, business_id, objection_text, category, founder_response_script, winning_angle, frequency_count, success_rate, created_at, updated_at)
+             VALUES (?, 'biz_default', ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [o.id, o.objectionText, o.category, o.founderResponseScript, o.winningAngle, o.frequencyCount, o.successRate, now, now]
           );
         }
 

@@ -170,5 +170,72 @@ window.ASENZO_API = {
 
   async getRecommendations() { return apiFetch('/recommendations'); },
   async applyRecommendation(id) { return apiFetch(`/recommendations/${id}/apply`, { method: 'POST' }); },
-  async getAuditLogs() { return apiFetch('/audit-logs'); }
+  async getAuditLogs() { return apiFetch('/audit-logs'); },
+
+  // ── CONVERSION OS API METHODS (ASENZO ENGINE 2) ────────────────────────────
+  async getConversionDashboard() { return apiFetch('/conversion/dashboard'); },
+  async getVslFunnel() { return apiFetch('/conversion/vsl'); },
+  async saveVslFunnel(payload) { return apiFetch('/conversion/vsl', { method: 'POST', body: payload }); },
+  async getDmQualifier() { return apiFetch('/conversion/dm-qualifier'); },
+  async saveDmQualifier(payload) { return apiFetch('/conversion/dm-qualifier', { method: 'POST', body: payload }); },
+  async getStorySequences() { return apiFetch('/conversion/story-sequences'); },
+  async saveStorySequence(payload) { return apiFetch('/conversion/story-sequences', { method: 'POST', body: payload }); },
+  async getDeals(params) {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return apiFetch(`/deals${qs}`);
+  },
+  async createDeal(payload) { return apiFetch('/deals', { method: 'POST', body: payload }); },
+  async updateDeal(id, payload) { return apiFetch(`/deals/${id}`, { method: 'PUT', body: payload }); },
+  async updateDealStage(id, payload) { return apiFetch(`/deals/${id}/stage`, { method: 'POST', body: payload }); },
+  async logSalesCall(payload) { return apiFetch('/sales-calls', { method: 'POST', body: payload }); },
+  async getSalesCall(id) { return apiFetch(`/sales-calls/${id}`); },
+  async tagBenchmarkCall(id, payload) { return apiFetch(`/sales-calls/${id}/benchmark`, { method: 'POST', body: payload || {} }); },
+  async analyzeSalesCallCoaching(id) { return apiFetch(`/sales-calls/${id}/analyze-coaching`, { method: 'POST' }); },
+  async getObjectionLibrary() { return apiFetch('/conversion/objection-library'); },
+  async saveObjectionItem(payload) { return apiFetch('/conversion/objection-library', { method: 'POST', body: payload }); },
+  async createProposal(payload) { return apiFetch('/proposals', { method: 'POST', body: payload }); },
+  async updateProposalStatus(id, payload) { return apiFetch(`/proposals/${id}/status`, { method: 'PUT', body: payload }); },
+  async createContract(payload) { return apiFetch('/contracts', { method: 'POST', body: payload }); },
+  async signContract(id, payload) { return apiFetch(`/contracts/${id}/sign`, { method: 'PUT', body: payload || {} }); },
+  async recordPayment(payload) { return apiFetch('/payments', { method: 'POST', body: payload }); },
+  async markDealWon(id, payload) { return apiFetch(`/deals/${id}/win`, { method: 'POST', body: payload || {} }); },
+  async getCloserRoomPrep(dealId) { return apiFetch(`/conversion/closer-room/${dealId}`); },
+  async getConversionIntelligence() { return apiFetch('/conversion/intelligence'); },
+
+  // Granular Domain Model APIs
+  async getPipelines() { return apiFetch('/pipelines'); },
+  async createPipeline(payload) { return apiFetch('/pipelines', { method: 'POST', body: payload }); },
+  async addPipelineStage(pipelineId, payload) { return apiFetch(`/pipelines/${pipelineId}/stages`, { method: 'POST', body: payload }); },
+  async updatePipelineStage(id, payload) { return apiFetch(`/pipelines/stages/${id}`, { method: 'PUT', body: payload }); },
+  async deletePipelineStage(id) { return apiFetch(`/pipelines/stages/${id}`, { method: 'DELETE' }); },
+  async getLeadQualification(leadId) { return apiFetch(`/leads/${leadId}/qualification`); },
+  async updateLeadQualification(leadId, payload) { return apiFetch(`/leads/${leadId}/qualification`, { method: 'POST', body: payload }); },
+  async getDmConversations() { return apiFetch('/dm-conversations'); },
+  async createDmConversation(payload) { return apiFetch('/dm-conversations', { method: 'POST', body: payload }); },
+  async getDmMessages(conversationId) { return apiFetch(`/dm-conversations/${conversationId}/messages`); },
+  async sendDmMessage(conversationId, payload) { return apiFetch(`/dm-conversations/${conversationId}/messages`, { method: 'POST', body: payload }); },
+  async getSalesCallTranscript(callId) { return apiFetch(`/sales-calls/${callId}/transcript`); },
+  async saveSalesCallTranscript(callId, payload) { return apiFetch(`/sales-calls/${callId}/transcript`, { method: 'POST', body: payload }); },
+  async addSalesCallParticipant(callId, payload) { return apiFetch(`/sales-calls/${callId}/participants`, { method: 'POST', body: payload }); },
+  async addSalesCallNote(callId, payload) { return apiFetch(`/sales-calls/${callId}/notes`, { method: 'POST', body: payload }); },
+  async saveSalesCallOutcome(callId, payload) { return apiFetch(`/sales-calls/${callId}/outcome`, { method: 'POST', body: payload }); },
+  async getSalesMethods() { return apiFetch('/sales-methods'); },
+  async createSalesMethod(payload) { return apiFetch('/sales-methods', { method: 'POST', body: payload }); },
+  async getTopPerformingCalls() { return apiFetch('/top-performing-calls'); },
+  async registerTopPerformingCall(payload) { return apiFetch('/top-performing-calls', { method: 'POST', body: payload }); },
+  async getClosers() { return apiFetch('/closers'); },
+  async createCloser(payload) { return apiFetch('/closers', { method: 'POST', body: payload }); },
+  async getCloserPerformance(closerId) { return apiFetch(`/closers/${closerId}/performance`); },
+  async getDealActivities(dealId) { return apiFetch(`/deals/${dealId}/activities`); },
+  async logDealActivity(dealId, payload) { return apiFetch(`/deals/${dealId}/activities`, { method: 'POST', body: payload }); },
+
+  // Profile Funnel & VSL System APIs
+  async getProfileFunnel() { return apiFetch('/conversion/profile-funnel'); },
+  async saveProfileFunnel(payload) { return apiFetch('/conversion/profile-funnels', { method: 'POST', body: payload }); },
+  async generateProfileFunnelFromDna() { return apiFetch('/conversion/profile-funnels/generate-from-dna', { method: 'POST' }); },
+  async publishProfileFunnel(id, changeSummary) { return apiFetch(`/conversion/profile-funnels/${id}/publish`, { method: 'POST', body: { changeSummary } }); },
+  async getProfileFunnelVersions(id) { return apiFetch(`/conversion/profile-funnels/${id}/versions`); },
+  async getProfileFunnelPreview(id) { return apiFetch(`/conversion/profile-funnels/${id}/preview`); },
+  async trackFunnelEvent(id, payload) { return apiFetch(`/conversion/profile-funnels/${id}/events`, { method: 'POST', body: payload }); },
+  async getProfileFunnelAnalytics(id, environment = 'PRODUCTION') { return apiFetch(`/conversion/profile-funnels/${id}/analytics?environment=${environment}`); }
 };

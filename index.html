@@ -160,44 +160,146 @@
 
   <!-- ══════════════ NEW DEAL / LEAD MODAL ══════════════ -->
   <div id="deal-modal" class="modal-overlay hidden" onclick="closeDealModal()">
-    <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:680px">
       <div class="modal-head">
         <div>
-          <h3 class="modal-title">Add Opportunity to Conversion Pipeline</h3>
-          <p class="modal-sub">Engine 2 — Conversion OS</p>
+          <h3 class="modal-title">Add / Edit Conversion OS Opportunity</h3>
+          <p class="modal-sub">Engine 2 — Conversion OS Pipeline & CRM Triage</p>
         </div>
         <button class="btn-icon" onclick="closeDealModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <form onsubmit="handleCreateDeal(event)" class="modal-body">
+      <form onsubmit="handleCreateDeal(event)" class="modal-body" style="max-height:74vh;overflow-y:auto">
+        <input type="hidden" id="deal-id" />
         <div class="form-group">
-          <label>Prospect / Company Name</label>
-          <input id="deal-name" placeholder="e.g. Acme Tech — Founder Alex" required />
+          <label>Deal / Company Title *</label>
+          <input id="deal-name" placeholder="e.g. SaaSify Inc — Growth OS Installation" required />
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Pipeline Stage</label>
+            <label>Contact Name *</label>
+            <input id="deal-contact" placeholder="e.g. Mark Vance" required />
+          </div>
+          <div class="form-group">
+            <label>Contact Email</label>
+            <input type="email" id="deal-email" placeholder="mark@saasify.com" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pipeline Stage *</label>
             <select id="deal-stage">
-              <option value="Lead In">1. DM Qualified</option>
-              <option value="VSL Watched">2. VSL Watched</option>
-              <option value="Call Booked">3. Call Booked</option>
-              <option value="Proposal Sent">4. Proposal Sent</option>
-              <option value="Closed Won">5. Closed Won</option>
+              <option value="QUALIFIED_LEAD">1. QUALIFIED_LEAD</option>
+              <option value="BOOKING_PENDING">2. BOOKING_PENDING</option>
+              <option value="CALL_SCHEDULED">3. CALL_SCHEDULED</option>
+              <option value="CALL_COMPLETED">4. CALL_COMPLETED</option>
+              <option value="FOLLOWUP_SEQUENCE">5. FOLLOWUP_SEQUENCE</option>
+              <option value="PROPOSAL_SENT">6. PROPOSAL_SENT</option>
+              <option value="CONTRACT_SENT">7. CONTRACT_SENT</option>
+              <option value="PAYMENT_PENDING">8. PAYMENT_PENDING</option>
+              <option value="CLOSED_WON">9. CLOSED_WON</option>
+              <option value="CLOSED_LOST">10. CLOSED_LOST</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Contract Value ($)</label>
+            <label>Contract Value ($) *</label>
             <input id="deal-val" type="number" placeholder="12500" required />
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Priority Level</label>
+            <select id="deal-priority">
+              <option value="HIGH">HIGH Priority</option>
+              <option value="MEDIUM">MEDIUM Priority</option>
+              <option value="LOW">LOW Priority</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Founder Attention Required?</label>
+            <select id="deal-attention">
+              <option value="0">No — Routine Triage</option>
+              <option value="1">Yes — Founder Bottleneck Review</option>
+            </select>
+          </div>
+        </div>
         <div class="form-group">
-          <label>Primary Objection / Notes</label>
-          <input id="deal-notes" placeholder="e.g. Needs clarity on onboarding timeline" />
+          <label>Founder Attention Reason / Next Action</label>
+          <input id="deal-attention-reason" placeholder="e.g. Proposal sent 3 days ago; requested custom payment review." />
+        </div>
+        <div class="form-group">
+          <label>Deal Notes / Context</label>
+          <textarea id="deal-notes" rows="2" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px" placeholder="Meeting background, key objections, decision timeframe..."></textarea>
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-secondary" onclick="closeDealModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Deal to Pipeline</button>
+          <button type="submit" class="btn btn-primary">Save Deal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════ SALES CALL TRANSCRIPT & COACHING MODAL ══════════════ -->
+  <div id="sales-call-modal" class="modal-overlay hidden" onclick="closeSalesCallModal()">
+    <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:760px">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title">Log Sales Call Transcript</h3>
+          <p class="modal-sub">Engine 2 — Capture Sales Calls for Post-Call AI Coaching Benchmark Training</p>
+        </div>
+        <button class="btn-icon" onclick="closeSalesCallModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form onsubmit="handleSaveSalesCall(event)" class="modal-body" style="max-height:74vh;overflow-y:auto">
+        <div class="form-group">
+          <label>Target Deal *</label>
+          <select id="call-deal-id" required>
+            <option value="">Select Active Deal...</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Call Type</label>
+            <input id="call-type" value="DISCOVERY_DEMO" placeholder="DISCOVERY_DEMO" />
+          </div>
+          <div class="form-group">
+            <label>Call Outcome</label>
+            <select id="call-outcome">
+              <option value="ADVANCED">ADVANCED — Next Stage</option>
+              <option value="PROPOSAL_REQUESTED">PROPOSAL_REQUESTED</option>
+              <option value="OBJECTION_STALLED">OBJECTION_STALLED</option>
+              <option value="CLOSED_WON">CLOSED_WON</option>
+              <option value="CLOSED_LOST">CLOSED_LOST</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Founder Rating (1-5)</label>
+            <select id="call-rating">
+              <option value="5">5 ★★★★★ — Exceptional Benchmark Call</option>
+              <option value="4" selected>4 ★★★★☆ — Strong Call</option>
+              <option value="3">3 ★★★☆☆ — Standard Call</option>
+              <option value="2">2 ★★☆☆☆ — Sub-Par Call</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Benchmark Training Call?</label>
+            <select id="call-is-benchmark">
+              <option value="1">Yes — Tag as Benchmark Call</option>
+              <option value="0">No — Regular Sales Call</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Full Call Transcript Text *</label>
+          <textarea id="call-transcript" rows="6" style="padding:10px;border-radius:8px;border:1px solid #94A3B8;background:#0F172A;color:#F8FAFC;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5" placeholder="Paste full sales call transcript here..." required></textarea>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeSalesCallModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Analyze Call</button>
         </div>
       </form>
     </div>

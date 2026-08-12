@@ -657,6 +657,464 @@ const ReplyClassificationRequestSchema = z.object({
   prospectId: optStr
 });
 
+// ── 16. CONVERSION OS SCHEMAS (ASENZO ENGINE 2) ──────────────────────────────
+const DealStageEnum = z.enum([
+  'QUALIFIED_LEAD',
+  'BOOKING_PENDING',
+  'CALL_SCHEDULED',
+  'CALL_COMPLETED',
+  'FOLLOWUP_SEQUENCE',
+  'PROPOSAL_SENT',
+  'CONTRACT_SENT',
+  'PAYMENT_PENDING',
+  'CLOSED_WON',
+  'CLOSED_LOST'
+]);
+
+const DealStatusEnum = z.enum(['OPEN', 'WON', 'LOST', 'ON_HOLD']);
+const CallOutcomeEnum = z.enum(['ADVANCED', 'PROPOSAL_REQUESTED', 'OBJECTION_STALLED', 'NO_SHOW', 'CLOSED_WON', 'CLOSED_LOST', 'FOLLOWUP_SCHEDULED']);
+const ProposalStatusEnum = z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED']);
+const ContractStatusEnum = z.enum(['DRAFT', 'SENT', 'SIGNED', 'VOID', 'EXPIRED']);
+const PaymentStatusEnum = z.enum(['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED']);
+
+const VslFunnelSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  title: z.string().min(2, 'VSL title is required').default('The ASENZO 5-Engine Growth OS Mechanism Breakdown'),
+  headline: z.string().min(5, 'Headline is required').default('How Bootstrapped B2B Founders Scale to $100k/mo With 85+ Founder Independence'),
+  subheadline: z.string().nullable().optional().default('Replace retainer agencies with an internal growth operating system in 90 days.'),
+  videoUrl: z.string().nullable().optional().default('https://vimeo.com/asenzo-growth-os-vsl'),
+  durationSeconds: z.number().int().optional().default(1140),
+  pitchSummary: z.string().nullable().optional().default('Detailed breakdown of Attention OS, Conversion OS, and Delivery OS.'),
+  ctaButtonText: z.string().nullable().optional().default('Book Your Founder Growth OS Audit'),
+  bookingUrl: z.string().nullable().optional().default('https://cal.com/asenzo/growth-audit'),
+  proofAssetIds: z.array(z.string()).optional().default([]),
+  isActive: z.boolean().optional().default(true)
+});
+
+const DmQualifierSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  name: z.string().min(2, 'Qualifier name is required').default('B2B Agency Founder DM Qualifier'),
+  questions: z.array(z.string()).optional().default([
+    'What is your current monthly revenue range?',
+    'How many hours per week do you spend on marketing & sales?',
+    'What is your primary bottleneck right now?'
+  ]),
+  minRevenueThreshold: z.string().nullable().optional().default('$20k/mo'),
+  disqualificationCriteria: z.array(z.string()).optional().default(['Pre-revenue', 'Looking for cheap outsourced DMs']),
+  objectionResponses: z.record(z.any()).optional().default({}),
+  bookingTriggerScore: z.number().int().optional().default(80),
+  isActive: z.boolean().optional().default(true)
+});
+
+const StorySequenceSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  name: z.string().min(2, 'Sequence name is required').default('5-Day Founder Independence Story Nurture'),
+  triggerEvent: z.string().nullable().optional().default('QUALIFIED_LEAD_CAPTURED'),
+  steps: z.array(z.object({
+    day: z.number().int(),
+    subject: z.string(),
+    storyAngle: z.string(),
+    ctaText: z.string(),
+    proofAssetId: z.string().optional()
+  })).optional().default([]),
+  isActive: z.boolean().optional().default(true)
+});
+
+const DealFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  leadId: z.string().nullable().optional().default(''),
+  prospectId: z.string().nullable().optional().default(''),
+  dealName: z.string().min(2, 'Deal name is required'),
+  contactName: z.string().min(2, 'Contact name is required'),
+  companyName: z.string().nullable().optional().default(''),
+  contactEmail: z.string().nullable().optional().default(''),
+  stage: DealStageEnum.default('QUALIFIED_LEAD'),
+  amount: z.number().min(0).optional().default(12500),
+  closeProbability: z.number().min(0).max(100).optional().default(50),
+  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('HIGH'),
+  founderAttentionRequired: z.boolean().optional().default(false),
+  attentionReason: z.string().nullable().optional().default(''),
+  nextAction: z.string().nullable().optional().default('Schedule Call'),
+  nextActionDueAt: z.string().nullable().optional().default(''),
+  status: DealStatusEnum.default('OPEN'),
+  wonAt: z.string().nullable().optional().default(''),
+  lostAt: z.string().nullable().optional().default(''),
+  lostReason: z.string().nullable().optional().default(''),
+  notes: z.string().nullable().optional().default('')
+});
+
+const SalesCallFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  leadId: z.string().nullable().optional().default(''),
+  scheduledAt: z.string().nullable().optional().default(''),
+  completedAt: z.string().nullable().optional().default(''),
+  recordingUrl: z.string().nullable().optional().default(''),
+  transcriptText: z.string().nullable().optional().default('Standard sales call transcript log.'),
+  durationSeconds: z.number().int().min(1, 'Duration must be positive').optional().default(1800),
+  callType: z.string().nullable().optional().default('DISCOVERY_DEMO'),
+  outcome: CallOutcomeEnum.default('ADVANCED'),
+  founderCallRating: z.number().int().min(1).max(5).optional().default(4),
+  isBenchmarkCall: z.boolean().optional().default(false)
+});
+
+const PostCallCoachingFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  salesCallId: z.string().min(1, 'Sales Call ID is required'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  benchmarkCallId: z.string().nullable().optional().default(''),
+  trustScore: z.number().int().min(0).max(100).optional().default(85),
+  mechanismClarityScore: z.number().int().min(0).max(100).optional().default(88),
+  objectionHandlingScore: z.number().int().min(0).max(100).optional().default(82),
+  overallCallScore: z.number().int().min(0).max(100).optional().default(85),
+  benchmarkComparisonJson: z.record(z.any()).optional().default({}),
+  founderPatternMatchesJson: z.record(z.any()).optional().default({}),
+  coachingTipsJson: z.array(z.string()).optional().default([]),
+  objectionsDetectedJson: z.array(z.string()).optional().default([]),
+  humanReviewed: z.boolean().optional().default(false)
+});
+
+const ObjectionItemFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  objectionText: z.string().min(2, 'Objection text is required'),
+  category: z.string().nullable().optional().default('PRICING'),
+  founderResponseScript: z.string().min(5, 'Founder response script is required'),
+  winningAngle: z.string().nullable().optional().default('Refine pricing as operating system vs agency retainer cost'),
+  frequencyCount: z.number().int().optional().default(1),
+  successRate: z.number().min(0).max(100).optional().default(80)
+});
+
+const ProposalFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  title: z.string().min(2, 'Proposal title is required'),
+  deliverablesJson: z.array(z.string()).optional().default(['Attention OS Engine', 'Conversion OS CRM Triage', 'Delivery OS Setup']),
+  pricingAmount: z.number().min(0).optional().default(12500),
+  paymentTerms: z.string().nullable().optional().default('$12,500 setup + 10% performance milestone'),
+  customTerms: z.string().nullable().optional().default('90-day installation support with weekly founder review.'),
+  status: ProposalStatusEnum.default('DRAFT'),
+  sentAt: z.string().nullable().optional().default(''),
+  acceptedAt: z.string().nullable().optional().default('')
+});
+
+const ContractFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  proposalId: z.string().nullable().optional().default(''),
+  contractType: z.string().nullable().optional().default('GROWTH_OS_INSTALLATION'),
+  documentUrl: z.string().nullable().optional().default('https://docs.asenzo.ai/contract-101.pdf'),
+  signatureProof: z.string().nullable().optional().default(''),
+  status: ContractStatusEnum.default('DRAFT'),
+  sentAt: z.string().nullable().optional().default(''),
+  signedAt: z.string().nullable().optional().default('')
+});
+
+const PaymentFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  contractId: z.string().nullable().optional().default(''),
+  amount: z.number().min(1, 'Payment amount must be greater than 0'),
+  currency: z.string().nullable().optional().default('USD'),
+  paymentMethod: z.string().nullable().optional().default('STRIPE_CREDIT_CARD'),
+  transactionId: z.string().min(2, 'Transaction ID is required'),
+  status: PaymentStatusEnum.default('COMPLETED'),
+  paidAt: z.string().nullable().optional().default('')
+});
+
+const DeliveryHandoffFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  clientName: z.string().min(2, 'Client name is required'),
+  onboardingChecklistJson: z.array(z.string()).optional().default([
+    'Kickoff strategy call scheduled',
+    'Founder knowledge ingestion completed',
+    'Attention OS content engine configured',
+    'Conversion OS CRM triage enabled'
+  ]),
+  assignedOwner: z.string().nullable().optional().default('Alex Morgan'),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).default('PENDING')
+});
+
+
+  // ── 17. GRANULAR CONVERSION DOMAIN SCHEMAS ────────────────────────────────────
+const SalesPipelineSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  name: z.string().min(2, 'Pipeline name is required'),
+  description: z.string().nullable().optional().default(''),
+  isDefault: z.boolean().optional().default(true),
+  isActive: z.boolean().optional().default(true)
+});
+
+const PipelineStageSchema = z.object({
+  id: optStr,
+  pipelineId: z.string().min(1, 'Pipeline ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  name: z.string().min(1, 'Stage name is required'),
+  orderIndex: z.number().int().min(1).default(1),
+  stageType: z.enum(['QUALIFICATION', 'BOOKING', 'CALL', 'FOLLOWUP', 'CLOSING', 'WON', 'LOST']).default('QUALIFICATION'),
+  description: z.string().nullable().optional().default(''),
+  isActive: z.boolean().optional().default(true)
+});
+
+const DealStageHistorySchema = z.object({
+  id: optStr,
+  dealId: z.string().min(1, 'Deal ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  fromStageId: z.string().nullable().optional().default(''),
+  toStageId: z.string().min(1, 'Target stage ID is required'),
+  transitionReason: z.string().nullable().optional().default(''),
+  movedByUser: z.string().nullable().optional().default('HUMAN_OPERATOR')
+});
+
+const LeadQualificationSchema = z.object({
+  id: optStr,
+  leadId: z.string().min(1, 'Lead ID is required'),
+  dealId: z.string().nullable().optional().default(''),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  score: z.number().int().min(0).max(100).default(85),
+  budgetQualified: z.boolean().optional().default(true),
+  authorityQualified: z.boolean().optional().default(true),
+  needQualified: z.boolean().optional().default(true),
+  timelineQualified: z.boolean().optional().default(true),
+  disqualificationReason: z.string().nullable().optional().default(''),
+  qualifierNotes: z.string().nullable().optional().default('')
+});
+
+const DMConversationSchema = z.object({
+  id: optStr,
+  prospectId: z.string().nullable().optional().default(''),
+  dealId: z.string().nullable().optional().default(''),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  platform: z.string().default('LINKEDIN'),
+  participantHandle: z.string().min(1, 'Participant handle is required'),
+  status: z.enum(['ACTIVE', 'QUALIFIED', 'BOOKED', 'DISQUALIFIED', 'ARCHIVED']).default('ACTIVE')
+});
+
+const DMMessageSchema = z.object({
+  id: optStr,
+  conversationId: z.string().min(1, 'Conversation ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  senderType: z.enum(['PROSPECT', 'FOUNDER', 'CLOSER', 'AI']).default('PROSPECT'),
+  messageText: z.string().min(1, 'Message text is required'),
+  sentAt: z.string().nullable().optional().default('')
+});
+
+const SalesCallParticipantSchema = z.object({
+  id: optStr,
+  salesCallId: z.string().min(1, 'Sales Call ID is required'),
+  name: z.string().min(1, 'Participant name is required'),
+  role: z.enum(['HOST', 'PROSPECT', 'DECISION_MAKER', 'CLOSER']).default('PROSPECT'),
+  email: z.string().nullable().optional().default('')
+});
+
+const SalesCallTranscriptSchema = z.object({
+  id: optStr,
+  salesCallId: z.string().min(1, 'Sales Call ID is required'),
+  transcriptText: z.string().min(5, 'Transcript text is required'),
+  speakerTurnsJson: z.array(z.any()).optional().default([])
+});
+
+const SalesCallNoteSchema = z.object({
+  id: optStr,
+  salesCallId: z.string().min(1, 'Sales Call ID is required'),
+  noteText: z.string().min(1, 'Note text is required'),
+  authorName: z.string().nullable().optional().default('Alex Morgan')
+});
+
+const SalesCallOutcomeSchema = z.object({
+  id: optStr,
+  salesCallId: z.string().min(1, 'Sales Call ID is required'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  outcomeType: z.string().min(1, 'Outcome type is required'),
+  nextStepAction: z.string().nullable().optional().default(''),
+  nextStepDueAt: z.string().nullable().optional().default('')
+});
+
+const SalesMethodSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  name: z.string().min(2, 'Method name is required'),
+  frameworkSummary: z.string().min(5, 'Framework summary is required'),
+  keyQuestionsJson: z.array(z.string()).optional().default([]),
+  isActive: z.boolean().optional().default(true)
+});
+
+const TopPerformingCallSchema = z.object({
+  id: optStr,
+  salesCallId: z.string().min(1, 'Sales Call ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  benchmarkCategory: z.string().default('MECHANISM_PITCH'),
+  whyTopPerforming: z.string().min(5, 'Explanation is required')
+});
+
+const CloserSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  name: z.string().min(2, 'Closer name is required'),
+  email: z.string().min(3, 'Valid email is required'),
+  role: z.enum(['FOUNDER', 'SENIOR_CLOSER', 'CLOSER', 'SETTER']).default('FOUNDER'),
+  quotaAmount: z.number().min(0).optional().default(50000),
+  isActive: z.boolean().optional().default(true)
+});
+
+const CloserPerformanceSchema = z.object({
+  id: optStr,
+  closerId: z.string().min(1, 'Closer ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  period: z.string().default('2026-Q3'),
+  callsTaken: z.number().int().min(0).default(0),
+  dealsWon: z.number().int().min(0).default(0),
+  revenueClosed: z.number().min(0).default(0),
+  winRate: z.number().min(0).max(100).default(0),
+  avgCallScore: z.number().min(0).max(100).default(85)
+});
+
+const FollowUpMessageSchema = z.object({
+  id: optStr,
+  sequenceId: z.string().min(1, 'Sequence ID is required'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  stepIndex: z.number().int().min(1).default(1),
+  messageSubject: z.string().min(1, 'Subject is required'),
+  messageText: z.string().min(1, 'Message text is required'),
+  status: z.enum(['PENDING', 'SENT', 'FAILED', 'CANCELLED']).default('PENDING'),
+  sentAt: z.string().nullable().optional().default('')
+});
+
+const ObjectionOccurrenceSchema = z.object({
+  id: optStr,
+  objectionId: z.string().min(1, 'Objection ID is required'),
+  salesCallId: z.string().nullable().optional().default(''),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  detectedInText: z.string().nullable().optional().default(''),
+  handlingSuccess: z.boolean().optional().default(true)
+});
+
+const ObjectionPatternSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  patternName: z.string().min(2, 'Pattern name is required'),
+  objectionIdsJson: z.array(z.string()).optional().default([]),
+  bestCounterStrategy: z.string().min(5, 'Counter strategy is required'),
+  successRate: z.number().min(0).max(100).default(85)
+});
+
+const DealAutomationSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  triggerEvent: z.string().min(1, 'Trigger event is required'),
+  conditionJson: z.record(z.any()).optional().default({}),
+  actionType: z.string().min(1, 'Action type is required'),
+  actionPayloadJson: z.record(z.any()).optional().default({}),
+  isActive: z.boolean().optional().default(true)
+});
+
+const SalesActivitySchema = z.object({
+  id: optStr,
+  dealId: z.string().min(1, 'Deal ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  activityType: z.string().min(1, 'Activity type is required'),
+  description: z.string().min(1, 'Description is required'),
+  performedBy: z.string().nullable().optional().default('Alex Morgan'),
+  timestamp: z.string().nullable().optional().default('')
+});
+
+const ConversionEventSchema = z.object({
+  id: optStr,
+  dealId: z.string().nullable().optional().default(''),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  eventName: z.string().min(1, 'Event name is required'),
+  value: z.number().min(0).optional().default(0),
+  metadataJson: z.record(z.any()).optional().default({}),
+  timestamp: z.string().nullable().optional().default('')
+});
+
+const SalesRecommendationSchema = z.object({
+  id: optStr,
+  dealId: z.string().min(1, 'Deal ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  category: z.string().default('PIPELINE_TRIAGE'),
+  observation: z.string().min(5, 'Observation is required'),
+  rationale: z.string().min(5, 'Rationale is required'),
+  proposedAction: z.string().min(5, 'Proposed action is required'),
+  confidenceScore: z.number().min(0).max(100).default(90),
+  status: z.enum(['PENDING', 'APPLIED', 'DISMISSED']).default('PENDING')
+});
+
+const AICoachingSessionSchema = z.object({
+  id: optStr,
+  salesCallId: z.string().min(1, 'Sales call ID is required'),
+  dealId: z.string().min(1, 'Deal ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  closerId: z.string().nullable().optional().default(''),
+  trustScore: z.number().int().min(0).max(100).default(85),
+  mechanismClarityScore: z.number().int().min(0).max(100).default(88),
+  objectionHandlingScore: z.number().int().min(0).max(100).default(82),
+  overallScore: z.number().int().min(0).max(100).default(85),
+  coachingTipsJson: z.array(z.string()).optional().default([]),
+  humanReviewed: z.boolean().optional().default(false)
+});
+
+// ── 18. PROFILE FUNNEL & VSL SYSTEM SCHEMAS ──────────────────────────────────
+const ProfileFunnelFullSchema = z.object({
+  id: optStr,
+  businessId: z.string().nullable().optional().default('biz_default'),
+  title: z.string().min(2, 'Funnel title is required'),
+  slug: z.string().nullable().optional().default('growth-os-audit'),
+  publishingStatus: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).default('DRAFT'),
+  headline: z.string().min(5, 'Headline is required'),
+  targetIcpSummary: z.string().nullable().optional().default('Bootstrapped B2B Founders doing $15k–$50k/mo'),
+  coreProblem: z.string().nullable().optional().default('Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales'),
+  desiredOutcome: z.string().nullable().optional().default('Scale to $100k/mo while increasing Founder Independence Score from 30 to 85+'),
+  uniqueMechanism: z.string().nullable().optional().default('The ASENZO 5-Engine Growth OS Framework'),
+  vslTitle: z.string().min(2, 'VSL title is required'),
+  vslVideoUrl: z.string().nullable().optional().default('https://vimeo.com/765432109'),
+  vslHook: z.string().min(5, 'VSL hook is required'),
+  vslProblem: z.string().min(5, 'VSL problem breakdown is required'),
+  vslMechanism: z.string().min(5, 'VSL mechanism breakdown is required'),
+  vslProofSummary: z.string().nullable().optional().default('Case study: SaaSify scaled from $25k to $60k/mo ARR in 90 days.'),
+  vslCtaText: z.string().min(2, 'CTA text is required'),
+  bookingUrl: z.string().nullable().optional().default('https://cal.com/asenzo/growth-audit'),
+  authorityAssetIdsJson: z.array(z.string()).optional().default([]),
+  objectionIdsJson: z.array(z.string()).optional().default([]),
+  version: z.number().int().min(1).default(1),
+  isActive: z.boolean().optional().default(true)
+});
+
+const FunnelVersionSchema = z.object({
+  id: optStr,
+  funnelId: z.string().min(1, 'Funnel ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  versionNumber: z.number().int().min(1).default(1),
+  snapshotJson: z.record(z.any()).optional().default({}),
+  createdBy: z.string().nullable().optional().default('Alex Morgan'),
+  changeSummary: z.string().min(2, 'Change summary is required')
+});
+
+const FunnelAnalyticsEventSchema = z.object({
+  id: optStr,
+  funnelId: z.string().min(1, 'Funnel ID is required'),
+  businessId: z.string().nullable().optional().default('biz_default'),
+  eventType: z.enum(['VISIT', 'CTA_CLICK', 'QUALIFICATION_START', 'QUALIFICATION_COMPLETE', 'BOOKING']).default('VISIT'),
+  visitorId: z.string().nullable().optional().default(''),
+  sourceContentId: z.string().nullable().optional().default(''),
+  environment: z.enum(['PRODUCTION', 'TEST_SIMULATED']).default('PRODUCTION'),
+  metadataJson: z.record(z.any()).optional().default({})
+});
+
 module.exports = {
   // Enums
   ContentLifecycleStatus,
@@ -737,5 +1195,53 @@ module.exports = {
   AuthorityAssetFullSchema,
   MarketSignalFullSchema,
   OutreachProspectFullSchema,
-  ReplyClassificationRequestSchema
+  ReplyClassificationRequestSchema,
+
+  // Conversion OS Schemas (ASENZO Engine 2)
+  DealStageEnum,
+  DealStatusEnum,
+  CallOutcomeEnum,
+  ProposalStatusEnum,
+  ContractStatusEnum,
+  PaymentStatusEnum,
+  VslFunnelSchema,
+  DmQualifierSchema,
+  StorySequenceSchema,
+  DealFullSchema,
+  SalesCallFullSchema,
+  PostCallCoachingFullSchema,
+  ObjectionItemFullSchema,
+  ProposalFullSchema,
+  ContractFullSchema,
+  PaymentFullSchema,
+  DeliveryHandoffFullSchema,
+
+  // Granular Conversion Domain Schemas
+  SalesPipelineSchema,
+  PipelineStageSchema,
+  DealStageHistorySchema,
+  LeadQualificationSchema,
+  DMConversationSchema,
+  DMMessageSchema,
+  SalesCallParticipantSchema,
+  SalesCallTranscriptSchema,
+  SalesCallNoteSchema,
+  SalesCallOutcomeSchema,
+  SalesMethodSchema,
+  TopPerformingCallSchema,
+  CloserSchema,
+  CloserPerformanceSchema,
+  FollowUpMessageSchema,
+  ObjectionOccurrenceSchema,
+  ObjectionPatternSchema,
+  DealAutomationSchema,
+  SalesActivitySchema,
+  ConversionEventSchema,
+  SalesRecommendationSchema,
+  AICoachingSessionSchema,
+
+  // Profile Funnel & VSL System Schemas
+  ProfileFunnelFullSchema,
+  FunnelVersionSchema,
+  FunnelAnalyticsEventSchema
 };

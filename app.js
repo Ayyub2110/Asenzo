@@ -2176,62 +2176,629 @@ function renderRecommendationsTab() {
 }
 
 // ── 3. ENGINE 2 — CONVERSION OS ────────────────────────────────────────────
-function renderConversion() {
+let CONVERSION_SUB_TAB = 'dashboard';
+let CONVERSION_DASHBOARD_DATA = null;
+let CONVERSION_DEALS = [];
+let CONVERSION_CALLS = [];
+let CONVERSION_OBJECTIONS = [];
+let CONVERSION_COACHING_RESULT = null;
+let CONVERSION_CLOSER_PREP = null;
+let CONVERSION_INTELLIGENCE = null;
+
+async function renderConversion() {
   const ca = document.getElementById('content-area');
+  
+  if (window.ASENZO_API) {
+    try {
+      const [dash, deals, obj, intel] = await Promise.all([
+        window.ASENZO_API.getConversionDashboard(),
+        window.ASENZO_API.getDeals(),
+        window.ASENZO_API.getObjectionLibrary(),
+        window.ASENZO_API.getConversionIntelligence()
+      ]);
+      CONVERSION_DASHBOARD_DATA = dash;
+      CONVERSION_DEALS = deals;
+      CONVERSION_OBJECTIONS = obj;
+      CONVERSION_INTELLIGENCE = intel;
+    } catch (err) {
+      console.warn('Conversion OS data fetch error:', err.message);
+    }
+  }
+
   ca.innerHTML = `
     <div class="pg-header">
       <div>
         <h1 class="pg-title">Engine 2 — Conversion OS (Sales & Pipeline)</h1>
-        <p class="pg-sub">Turn qualified attention into predictable revenue with AI DM triage and deal pipeline.</p>
+        <p class="pg-sub">Turn qualified attention into revenue. Capture founder sales behavior as benchmark training data.</p>
       </div>
       <div class="pg-actions">
+        <button class="btn btn-secondary" onclick="openSalesCallModal()">🎧 Log Sales Call</button>
         <button class="btn btn-primary" onclick="openDealModal()">+ Add Deal</button>
       </div>
     </div>
 
-    <!-- DM Triage Inbox Table Card -->
+    <!-- Conversion OS Sub-Tab Navigation Bar -->
+    <div class="engine-tab-bar" style="margin-bottom:18px">
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'dashboard' ? 'active' : ''}" onclick="switchConversionSubTab('dashboard')">
+        🎯 Action Center
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'pipeline' ? 'active' : ''}" onclick="switchConversionSubTab('pipeline')">
+        📊 CRM Pipeline Kanban
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'coaching' ? 'active' : ''}" onclick="switchConversionSubTab('coaching')">
+        🎧 Post-Call AI Coaching
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'objections' ? 'active' : ''}" onclick="switchConversionSubTab('objections')">
+        🛡 Objection Library
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'closer' ? 'active' : ''}" onclick="switchConversionSubTab('closer')">
+        📜 Closer Room Prep
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'handoff' ? 'active' : ''}" onclick="switchConversionSubTab('handoff')">
+        🚀 Delivery Handoffs
+      </div>
+    </div>
+
+    <!-- Sub-Tab Content View Container -->
+    <div id="conv-subtab-container">
+      ${getConversionSubTabHtml()}
+    </div>
+  `;
+}
+
+function switchConversionSubTab(tab) {
+  CONVERSION_SUB_TAB = tab;
+  renderConversion();
+}
+
+function getConversionSubTabHtml() {
+  switch (CONVERSION_SUB_TAB) {
+    case 'dashboard':
+      return renderConversionDashboardSubTab();
+    case 'pipeline':
+      return renderConversionPipelineSubTab();
+    case 'coaching':
+      return renderConversionCoachingSubTab();
+    case 'objections':
+      return renderConversionObjectionsSubTab();
+    case 'closer':
+      return renderConversionCloserSubTab();
+    case 'handoff':
+      return renderConversionHandoffSubTab();
+    default:
+      return renderConversionDashboardSubTab();
+  }
+}
+
+// ── SUB-TAB 1: EXECUTIVE ACTION CENTER ──────────────────────────────────────
+function renderConversionDashboardSubTab() {
+  const dash = CONVERSION_DASHBOARD_DATA || {
+    attentionQuestion: 'Deal "SaaSify Inc" requires founder action today: Proposal sent 3 days ago; client requested custom payment review.',
+    priorityDeals: CONVERSION_DEALS.filter(d => d.founder_attention_required === 1 || d.priority === 'HIGH'),
+    pipelineSummary: { totalDeals: CONVERSION_DEALS.length, openDealsCount: 2, wonDealsCount: 1, totalOpenValue: 27500, totalWonValue: 12500, winRate: 33, avgDealSize: 13333 }
+  };
+
+  const p = dash.pipelineSummary || {};
+  const priorityDeals = dash.priorityDeals || [];
+
+  return `
+    <!-- Executive Highlight Card -->
+    <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#F8FAFC;padding:20px 24px;border-radius:14px;margin-bottom:20px;box-shadow:0 10px 25px -5px rgba(15,23,42,0.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🎯</span>
+          <span style="font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#38BDF8">Conversion OS Directive</span>
+        </div>
+        <span class="sb-badge green" style="background:#059669;color:#FFFFFF">Executive Answer</span>
+      </div>
+      <div style="font-size:17px;font-weight:700;line-height:1.4;color:#FFFFFF;margin-top:6px">
+        "${dash.attentionQuestion}"
+      </div>
+    </div>
+
+    <!-- Pipeline Summary Metrics Bar -->
+    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:14px;margin-bottom:20px">
+      <div class="metric-card">
+        <div class="mc-label">Open Pipeline Value</div>
+        <div class="mc-val" style="color:#0EA5E9">$${(p.totalOpenValue || 0).toLocaleString()}</div>
+        <div class="mc-sub">${p.openDealsCount || 0} active deals</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Closed Won Revenue</div>
+        <div class="mc-val" style="color:#10B981">$${(p.totalWonValue || 0).toLocaleString()}</div>
+        <div class="mc-sub">${p.wonDealsCount || 0} won deals</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Pipeline Win Rate</div>
+        <div class="mc-val" style="color:#6366F1">${p.winRate || 0}%</div>
+        <div class="mc-sub">Qualified lead to revenue</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Average Deal Size</div>
+        <div class="mc-val" style="color:#8B5CF6">$${(p.avgDealSize || 12500).toLocaleString()}</div>
+        <div class="mc-sub">Growth OS Installation</div>
+      </div>
+      <div class="metric-card">
+        <div class="mc-label">Total Pipeline Deals</div>
+        <div class="mc-val" style="color:#F59E0B">${p.totalDeals || 0}</div>
+        <div class="mc-sub">Active CRM deals</div>
+      </div>
+    </div>
+
+    <!-- Priority Founder Action Deals -->
     <div class="dash-card">
-      <div class="dash-card-title">AI DM Qualifier Inbox</div>
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-        ${DM_INBOUNDS.map(m => `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div class="dash-card-title">Priority Deals Requiring Founder Action</div>
+          <div class="dash-card-sub">Deals with founder attention flags or high contract value</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="openDealModal()">+ New Deal</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${priorityDeals.length > 0 ? priorityDeals.map(d => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
             <div>
-              <div style="font-weight:700;color:#0F172A">${m.name} <span class="sb-badge green" style="margin-left:6px">${m.score} ICP Match</span></div>
-              <div style="font-size:12px;color:#64748B;margin-top:3px">"${m.msg}"</div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-weight:700;font-size:14px;color:#0F172A">${d.deal_name || d.dealName}</span>
+                <span class="sb-badge blue">${d.stage}</span>
+                ${d.founder_attention_required ? `<span class="sb-badge red">FOUNDER ACTION REQUIRED</span>` : ''}
+              </div>
+              <div style="font-size:12px;color:#64748B;margin-top:4px">
+                Contact: <strong>${d.contact_name || d.contactName}</strong> | Amount: <strong style="color:#0EA5E9">$${(d.amount || 0).toLocaleString()}</strong> | Next Action: ${d.next_action || d.nextAction || 'Review'}
+              </div>
+              ${d.attention_reason || d.attentionReason ? `<div style="font-size:11.5px;color:#D97706;margin-top:4px;font-weight:600">⚠️ Reason: ${d.attention_reason || d.attentionReason}</div>` : ''}
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="showToast('Applying Story Sequence reply to ${m.name}...')">Draft AI Reply</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-sm" onclick="loadCloserPrepSheet('${d.id}')">📜 Closer Prep</button>
+              <button class="btn btn-primary btn-sm" onclick="openDealModal('${d.id}')">Edit Deal</button>
+            </div>
+          </div>
+        `).join('') : `
+          <div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
+            No active deals currently require founder bottleneck intervention.
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+// ── SUB-TAB 2: CRM PIPELINE KANBAN ──────────────────────────────────────────
+function renderConversionPipelineSubTab() {
+  const stages = [
+    { id: 'QUALIFIED_LEAD', title: '1. Qualified Lead' },
+    { id: 'BOOKING_PENDING', title: '2. Booking Pending' },
+    { id: 'CALL_SCHEDULED', title: '3. Call Scheduled' },
+    { id: 'CALL_COMPLETED', title: '4. Call Completed' },
+    { id: 'FOLLOWUP_SEQUENCE', title: '5. Follow-Up' },
+    { id: 'PROPOSAL_SENT', title: '6. Proposal Sent' },
+    { id: 'CONTRACT_SENT', title: '7. Contract Sent' },
+    { id: 'PAYMENT_PENDING', title: '8. Payment Pending' },
+    { id: 'CLOSED_WON', title: '9. Closed Won' },
+    { id: 'CLOSED_LOST', title: '10. Closed Lost' }
+  ];
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;color:#0F172A">Full Conversion OS 10-Stage CRM Kanban</div>
+      <button class="btn btn-primary btn-sm" onclick="openDealModal()">+ Add Deal</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-bottom:12px">
+      ${stages.slice(0, 5).map(s => renderKanbanColumn(s, CONVERSION_DEALS)).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px">
+      ${stages.slice(5, 10).map(s => renderKanbanColumn(s, CONVERSION_DEALS)).join('')}
+    </div>
+  `;
+}
+
+function renderKanbanColumn(col, deals) {
+  const items = deals.filter(d => d.stage === col.id);
+  const totalVal = items.reduce((sum, i) => sum + (i.amount || 0), 0);
+
+  return `
+    <div class="kanban-col" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:10px">
+      <div class="col-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="col-title" style="font-size:11.5px;font-weight:700;color:#0F172A">${col.title}</span>
+        <span class="col-count" style="font-size:10.5px;font-weight:700;background:#E2E8F0;padding:2px 6px;border-radius:10px">${items.length}</span>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#0EA5E9;margin-bottom:8px">$${totalVal.toLocaleString()}</div>
+      
+      <div class="kanban-cards" style="display:flex;flex-direction:column;gap:8px">
+        ${items.map(d => `
+          <div class="k-card" style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:8px;padding:10px;cursor:pointer" onclick="openDealModal('${d.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div class="k-card-title" style="font-weight:700;font-size:12.5px;color:#0F172A">${d.deal_name || d.dealName}</div>
+              ${d.founder_attention_required ? `<span style="font-size:10px;background:#FEE2E2;color:#991B1B;font-weight:800;padding:2px 4px;border-radius:4px">⚠️</span>` : ''}
+            </div>
+            <div class="k-card-val" style="font-size:13px;font-weight:800;color:#0EA5E9;margin:4px 0">$${(d.amount || 0).toLocaleString()}</div>
+            <div style="font-size:11px;color:#64748B">${d.contact_name || d.contactName}</div>
+            
+            <div style="display:flex;gap:4px;margin-top:8px" onclick="event.stopPropagation()">
+              ${d.stage !== 'CLOSED_WON' ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 6px" onclick="handleMarkDealWon('${d.id}')">🏆 Win</button>` : `<span style="font-size:10px;color:#10B981;font-weight:700">✓ Won</span>`}
+            </div>
           </div>
         `).join('')}
       </div>
     </div>
+  `;
+}
 
-    <!-- Deal CRM Pipeline Kanban Board -->
-    <div>
-      <div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:12px">CRM Deal Pipeline</div>
-      <div class="kanban-grid">
-        ${['Lead In', 'VSL Watched', 'Call Booked', 'Proposal Sent', 'Closed Won'].map(stage => {
-          const items = DEALS.filter(d => d.stage === stage);
-          return `
-            <div class="kanban-col">
-              <div class="col-head">
-                <span class="col-title">${stage}</span>
-                <span class="col-count">${items.length}</span>
+// ── SUB-TAB 3: POST-CALL AI COACHING ────────────────────────────────────────
+function renderConversionCoachingSubTab() {
+  return `
+    <div class="dash-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div class="dash-card-title">Post-Call AI Coaching Engine (Flagship Differentiator)</div>
+          <div class="dash-card-sub">Analyzes sales call transcripts against the founder's own top-performing benchmark calls (NOT generic textbooks) to output 2–3 actionable coaching improvements.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openSalesCallModal()">+ Log Sales Call</button>
+      </div>
+
+      <!-- Analysis Results Container -->
+      <div id="coaching-result-container">
+        ${CONVERSION_COACHING_RESULT ? renderCoachingResultCard(CONVERSION_COACHING_RESULT) : `
+          <div style="padding:24px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px;margin-bottom:16px">
+            Select a logged sales call below and click <strong>"Run AI Post-Call Coaching"</strong> to evaluate against founder benchmark patterns.
+          </div>
+        `}
+      </div>
+
+      <!-- Stored Sales Calls List -->
+      <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:8px">Logged Sales Calls</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${CONVERSION_CALLS && CONVERSION_CALLS.length > 0 ? CONVERSION_CALLS.map(c => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-weight:700;font-size:13px;color:#0F172A">Call #${c.id}</span>
+                <span class="sb-badge blue">${c.call_type || 'DISCOVERY_DEMO'}</span>
+                ${c.is_benchmark_call ? `<span class="sb-badge green">BENCHMARK CALL ★</span>` : ''}
               </div>
-              <div class="kanban-cards">
-                ${items.map(d => `
-                  <div class="k-card" onclick="showToast('Objection: ${d.objection}')">
-                    <div class="k-card-title">${d.name}</div>
-                    <div class="k-card-val">$${d.val.toLocaleString()}</div>
-                    <div class="k-card-meta">${d.objection}</div>
-                  </div>
-                `).join('')}
+              <div style="font-size:11.5px;color:#64748B;margin-top:3px">
+                Outcome: ${c.outcome} | Rating: ${c.founder_call_rating || 4}/5 ★ | Duration: ${Math.round((c.duration_seconds || 1800) / 60)} min
               </div>
             </div>
-          `;
-        }).join('')}
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-sm" onclick="handleTagBenchmarkCall('${c.id}', ${!c.is_benchmark_call})">
+                ${c.is_benchmark_call ? 'Untag Benchmark' : 'Tag as Benchmark'}
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="handleRunCoachingAnalysis('${c.id}')">
+                ⚡ Run AI Post-Call Coaching
+              </button>
+            </div>
+          </div>
+        `).join('') : `
+          <div style="padding:16px;text-align:center;color:#64748B;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
+            No sales call transcripts logged yet. Click "+ Log Sales Call" above to paste a transcript.
+          </div>
+        `}
       </div>
     </div>
   `;
+}
+
+function renderCoachingResultCard(res) {
+  const log = res.coachingLog || res;
+  const tips = log.coachingTips || [];
+  const matches = log.founderPatternMatches || [];
+
+  return `
+    <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#0F172A">Post-Call AI Coaching Audit Report</div>
+          <div style="font-size:12px;color:#64748B">Grounded in Founder Benchmark Call & Sales Patterns</div>
+        </div>
+        <span class="sb-badge green" style="font-size:13px;padding:4px 10px">Overall Score: ${log.overall_call_score || 85}/100</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:14px">
+        <div class="metric-card" style="padding:10px;text-align:center">
+          <div style="font-size:11px;color:#64748B">Trust Score</div>
+          <div style="font-size:18px;font-weight:800;color:#0EA5E9">${log.trust_score || 85}/100</div>
+        </div>
+        <div class="metric-card" style="padding:10px;text-align:center">
+          <div style="font-size:11px;color:#64748B">Mechanism Clarity</div>
+          <div style="font-size:18px;font-weight:800;color:#10B981">${log.mechanism_clarity_score || 88}/100</div>
+        </div>
+        <div class="metric-card" style="padding:10px;text-align:center">
+          <div style="font-size:11px;color:#64748B">Objection Handling</div>
+          <div style="font-size:18px;font-weight:800;color:#6366F1">${log.objection_handling_score || 82}/100</div>
+        </div>
+        <div class="metric-card" style="padding:10px;text-align:center">
+          <div style="font-size:11px;color:#64748B">Overall Rating</div>
+          <div style="font-size:18px;font-weight:800;color:#F59E0B">${log.overall_call_score || 85}/100</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-bottom:6px">⚡ 2–3 Actionable Founder Coaching Improvements:</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${tips.map(t => `<div style="font-size:12px;color:#1E293B;background:#FFFFFF;padding:8px 12px;border-radius:6px;border:1px solid #E2E8F0">• ${t}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── SUB-TAB 4: OBJECTION LIBRARY ────────────────────────────────────────────
+function renderConversionObjectionsTab() {
+  return `
+    <div class="dash-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div class="dash-card-title">Founder Objection Library</div>
+          <div class="dash-card-sub">Pre-scripted winning responses for common founder sales objections</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${CONVERSION_OBJECTIONS && CONVERSION_OBJECTIONS.length > 0 ? CONVERSION_OBJECTIONS.map(o => `
+          <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700;font-size:13.5px;color:#0F172A">"${o.objection_text}"</div>
+              <div style="display:flex;gap:6px">
+                <span class="sb-badge blue">${o.category || 'GENERAL'}</span>
+                <span class="sb-badge green">${o.success_rate || 80}% Success Rate</span>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#475569;margin-top:6px;background:#FFFFFF;padding:10px;border-radius:6px;border:1px solid #CBD5E1">
+              <strong>Founder Script:</strong> ${o.founder_response_script}
+            </div>
+            ${o.winning_angle ? `<div style="font-size:11.5px;color:#6366F1;margin-top:4px;font-weight:600">⚡ Winning Angle: ${o.winning_angle}</div>` : ''}
+          </div>
+        `).join('') : `
+          <div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
+            No objection scripts saved in library yet.
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+// ── SUB-TAB 5: CLOSER ROOM PREP SHEET ───────────────────────────────────────
+function renderConversionCloserSubTab() {
+  return `
+    <div class="dash-card">
+      <div class="dash-card-title">Closer Room Pre-Call Prep Sheet</div>
+      <div class="dash-card-sub">Assembles a customized pre-call brief grounded in Business DNA, ICP Pains, Offer Promise, and Founder Objection Scripts.</div>
+
+      <div style="margin:14px 0;display:flex;gap:10px;align-items:center">
+        <label style="font-weight:700;font-size:13px;color:#0F172A">Select Active Deal for Prep Sheet:</label>
+        <select id="closer-deal-select" style="padding:8px 12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;font-size:13px" onchange="loadCloserPrepSheet(this.value)">
+          <option value="">Choose Deal...</option>
+          ${CONVERSION_DEALS.map(d => `<option value="${d.id}">${d.deal_name || d.dealName} (${d.contact_name || d.contactName})</option>`).join('')}
+        </select>
+      </div>
+
+      <div id="closer-prep-display">
+        ${CONVERSION_CLOSER_PREP ? renderCloserPrepContent(CONVERSION_CLOSER_PREP) : `
+          <div style="padding:24px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px">
+            Select a deal above to generate the Closer Room Pre-Call Prep Sheet.
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderCloserPrepContent(prep) {
+  const deal = prep.deal || {};
+  const pos = prep.positioning || POSITIONING;
+
+  return `
+    <div style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;padding:16px">
+      <div style="font-size:16px;font-weight:800;color:#0F172A;margin-bottom:4px">Pre-Call Prep: ${deal.deal_name} (${deal.contact_name})</div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:12px">Stage: ${deal.stage} | Target Value: $${(deal.amount || 12500).toLocaleString()}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div style="background:#F8FAFC;padding:10px;border-radius:8px;border:1px solid #E2E8F0">
+          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Core ICP Pain</div>
+          <div style="font-size:12.5px;font-weight:600;color:#0F172A;margin-top:2px">${pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck'}</div>
+        </div>
+        <div style="background:#F8FAFC;padding:10px;border-radius:8px;border:1px solid #E2E8F0">
+          <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Unique Mechanism</div>
+          <div style="font-size:12.5px;font-weight:600;color:#0F172A;margin-top:2px">${pos.mechanism || 'The ASENZO 5-Engine Growth OS Framework'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── SUB-TAB 6: DELIVERY HANDOFFS ────────────────────────────────────────────
+function renderConversionHandoffSubTab() {
+  const wonDeals = CONVERSION_DEALS.filter(d => d.status === 'WON' || d.stage === 'CLOSED_WON');
+
+  return `
+    <div class="dash-card">
+      <div class="dash-card-title">Deal-Won Delivery OS Handoffs</div>
+      <div class="dash-card-sub">Automatic handoff checklists triggered when deals are marked CLOSED_WON.</div>
+
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+        ${wonDeals.length > 0 ? wonDeals.map(d => `
+          <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700;font-size:14px;color:#0F172A">${d.deal_name || d.dealName}</div>
+              <span class="sb-badge green">CLOSED_WON ✓</span>
+            </div>
+            <div style="font-size:12px;color:#64748B;margin-top:4px">Client: ${d.contact_name || d.contactName} | Amount: $${(d.amount || 0).toLocaleString()}</div>
+            <div style="font-size:11.5px;color:#10B981;margin-top:6px;font-weight:600">🚀 Delivery OS Onboarding Checklist active & assigned to Alex Morgan.</div>
+          </div>
+        `).join('') : `
+          <div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
+            No CLOSED_WON deals yet. Mark a deal won in the CRM Pipeline to generate delivery handoff.
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+// ── CONVERSION OS MODAL & API HANDLERS ──────────────────────────────────────
+function openDealModal(dealId) {
+  document.getElementById('deal-id').value = '';
+  document.getElementById('deal-name').value = '';
+  document.getElementById('deal-contact').value = '';
+  document.getElementById('deal-email').value = '';
+  document.getElementById('deal-val').value = 12500;
+  document.getElementById('deal-stage').value = 'QUALIFIED_LEAD';
+  document.getElementById('deal-priority').value = 'HIGH';
+  document.getElementById('deal-attention').value = '0';
+  document.getElementById('deal-attention-reason').value = '';
+  document.getElementById('deal-notes').value = '';
+
+  if (dealId) {
+    const d = CONVERSION_DEALS.find(x => String(x.id) === String(dealId));
+    if (d) {
+      document.getElementById('deal-id').value = d.id;
+      document.getElementById('deal-name').value = d.deal_name || d.dealName || '';
+      document.getElementById('deal-contact').value = d.contact_name || d.contactName || '';
+      document.getElementById('deal-email').value = d.contact_email || d.contactEmail || '';
+      document.getElementById('deal-val').value = d.amount || 12500;
+      document.getElementById('deal-stage').value = d.stage || 'QUALIFIED_LEAD';
+      document.getElementById('deal-priority').value = d.priority || 'HIGH';
+      document.getElementById('deal-attention').value = d.founder_attention_required ? '1' : '0';
+      document.getElementById('deal-attention-reason').value = d.attention_reason || d.attentionReason || '';
+      document.getElementById('deal-notes').value = d.notes || '';
+    }
+  }
+
+  document.getElementById('deal-modal').classList.remove('hidden');
+}
+
+function closeDealModal() {
+  document.getElementById('deal-modal').classList.add('hidden');
+}
+
+async function handleCreateDeal(e) {
+  e.preventDefault();
+  const id = document.getElementById('deal-id').value;
+  const payload = {
+    dealName: document.getElementById('deal-name').value.trim(),
+    contactName: document.getElementById('deal-contact').value.trim(),
+    contactEmail: document.getElementById('deal-email').value.trim(),
+    amount: Number(document.getElementById('deal-val').value) || 12500,
+    stage: document.getElementById('deal-stage').value,
+    priority: document.getElementById('deal-priority').value,
+    founderAttentionRequired: document.getElementById('deal-attention').value === '1',
+    attentionReason: document.getElementById('deal-attention-reason').value.trim(),
+    notes: document.getElementById('deal-notes').value.trim()
+  };
+
+  try {
+    if (window.ASENZO_API) {
+      if (id) {
+        await window.ASENZO_API.updateDeal(id, payload);
+        showToast('Deal updated successfully');
+      } else {
+        await window.ASENZO_API.createDeal(payload);
+        showToast('New deal created in Conversion OS pipeline');
+      }
+    }
+    closeDealModal();
+    renderConversion();
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+function openSalesCallModal() {
+  const select = document.getElementById('call-deal-id');
+  if (select) {
+    select.innerHTML = '<option value="">Select Active Deal...</option>' +
+      CONVERSION_DEALS.map(d => `<option value="${d.id}">${d.deal_name || d.dealName}</option>`).join('');
+  }
+  document.getElementById('sales-call-modal').classList.remove('hidden');
+}
+
+function closeSalesCallModal() {
+  document.getElementById('sales-call-modal').classList.add('hidden');
+}
+
+async function handleSaveSalesCall(e) {
+  e.preventDefault();
+  const payload = {
+    dealId: document.getElementById('call-deal-id').value,
+    callType: document.getElementById('call-type').value,
+    outcome: document.getElementById('call-outcome').value,
+    founderCallRating: Number(document.getElementById('call-rating').value) || 4,
+    isBenchmarkCall: document.getElementById('call-is-benchmark').value === '1',
+    transcriptText: document.getElementById('call-transcript').value.trim()
+  };
+
+  try {
+    if (window.ASENZO_API) {
+      const createdCall = await window.ASENZO_API.logSalesCall(payload);
+      showToast('Sales call transcript saved');
+
+      // Run AI coaching analysis on the newly logged call
+      if (createdCall && createdCall.id) {
+        const coachRes = await window.ASENZO_API.analyzeSalesCallCoaching(createdCall.id);
+        CONVERSION_COACHING_RESULT = coachRes;
+        CONVERSION_SUB_TAB = 'coaching';
+        showToast('⚡ Post-Call AI Coaching Analysis Completed');
+      }
+    }
+    closeSalesCallModal();
+    renderConversion();
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleTagBenchmarkCall(callId, isBenchmark) {
+  try {
+    if (window.ASENZO_API) {
+      await window.ASENZO_API.tagBenchmarkCall(callId, { isBenchmarkCall: isBenchmark });
+      showToast(`Benchmark tag updated (${isBenchmark ? 'Tagged' : 'Untagged'})`);
+    }
+    renderConversion();
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleRunCoachingAnalysis(callId) {
+  try {
+    if (window.ASENZO_API) {
+      showToast('⚡ Analyzing transcript against founder benchmark patterns...');
+      const res = await window.ASENZO_API.analyzeSalesCallCoaching(callId);
+      CONVERSION_COACHING_RESULT = res;
+      CONVERSION_SUB_TAB = 'coaching';
+      renderConversion();
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleMarkDealWon(dealId) {
+  try {
+    if (window.ASENZO_API) {
+      const res = await window.ASENZO_API.markDealWon(dealId, { forceWin: true });
+      showToast(res.message || 'Deal marked as CLOSED_WON successfully!');
+    }
+    renderConversion();
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function loadCloserPrepSheet(dealId) {
+  try {
+    if (window.ASENZO_API && dealId) {
+      CONVERSION_CLOSER_PREP = await window.ASENZO_API.getCloserRoomPrep(dealId);
+      CONVERSION_SUB_TAB = 'closer';
+      renderConversion();
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
 }
 
 // ── 4. ENGINE 3 — DELIVERY OS ──────────────────────────────────────────────
