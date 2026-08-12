@@ -11,7 +11,8 @@ let baseUrl;
 
 function apiRequest(path, method = 'GET', body = null) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, baseUrl);
+    const apiPath = path.startsWith('/api') ? path : `/api${path}`;
+    const url = new URL(apiPath, baseUrl);
     const options = {
       method,
       headers: {
@@ -39,18 +40,15 @@ function apiRequest(path, method = 'GET', body = null) {
   });
 }
 
-test.before((t, done) => {
-  if (server.listening) {
-    const port = server.address().port;
-    baseUrl = `http://localhost:${port}`;
-    done();
-  } else {
-    server.listen(0, () => {
-      const port = server.address().port;
-      baseUrl = `http://localhost:${port}`;
-      done();
-    });
+const { initDbPromise } = require('../db');
+
+test.before(async () => {
+  await initDbPromise;
+  if (!server.listening) {
+    await new Promise(resolve => server.listen(0, resolve));
   }
+  const port = server.address().port;
+  baseUrl = `http://localhost:${port}`;
 });
 
 test.after((t, done) => {

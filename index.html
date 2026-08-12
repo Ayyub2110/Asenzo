@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="styles.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 </head>
 <body>
 
@@ -399,76 +400,69 @@
   <!-- ══════════════ MAIN FULLSCREEN VIEWPORT SHELL ══════════════ -->
   <div class="app-shell">
 
-    <!-- ══════════════ LEFT SIDEBAR (ASENZO FINTECHX UI) ══════════════ -->
+    <!-- ══════════════ LEFT SIDEBAR (GOOGLE STITCH AMBIENT OS) ══════════════ -->
     <aside class="sidebar" id="sidebar">
       
       <!-- Top Brand Header -->
       <div class="sb-top">
         <div class="sb-brand" onclick="go('overview', document.getElementById('nav-overview'))">
           <div class="sb-logo">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
+            <span class="material-symbols-outlined" style="font-size:22px">space_dashboard</span>
           </div>
           <span class="sb-title">ASENZO OS</span>
         </div>
         <button class="sb-collapse-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          <span class="material-symbols-outlined" style="font-size:18px">chevron_left</span>
         </button>
       </div>
 
-      <!-- Sidebar Navigation Menu (5 ASENZO Engines + Overview + Calendar) -->
+      <!-- Sidebar Navigation Menu -->
       <nav class="sb-nav">
         <div class="sb-item active" id="nav-overview" onclick="go('overview', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span class="material-symbols-outlined">grid_view</span>
           <span class="sb-label">Overview</span>
         </div>
 
         <div class="sb-item" id="nav-attention" onclick="go('attention', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/></svg>
-          <span class="sb-label">1. Attention OS</span>
-          <span class="sb-badge">Engine 1</span>
+          <span class="material-symbols-outlined">auto_graph</span>
+          <span class="sb-label">Attention OS</span>
         </div>
 
         <div class="sb-item" id="nav-conversion" onclick="go('conversion', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H3v5m18 0v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7m18 0H3m8-5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4"/></svg>
-          <span class="sb-label">2. Conversion OS</span>
-          <span class="sb-badge">Engine 2</span>
+          <span class="material-symbols-outlined">payments</span>
+          <span class="sb-label">Conversion OS</span>
         </div>
 
         <div class="sb-item" id="nav-delivery" onclick="go('delivery', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-          <span class="sb-label">3. Delivery OS</span>
-          <span class="sb-badge">Engine 3</span>
+          <span class="material-symbols-outlined">hub</span>
+          <span class="sb-label">Delivery OS</span>
         </div>
 
         <div class="sb-item" id="nav-intelligence" onclick="go('intelligence', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span class="sb-label">4. Intelligence OS</span>
-          <span class="sb-badge green">AI</span>
+          <span class="material-symbols-outlined">psychology</span>
+          <span class="sb-label">Intelligence OS</span>
         </div>
 
         <div class="sb-item" id="nav-operator" onclick="go('operator', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 15h.01M16 15h.01"/></svg>
-          <span class="sb-label">5. Operator OS</span>
-          <span class="sb-badge">Engine 5</span>
+          <span class="material-symbols-outlined">architecture</span>
+          <span class="sb-label">Operator OS</span>
         </div>
 
         <div class="sb-item" id="nav-calendar" onclick="go('calendar', this)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="material-symbols-outlined">calendar_today</span>
           <span class="sb-label">Growth Calendar</span>
-          <span class="sb-badge red">3</span>
         </div>
       </nav>
 
       <!-- Sidebar FIS Score Card -->
       <div class="sb-upgrade-card">
-        <div class="sb-upgrade-img-wrap">
-          <img src="gold_star_coin.png" alt="Star Coin" class="sb-upgrade-img"/>
+        <div class="sb-upgrade-icon-wrap">
+          <span class="material-symbols-outlined" style="font-size:24px;color:#FFD700">bolt</span>
         </div>
-        <div class="sb-upgrade-text">Founder Independence:<br/><strong style="font-size:14px;color:#10B981">84 / 100 — High Systemization</strong></div>
+        <div class="sb-upgrade-text">
+          Founder Independence<br/>
+          <strong style="font-size:14px;color:#ffffff">84 / 100 — Score</strong>
+        </div>
         <button class="sb-upgrade-btn" onclick="openPanel()">Ask AI Coach</button>
       </div>
 
@@ -479,40 +473,29 @@
       
       <!-- Top Header Navigation Bar -->
       <header class="topbar">
-        <div class="topbar-title" id="topbar-title">Overview Dashboard</div>
-
-        <!-- Score Badges in Topbar -->
-        <div style="display:flex;gap:10px;align-items:center;margin-left:14px">
-          <div style="background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700">
-            FIS Score: 84/100
-          </div>
-          <div style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700">
-            Health: 92/100
-          </div>
-        </div>
+        <div class="topbar-title" id="topbar-title">Growth Command</div>
 
         <!-- Search Bar Input -->
         <div class="topbar-search" onclick="openPalette()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input placeholder="Search ASENZO engines (⌘K)..." readonly/>
-          <kbd>⌘K</kbd>
+          <span class="material-symbols-outlined" style="font-size:18px;color:#64748B">search</span>
+          <input placeholder="Search ASENZO engines..." readonly/>
+          <kbd style="font-size:11px;font-weight:700;color:#94A3B8;background:#F1F5F9;padding:2px 6px;border-radius:4px">⌘K</kbd>
         </div>
 
         <!-- Top Right Actions & User Profile -->
         <div class="topbar-right">
           <div class="notif-wrap" onclick="toggleNotifs()">
             <button class="notif-btn" title="Notifications">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
             </button>
             <span class="notif-badge">2</span>
           </div>
 
           <div class="user-btn" onclick="openPanel()">
             <div class="user-avatar">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Alex Morgan" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 32 32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%230284c7\'/><text x=\'50%\' y=\'55%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'white\' font-size=\'14\' font-weight=\'bold\'>A</text></svg>'"/>
+              <span class="material-symbols-outlined" style="font-size:22px;color:#0058bc">account_circle</span>
             </div>
-            <span class="user-name">Alex — Growth Operator</span>
-            <svg class="user-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <span class="user-name" style="font-size:13px;font-weight:700;color:#121214">Alex Morgan</span>
           </div>
         </div>
       </header>
