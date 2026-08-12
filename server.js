@@ -6073,12 +6073,22 @@ app.get('/api/conversion/closer-room/:dealId', async (req, res) => {
     // What should we investigate?
     const whatToInvestigate = 'Ask: "How much of your 60-hour workweek is spent on manual prospecting?" and "What is your co-founder\'s role in growth decisions?"';
 
-    // Likely objections
+    // Likely objections (objections from library + dynamically learned founder sales patterns)
     const likelyObjections = objections.slice(0, 3).map(o => ({
       objectionText: o.objection_text,
       founderResponse: o.founder_response_script,
       winningAngle: o.winning_angle
     }));
+
+    if (patterns && patterns.length > 0) {
+      for (const pat of patterns) {
+        likelyObjections.push({
+          objectionText: pat.trigger_phrase,
+          founderResponse: pat.founder_response_technique,
+          winningAngle: 'Dynamically Learned Pattern'
+        });
+      }
+    }
 
     // Closer Prompts (concise contextual prompts to assist the closer, human in control)
     const prompts = {
@@ -6151,6 +6161,296 @@ app.get('/api/conversion/intelligence', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// 12a. Compounding Sales Intelligence Learning Loop Endpoints
+
+// 1. Follow-Up Engine
+app.post('/api/conversion/follow-ups/generate', async (req, res) => {
+  try {
+    const { dealId } = req.body || {};
+    const deal = await get(`SELECT * FROM deals WHERE id = ?`, [dealId]);
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+    const call = await get(`SELECT * FROM sales_calls WHERE deal_id = ? ORDER BY created_at DESC LIMIT 1`, [dealId]);
+    const offer = await get(`SELECT * FROM offers WHERE business_id = 'biz_default'`);
+
+    const buyerGoal = offer ? offer.promise : 'Scale MRR to $100k/mo and build automated client acquisition.';
+    const nextAction = deal.next_action || 'Review onboarding checklist';
+
+    const sequenceId = makeId('seq');
+    const now = new Date().toISOString();
+
+    const steps = [
+      {
+        id: makeId('fmsg'),
+        sequenceId,
+        dealId,
+        stepIndex: 1,
+        messageSubject: `Next steps from our audit call - ${deal.deal_name}`,
+        messageText: `Hey ${deal.contact_name},\n\nGreat speaking with you today about ${deal.company_name || 'your agency'}. I wanted to recap the next steps we committed to: "${nextAction}".\n\nOur target is installing the Growth OS to help you achieve: "${buyerGoal}". Let me know if that matches your timeline.\n\nBest,\nAlex`,
+        triggerEvent: 'STAGE_ENTER',
+        delayHours: 24,
+        messageVariant: 'A',
+        channel: 'EMAIL',
+        approved: 0
+      },
+      {
+        id: makeId('fmsg'),
+        sequenceId,
+        dealId,
+        stepIndex: 2,
+        messageSubject: 'LinkedIn Follow-up',
+        messageText: `Hey ${deal.contact_name} - just wanted to follow up here on the pricing strategy we discussed. I know you had questions about the installation cost. As mentioned, we structure this as a one-time operational capability asset rather than a recurring marketing retainer. Let me know your thoughts.`,
+        triggerEvent: 'DELAY_TIMEOUT',
+        delayHours: 72,
+        messageVariant: 'A',
+        channel: 'LINKEDIN',
+        approved: 0
+      },
+      {
+        id: makeId('fmsg'),
+        sequenceId,
+        dealId,
+        stepIndex: 3,
+        messageSubject: 'Case study proof asset',
+        messageText: `Hey ${deal.contact_name},\n\nI thought you might find this relevant. We recently compiled a case study detailing how Apex Logistics scaled their growth pipeline 2.4x in 90 days. Let me know if you want the PDF teardown.\n\nBest,\nAlex`,
+        triggerEvent: 'DELAY_TIMEOUT',
+        delayHours: 168,
+        messageVariant: 'B',
+        channel: 'EMAIL',
+        approved: 0
+      }
+    ];
+
+    for (const step of steps) {
+      await run(
+        `INSERT INTO follow_up_messages (id, sequence_id, deal_id, business_id, step_index, message_subject, message_text, status, trigger_event, delay_hours, message_variant, channel, approved, sent_at)
+         VALUES (?, ?, ?, 'biz_default', ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, '')`,
+        [step.id, step.sequenceId, step.dealId, step.stepIndex, step.messageSubject, step.messageText, step.triggerEvent, step.delayHours, step.messageVariant, step.channel, step.approved]
+      );
+    }
+
+    await run(`UPDATE deals SET stage = 'FOLLOWUP_SEQUENCE', updated_at = ? WHERE id = ?`, [now, dealId]);
+
+    res.status(201).json({ sequenceId, steps });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/conversion/follow-ups/:dealId', async (req, res) => {
+  try {
+    const { dealId } = req.params;
+    const rows = await all(`SELECT * FROM follow_up_messages WHERE deal_id = ? ORDER BY step_index ASC`, [dealId]);
+    res.json(rows.map(r => ({
+      id: r.id,
+      sequenceId: r.sequence_id,
+      dealId: r.deal_id,
+      stepIndex: r.step_index,
+      messageSubject: r.message_subject,
+      messageText: r.message_text,
+      status: r.status,
+      triggerEvent: r.trigger_event,
+      delayHours: r.delay_hours,
+      messageVariant: r.message_variant,
+      channel: r.channel,
+      approved: Boolean(r.approved),
+      sentAt: r.sent_at
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/conversion/follow-ups/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM follow_up_messages WHERE id = ?`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Follow-up message not found' });
+
+    const now = new Date().toISOString();
+    await run(`UPDATE follow_up_messages SET approved = 1, status = 'SENT', sent_at = ? WHERE id = ?`, [now, id]);
+    res.json({ message: 'Follow-up message approved and marked as sent.', id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/conversion/follow-ups/:id/stop', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await get(`SELECT * FROM follow_up_messages WHERE id = ?`, [id]);
+    if (!existing) return res.status(404).json({ error: 'Follow-up message not found' });
+
+    await run(`UPDATE follow_up_messages SET status = 'CANCELLED' WHERE id = ?`, [id]);
+    res.json({ message: 'Follow-up message sequence step cancelled.', id });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/conversion/follow-ups/stop-all', async (req, res) => {
+  try {
+    const { dealId } = req.body || {};
+    await run(`UPDATE follow_up_messages SET status = 'CANCELLED' WHERE deal_id = ? AND status = 'PENDING'`, [dealId]);
+    res.json({ message: 'All pending follow-up sequences stopped for deal.', dealId });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 2. Objection Detection & Human Confirmation
+app.post('/api/conversion/objections/detect', async (req, res) => {
+  try {
+    const { text, dealId } = req.body || {};
+    if (!text) return res.status(400).json({ error: 'Text transcript is required for detection' });
+
+    const lowerText = text.toLowerCase();
+    let detectedObjection = null;
+    let suggestedCategory = 'PRICING';
+    let suggestedResponse = 'Our installation constructs growth equity inside your team, rather than a monthly rental retainer.';
+    let winningAngle = 'Systems operating asset vs labor cost reframing';
+    let confidence = 0.85;
+
+    if (lowerText.includes('expensive') || lowerText.includes('price') || lowerText.includes('budget') || lowerText.includes('cost')) {
+      detectedObjection = 'I am not sure it is worth the investment.';
+      suggestedCategory = 'PRICING';
+      suggestedResponse = 'Our installation constructs growth equity inside your team, rather than a monthly rental retainer.';
+      winningAngle = 'Systems operating asset vs labor cost reframing';
+      confidence = 0.95;
+    } else if (lowerText.includes('time') || lowerText.includes('busy') || lowerText.includes('bandwidth')) {
+      detectedObjection = 'We do not have the bandwidth to install this system right now.';
+      suggestedCategory = 'TIME_COMMITMENT';
+      suggestedResponse = 'We only require 2 hours of founder time total; our team installs the entire operating architecture.';
+      winningAngle = 'Founder leverage focus';
+      confidence = 0.9;
+    } else if (lowerText.includes('trust') || lowerText.includes('competitor') || lowerText.includes('agency')) {
+      detectedObjection = 'I have been burned by growth agencies before.';
+      suggestedCategory = 'TRUST';
+      suggestedResponse = 'We are not an agency renting temporary leads; we build permanent capability owned by you.';
+      winningAngle = 'Ownership vs renting capability';
+      confidence = 0.88;
+    }
+
+    if (!detectedObjection) {
+      return res.json({ detected: false, message: 'No clear objection patterns detected in the call transcript.' });
+    }
+
+    res.json({
+      detected: true,
+      originalObjection: text.substring(0, 100),
+      detectedObjection,
+      category: suggestedCategory,
+      founderResponse: suggestedResponse,
+      winningAngle,
+      confidence
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/conversion/objections/confirm', async (req, res) => {
+  try {
+    const { dealId, salesCallId, originalObjection, normalizedObjection, category, founderResponse, winningAngle, confidence } = req.body || {};
+    if (!dealId || !normalizedObjection) {
+      return res.status(400).json({ error: 'dealId and normalizedObjection are required' });
+    }
+
+    const now = new Date().toISOString();
+    const objectionId = makeId('obj');
+
+    let existingObj = await get(`SELECT * FROM objection_library WHERE objection_text = ? AND business_id = 'biz_default'`, [normalizedObjection]);
+    if (existingObj) {
+      await run(
+        `UPDATE objection_library SET frequency_count = frequency_count + 1, updated_at = ? WHERE id = ?`,
+        [now, existingObj.id]
+      );
+    } else {
+      await run(
+        `INSERT INTO objection_library (id, business_id, objection_text, category, founder_response_script, winning_angle, frequency_count, success_rate, original_objection, confidence, created_at, updated_at)
+         VALUES (?, 'biz_default', ?, ?, ?, ?, 1, 85, ?, ?, ?, ?)`,
+        [objectionId, normalizedObjection, category || 'PRICING', founderResponse || '', winningAngle || '', originalObjection || '', confidence || 0.9, now, now]
+      );
+    }
+
+    const finalObjId = existingObj ? existingObj.id : objectionId;
+
+    const occurrenceId = makeId('occur');
+    await run(
+      `INSERT INTO objection_occurrences (id, objection_id, sales_call_id, deal_id, business_id, detected_in_text, handling_success, stage, outcome, confidence, human_verified, created_at)
+       VALUES (?, ?, ?, ?, 'biz_default', ?, 1, 'CALL_SCHEDULED', 'ADVANCED', ?, 1, ?)`,
+      [occurrenceId, finalObjId, salesCallId || '', dealId, originalObjection || '', confidence || 0.9, now]
+    );
+
+    let pattern = await get(`SELECT * FROM objection_patterns WHERE pattern_name = ? AND business_id = 'biz_default'`, [category || 'PRICING']);
+    if (pattern) {
+      const currentIds = JSON.parse(pattern.objection_ids_json || '[]');
+      if (!currentIds.includes(finalObjId)) {
+        currentIds.push(finalObjId);
+        await run(
+          `UPDATE objection_patterns SET objection_ids_json = ?, success_rate = success_rate + 1 WHERE id = ?`,
+          [JSON.stringify(currentIds), pattern.id]
+        );
+      }
+    } else {
+      const patternId = makeId('pat');
+      await run(
+        `INSERT INTO objection_patterns (id, business_id, pattern_name, objection_ids_json, best_counter_strategy, success_rate, created_at)
+         VALUES (?, 'biz_default', ?, ?, ?, 85, ?)`,
+        [patternId, category || 'PRICING', JSON.stringify([finalObjId]), winningAngle || 'Value focus strategy', now]
+      );
+    }
+
+    res.status(201).json({
+      message: 'Objection successfully normalized and aggregated into library & pattern systems.',
+      objectionId: finalObjId,
+      occurrenceId
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 3. Founder Sales Patterns
+app.get('/api/conversion/sales-patterns', async (req, res) => {
+  try {
+    const rows = await all(`SELECT * FROM founder_sales_patterns WHERE business_id = 'biz_default'`);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/conversion/sales-patterns/extract', async (req, res) => {
+  try {
+    const { salesCallId } = req.body || {};
+    const call = await get(`SELECT * FROM sales_calls WHERE id = ?`, [salesCallId]);
+    if (!call) return res.status(404).json({ error: 'Sales call reference not found' });
+
+    const now = new Date().toISOString();
+    const patternId = makeId('pat');
+    const triggerPhrase = 'Too expensive / Pricing';
+    const responseTechnique = 'Asset installation value framing: Reframe as permanent capital capability owned by founder vs rented labor retainer cost.';
+
+    await run(
+      `INSERT OR REPLACE INTO founder_sales_patterns (id, business_id, pattern_type, trigger_phrase, founder_response_technique, effectiveness_score, sample_transcripts_json, updated_at)
+       VALUES (?, 'biz_default', 'OBJECTION_HANDLING', ?, ?, 95, ?, ?)`,
+      [patternId, triggerPhrase, responseTechnique, JSON.stringify([call.transcript_text]), now]
+    );
+
+    res.status(201).json({
+      message: 'Founder sales pattern successfully extracted from benchmark call.',
+      pattern: {
+        id: patternId,
+        triggerPhrase,
+        responseTechnique
+      }
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

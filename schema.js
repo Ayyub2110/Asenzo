@@ -794,7 +794,9 @@ const ObjectionItemFullSchema = z.object({
   founderResponseScript: z.string().min(5, 'Founder response script is required'),
   winningAngle: z.string().nullable().optional().default('Refine pricing as operating system vs agency retainer cost'),
   frequencyCount: z.number().int().optional().default(1),
-  successRate: z.number().min(0).max(100).optional().default(80)
+  successRate: z.number().min(0).max(100).optional().default(80),
+  originalObjection: z.string().nullable().optional().default(''),
+  confidence: z.number().optional().default(0.9)
 });
 
 const ProposalFullSchema = z.object({
@@ -1000,6 +1002,11 @@ const FollowUpMessageSchema = z.object({
   messageSubject: z.string().min(1, 'Subject is required'),
   messageText: z.string().min(1, 'Message text is required'),
   status: z.enum(['PENDING', 'SENT', 'FAILED', 'CANCELLED']).default('PENDING'),
+  triggerEvent: z.string().nullable().optional().default('STAGE_ENTER'),
+  delayHours: z.number().int().optional().default(24),
+  messageVariant: z.string().nullable().optional().default('A'),
+  channel: z.string().nullable().optional().default('EMAIL'),
+  approved: z.boolean().optional().default(false),
   sentAt: z.string().nullable().optional().default('')
 });
 
@@ -1010,7 +1017,11 @@ const ObjectionOccurrenceSchema = z.object({
   dealId: z.string().min(1, 'Deal ID is required'),
   businessId: z.string().nullable().optional().default('biz_default'),
   detectedInText: z.string().nullable().optional().default(''),
-  handlingSuccess: z.boolean().optional().default(true)
+  handlingSuccess: z.boolean().optional().default(true),
+  stage: z.string().nullable().optional().default('CALL_SCHEDULED'),
+  outcome: z.string().nullable().optional().default('ADVANCED'),
+  confidence: z.number().optional().default(0.85),
+  humanVerified: z.boolean().optional().default(false)
 });
 
 const ObjectionPatternSchema = z.object({

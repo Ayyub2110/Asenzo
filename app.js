@@ -2526,6 +2526,8 @@ let CONVERSION_CLOSER_PREP = null;
 let CONVERSION_INTELLIGENCE = null;
 let CALENDAR_SLOTS = [];
 let CLOSER_ROOM_TAB = 'precall';
+let CONVERSION_FOLLOW_UPS = [];
+let CONVERSION_SALES_PATTERNS = [];
 
 // New state stores for Profile Funnel, AI Qualifier, and Story Sequence
 let CONVERSION_FUNNEL = null;
@@ -3223,9 +3225,51 @@ function renderCloserPrepContent(prep) {
           <textarea id="post-call-notes" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:13px" placeholder="Stated bottlenecks, current conversion rates, tech stack issues..."></textarea>
         </div>
 
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-secondary btn-sm" onclick="handleDetectObjection('${deal.id}')">
+            🔍 Run AI Objection Detection
+          </button>
+        </div>
+
+        ${CONVERSION_DETECTED_OBJECTION ? `
+          <div style="background:#FFFBEB;border:1px solid #FCD34D;padding:12px;border-radius:8px;margin-top:6px">
+            <div style="font-weight:700;font-size:12.5px;color:#B45309;margin-bottom:6px">🛡️ Human Confirmation: Normalize Call Objection</div>
+            <div style="font-size:12px;color:#78350F;margin:4px 0">
+              <strong>Detected Text:</strong> "${CONVERSION_DETECTED_OBJECTION.originalObjection}..."
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#475569">Normalized Objection (Pattern Group Name)</label>
+                <input id="norm-objection-text" value="VALUE / ROI CONCERN" style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit" />
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div>
+                  <label style="font-size:11px;font-weight:700;color:#475569">Category</label>
+                  <select id="norm-objection-category" style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit">
+                    <option value="PRICING" ${CONVERSION_DETECTED_OBJECTION.category === 'PRICING' ? 'selected' : ''}>PRICING</option>
+                    <option value="TIME_COMMITMENT" ${CONVERSION_DETECTED_OBJECTION.category === 'TIME_COMMITMENT' ? 'selected' : ''}>TIME_COMMITMENT</option>
+                    <option value="TRUST" ${CONVERSION_DETECTED_OBJECTION.category === 'TRUST' ? 'selected' : ''}>TRUST</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:11px;font-weight:700;color:#475569">Winning Reframe Angle</label>
+                  <input id="norm-objection-angle" value="${CONVERSION_DETECTED_OBJECTION.winningAngle || 'Value focus strategy'}" style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit" />
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#475569">Founder Response Script</label>
+                <input id="norm-objection-response" value="${CONVERSION_DETECTED_OBJECTION.founderResponse || ''}" style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit" />
+              </div>
+              <button class="btn btn-primary btn-sm" style="font-size:12px;padding:6px;margin-top:4px;background:#B45309;border-color:#D97706" onclick="handleConfirmNormalizedObjection('${deal.id}')">
+                Confirm & Add to Objection Library & Patterns
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
         <div class="form-row">
           <div class="form-group" style="margin-bottom:0">
-            <label>Objections Raised</label>
+            <label>Objections Raised (Raw Tag)</label>
             <input id="post-call-objections" placeholder="e.g. Price, monthly support structure" />
           </div>
           <div class="form-group" style="margin-bottom:0">
@@ -3237,6 +3281,54 @@ function renderCloserPrepContent(prep) {
         <button class="btn btn-primary" style="margin-top:10px" onclick="handleSaveCloserCall('${deal.id}')">
           Log Call & Save Outcomes
         </button>
+      </div>
+    `;
+  } else if (CLOSER_ROOM_TAB === 'followup') {
+    const listHtml = CONVERSION_FOLLOW_UPS.length > 0 ? CONVERSION_FOLLOW_UPS.map(msg => {
+      let statusColor = '#64748B';
+      if (msg.status === 'SENT') statusColor = '#10B981';
+      if (msg.status === 'CANCELLED') statusColor = '#EF4444';
+      
+      return `
+        <div style="background:#FFF;padding:12px;border-radius:8px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;font-weight:700;color:#0EA5E9;text-transform:uppercase">${msg.channel} (Step ${msg.stepIndex})</span>
+            <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase">${msg.status}</span>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#0F172A">Subject: ${msg.messageSubject || 'N/A'}</div>
+          <div style="font-size:12.5px;color:#334155;white-space:pre-wrap;background:#F8FAFC;padding:8px;border-radius:6px;border:1px solid #F1F5F9;font-family:inherit">${msg.messageText}</div>
+          <div style="font-size:11px;color:#64748B">Trigger: ${msg.triggerEvent} | Delay: ${msg.delayHours} Hours | Variant: ${msg.messageVariant}</div>
+          
+          ${msg.status === 'PENDING' ? `
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <button class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 8px" onclick="handleApproveFollowUp('${msg.id}', '${deal.id}')">Approve & Send</button>
+              <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 8px" onclick="handleStopFollowUp('${msg.id}', '${deal.id}')">Cancel Step</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('') : `
+      <div style="text-align:center;padding:24px;color:#64748B;font-size:13px">
+        No follow-up sequence active for this deal opportunity.<br/><br/>
+        <button class="btn btn-primary" onclick="handleGenerateFollowUps('${deal.id}')">
+          ⚡ Generate AI-Drafted Follow-Up Sequence
+        </button>
+      </div>
+    `;
+
+    tabContentHtml = `
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;font-size:14px;color:#0F172A">Automated Context-Aware Follow-Ups</div>
+          ${CONVERSION_FOLLOW_UPS.length > 0 ? `
+            <button class="btn btn-secondary btn-sm" onclick="handleStopAllFollowUps('${deal.id}')">
+              🛑 Stop Entire Sequence
+            </button>
+          ` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          ${listHtml}
+        </div>
       </div>
     `;
   }
@@ -3295,6 +3387,9 @@ function renderCloserPrepContent(prep) {
         </button>
         <button class="btn ${CLOSER_ROOM_TAB === 'postcall' ? 'btn-primary' : 'btn-secondary'}" style="font-size:12px;padding:6px 12px;border-radius:6px 6px 0 0" onclick="switchCloserRoomTab('postcall')">
           3. Post-Call Logger
+        </button>
+        <button class="btn ${CLOSER_ROOM_TAB === 'followup' ? 'btn-primary' : 'btn-secondary'}" style="font-size:12px;padding:6px 12px;border-radius:6px 6px 0 0" onclick="switchCloserRoomTab('followup')">
+          4. Follow-up Engine
         </button>
       </div>
 
@@ -3503,11 +3598,136 @@ async function handleMarkDealWon(dealId) {
 }
 
 async function loadCloserPrepSheet(dealId) {
+  if (!dealId) {
+    CONVERSION_CLOSER_PREP = null;
+    renderConversion();
+    return;
+  }
   try {
-    if (window.ASENZO_API && dealId) {
+    if (window.ASENZO_API) {
       CONVERSION_CLOSER_PREP = await window.ASENZO_API.getCloserRoomPrep(dealId);
+      CALENDAR_SLOTS = await window.ASENZO_API.getCalendarSlots() || [];
+      CONVERSION_FOLLOW_UPS = await window.ASENZO_API.getFollowUpMessages(dealId) || [];
       CONVERSION_SUB_TAB = 'closer';
       renderConversion();
+      setTimeout(() => {
+        const sel = document.getElementById('closer-deal-select');
+        if (sel) sel.value = dealId;
+      }, 50);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleGenerateFollowUps(dealId) {
+  try {
+    if (window.ASENZO_API) {
+      await window.ASENZO_API.generateFollowUpSequence({ dealId });
+      showToast('AI Follow-up sequence generated successfully.');
+      await loadCloserPrepSheet(dealId);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleApproveFollowUp(msgId, dealId) {
+  try {
+    if (window.ASENZO_API) {
+      await window.ASENZO_API.approveFollowUpMessage(msgId);
+      showToast('Follow-up message approved and marked as sent.');
+      await loadCloserPrepSheet(dealId);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleStopFollowUp(msgId, dealId) {
+  try {
+    if (window.ASENZO_API) {
+      await window.ASENZO_API.stopFollowUpMessage(msgId);
+      showToast('Follow-up message cancelled.');
+      await loadCloserPrepSheet(dealId);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleStopAllFollowUps(dealId) {
+  try {
+    if (window.ASENZO_API) {
+      await window.ASENZO_API.stopAllFollowUps(dealId);
+      showToast('All pending follow-up steps stopped.');
+      await loadCloserPrepSheet(dealId);
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+let CONVERSION_DETECTED_OBJECTION = null;
+
+async function handleDetectObjection(dealId) {
+  const notesText = document.getElementById('post-call-notes').value.trim();
+  if (!notesText) {
+    showToast('Please type some call notes first to run detection.');
+    return;
+  }
+  try {
+    if (window.ASENZO_API) {
+      const res = await window.ASENZO_API.detectObjection({ text: notesText, dealId });
+      if (res.detected) {
+        CONVERSION_DETECTED_OBJECTION = res;
+        showToast('Objection detected in transcript!');
+      } else {
+        CONVERSION_DETECTED_OBJECTION = null;
+        showToast(res.message || 'No clear objections detected.');
+      }
+      // Re-render display
+      switchCloserRoomTab('postcall');
+    }
+  } catch (err) {
+    showToast(`⚠️ ${err.message}`);
+  }
+}
+
+async function handleConfirmNormalizedObjection(dealId) {
+  if (!CONVERSION_DETECTED_OBJECTION) return;
+  const normalizedText = document.getElementById('norm-objection-text').value.trim();
+  const categoryVal = document.getElementById('norm-objection-category').value;
+  const responseText = document.getElementById('norm-objection-response').value.trim();
+  const angleText = document.getElementById('norm-objection-angle').value.trim();
+
+  if (!normalizedText) {
+    showToast('Please enter a normalized objection title.');
+    return;
+  }
+
+  try {
+    if (window.ASENZO_API) {
+      const payload = {
+        dealId,
+        originalObjection: CONVERSION_DETECTED_OBJECTION.originalObjection,
+        normalizedObjection: normalizedText,
+        category: categoryVal,
+        founderResponse: responseText,
+        winningAngle: angleText,
+        confidence: CONVERSION_DETECTED_OBJECTION.confidence
+      };
+      await window.ASENZO_API.confirmObjection(payload);
+      
+      const calls = await window.ASENZO_API.getSalesCalls ? await window.ASENZO_API.getSalesCalls() : [];
+      const dealCall = (calls && calls.length > 0) ? (calls.find(c => c.deal_id === dealId) || calls[0]) : { id: 'call_seed_1' };
+      if (dealCall && dealCall.id) {
+        await window.ASENZO_API.extractSalesPattern({ salesCallId: dealCall.id });
+      }
+
+      showToast('Objection normalized, library updated & patterns compiled!');
+      CONVERSION_DETECTED_OBJECTION = null;
+      await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
     showToast(`⚠️ ${err.message}`);

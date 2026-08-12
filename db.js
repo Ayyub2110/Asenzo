@@ -321,7 +321,7 @@ async function initDb() {
 
         // 37. Objection Library
         await run(`CREATE TABLE IF NOT EXISTS objection_library (
-          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, objection_text TEXT NOT NULL, category TEXT DEFAULT 'PRICING', founder_response_script TEXT NOT NULL, winning_angle TEXT DEFAULT '', frequency_count INTEGER DEFAULT 1, success_rate REAL DEFAULT 80, created_at TEXT, updated_at TEXT
+          id TEXT PRIMARY KEY, business_id TEXT NOT NULL, objection_text TEXT NOT NULL, category TEXT DEFAULT 'PRICING', founder_response_script TEXT NOT NULL, winning_angle TEXT DEFAULT '', frequency_count INTEGER DEFAULT 1, success_rate REAL DEFAULT 80, original_objection TEXT DEFAULT '', confidence REAL DEFAULT 0.9, created_at TEXT, updated_at TEXT
         )`);
 
         // 38. Proposals
@@ -402,11 +402,11 @@ async function initDb() {
         )`);
 
         await run(`CREATE TABLE IF NOT EXISTS follow_up_messages (
-          id TEXT PRIMARY KEY, sequence_id TEXT NOT NULL, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, step_index INTEGER DEFAULT 1, message_subject TEXT NOT NULL, message_text TEXT NOT NULL, status TEXT DEFAULT 'PENDING', sent_at TEXT
+          id TEXT PRIMARY KEY, sequence_id TEXT NOT NULL, deal_id TEXT NOT NULL, business_id TEXT NOT NULL, step_index INTEGER DEFAULT 1, message_subject TEXT NOT NULL, message_text TEXT NOT NULL, status TEXT DEFAULT 'PENDING', trigger_event TEXT DEFAULT 'STAGE_ENTER', delay_hours INTEGER DEFAULT 24, message_variant TEXT DEFAULT 'A', channel TEXT DEFAULT 'EMAIL', approved INTEGER DEFAULT 0, sent_at TEXT
         )`);
 
         await run(`CREATE TABLE IF NOT EXISTS objection_occurrences (
-          id TEXT PRIMARY KEY, objection_id TEXT NOT NULL, sales_call_id TEXT DEFAULT '', deal_id TEXT NOT NULL, business_id TEXT NOT NULL, detected_in_text TEXT DEFAULT '', handling_success INTEGER DEFAULT 1, created_at TEXT
+          id TEXT PRIMARY KEY, objection_id TEXT NOT NULL, sales_call_id TEXT DEFAULT '', deal_id TEXT NOT NULL, business_id TEXT NOT NULL, detected_in_text TEXT DEFAULT '', handling_success INTEGER DEFAULT 1, stage TEXT DEFAULT 'CALL_SCHEDULED', outcome TEXT DEFAULT 'ADVANCED', confidence REAL DEFAULT 0.85, human_verified INTEGER DEFAULT 0, created_at TEXT
         )`);
 
         await run(`CREATE TABLE IF NOT EXISTS objection_patterns (
@@ -487,6 +487,20 @@ async function initDb() {
         await addColumn('deals', 'blocking_factor', "TEXT DEFAULT ''");
         await addColumn('deals', 'what_is_happening', "TEXT DEFAULT ''");
         await addColumn('deals', 'loss_reason', "TEXT DEFAULT ''");
+
+        await addColumn('objection_occurrences', 'stage', "TEXT DEFAULT 'CALL_SCHEDULED'");
+        await addColumn('objection_occurrences', 'outcome', "TEXT DEFAULT 'ADVANCED'");
+        await addColumn('objection_occurrences', 'confidence', "REAL DEFAULT 0.85");
+        await addColumn('objection_occurrences', 'human_verified', "INTEGER DEFAULT 0");
+
+        await addColumn('objection_library', 'original_objection', "TEXT DEFAULT ''");
+        await addColumn('objection_library', 'confidence', "REAL DEFAULT 0.9");
+
+        await addColumn('follow_up_messages', 'trigger_event', "TEXT DEFAULT 'STAGE_ENTER'");
+        await addColumn('follow_up_messages', 'delay_hours', "INTEGER DEFAULT 24");
+        await addColumn('follow_up_messages', 'message_variant', "TEXT DEFAULT 'A'");
+        await addColumn('follow_up_messages', 'channel', "TEXT DEFAULT 'EMAIL'");
+        await addColumn('follow_up_messages', 'approved', "INTEGER DEFAULT 0");
 
         const now = new Date().toISOString();
 

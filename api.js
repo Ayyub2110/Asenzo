@@ -241,5 +241,14 @@ window.ASENZO_API = {
   async qualifyDmConversation(id) { return apiFetch(`/dm-conversations/${id}/qualify`, { method: 'POST' }); },
   async generateStorySequence(payload) { return apiFetch('/conversion/story-sequences/generate', { method: 'POST', body: payload }); },
   async getCalendarSlots() { return apiFetch('/conversion/calendar/slots'); },
-  async bookCalendarSlot(payload) { return apiFetch('/conversion/calendar/book', { method: 'POST', body: payload }); }
+  async bookCalendarSlot(payload) { return apiFetch('/conversion/calendar/book', { method: 'POST', body: payload }); },
+  async generateFollowUpSequence(payload) { return apiFetch('/conversion/follow-ups/generate', { method: 'POST', body: payload }); },
+  async getFollowUpMessages(dealId) { return apiFetch(`/conversion/follow-ups/${dealId}`); },
+  async approveFollowUpMessage(id) { return apiFetch(`/conversion/follow-ups/${id}/approve`, { method: 'POST' }); },
+  async stopFollowUpMessage(id) { return apiFetch(`/conversion/follow-ups/${id}/stop`, { method: 'POST' }); },
+  async stopAllFollowUps(dealId) { return apiFetch('/conversion/follow-ups/stop-all', { method: 'POST', body: { dealId } }); },
+  async detectObjection(payload) { return apiFetch('/conversion/objections/detect', { method: 'POST', body: payload }); },
+  async confirmObjection(payload) { return apiFetch('/conversion/objections/confirm', { method: 'POST', body: payload }); },
+  async getSalesPatterns() { return apiFetch('/conversion/sales-patterns'); },
+  async extractSalesPattern(payload) { return apiFetch('/conversion/sales-patterns/extract', { method: 'POST', body: payload }); }
 };
