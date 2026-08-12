@@ -1078,11 +1078,8 @@ When you replace random agency retainers with a production-grade Growth Operatin
   });
 }
 
-<<<<<<< HEAD
-const initReady = initDb().catch(console.error);
-=======
 const initDbPromise = initDb().catch(console.error);
->>>>>>> 40f88f4aeb372d39cf93fcf289da686d63b47083
+const initReady = initDbPromise;
 
 module.exports = {
   db,
@@ -1090,9 +1087,6 @@ module.exports = {
   get,
   all,
   logAudit,
-<<<<<<< HEAD
+  initDbPromise,
   initReady
-=======
-  initDbPromise
->>>>>>> 40f88f4aeb372d39cf93fcf289da686d63b47083
 };

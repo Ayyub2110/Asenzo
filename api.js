@@ -237,5 +237,7 @@ window.ASENZO_API = {
   async getProfileFunnelVersions(id) { return apiFetch(`/conversion/profile-funnels/${id}/versions`); },
   async getProfileFunnelPreview(id) { return apiFetch(`/conversion/profile-funnels/${id}/preview`); },
   async trackFunnelEvent(id, payload) { return apiFetch(`/conversion/profile-funnels/${id}/events`, { method: 'POST', body: payload }); },
-  async getProfileFunnelAnalytics(id, environment = 'PRODUCTION') { return apiFetch(`/conversion/profile-funnels/${id}/analytics?environment=${environment}`); }
+  async getProfileFunnelAnalytics(id, environment = 'PRODUCTION') { return apiFetch(`/conversion/profile-funnels/${id}/analytics?environment=${environment}`); },
+  async qualifyDmConversation(id) { return apiFetch(`/dm-conversations/${id}/qualify`, { method: 'POST' }); },
+  async generateStorySequence(payload) { return apiFetch('/conversion/story-sequences/generate', { method: 'POST', body: payload }); }
 };

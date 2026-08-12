@@ -2525,21 +2525,69 @@ let CONVERSION_COACHING_RESULT = null;
 let CONVERSION_CLOSER_PREP = null;
 let CONVERSION_INTELLIGENCE = null;
 
+// New state stores for Profile Funnel, AI Qualifier, and Story Sequence
+let CONVERSION_FUNNEL = null;
+let CONVERSION_FUNNEL_PREVIEW = null;
+let CONVERSION_FUNNEL_VERSIONS = [];
+let CONVERSION_FUNNEL_ANALYTICS = null;
+let CONVERSION_FUNNEL_ENV = 'PRODUCTION';
+let CONVERSION_CONVERSATIONS = [];
+let CONVERSION_ACTIVE_CONV_ID = null;
+let CONVERSION_ACTIVE_CONV_MESSAGES = [];
+let CONVERSION_AI_TRIAGE_RESULT = null;
+let CONVERSION_STORY_SEQUENCES = [];
+let CONVERSION_ACTIVE_SEQ_ID = null;
+let CONVERSION_STORY_PLATFORM = 'LINKEDIN';
+let CONVERSION_FUNNEL_PREVIEW_MODE = 'BUILDER'; // 'BUILDER' | 'LIVE_PREVIEW' | 'ANALYTICS'
+
 async function renderConversion() {
   const ca = document.getElementById('content-area');
   
   if (window.ASENZO_API) {
     try {
-      const [dash, deals, obj, intel] = await Promise.all([
+      const [dash, deals, obj, intel, funnel, convs, seqs] = await Promise.all([
         window.ASENZO_API.getConversionDashboard(),
         window.ASENZO_API.getDeals(),
         window.ASENZO_API.getObjectionLibrary(),
-        window.ASENZO_API.getConversionIntelligence()
+        window.ASENZO_API.getConversionIntelligence(),
+        window.ASENZO_API.getProfileFunnel(),
+        window.ASENZO_API.getDmConversations(),
+        window.ASENZO_API.getStorySequences()
       ]);
       CONVERSION_DASHBOARD_DATA = dash;
       CONVERSION_DEALS = deals;
       CONVERSION_OBJECTIONS = obj;
       CONVERSION_INTELLIGENCE = intel;
+      CONVERSION_FUNNEL = funnel;
+      CONVERSION_CONVERSATIONS = convs;
+      CONVERSION_STORY_SEQUENCES = seqs;
+
+      // Automatically select active conversation if not set
+      if (!CONVERSION_ACTIVE_CONV_ID && convs && convs.length > 0) {
+        CONVERSION_ACTIVE_CONV_ID = convs[0].id;
+      }
+      
+      // Fetch messages for active conversation
+      if (CONVERSION_ACTIVE_CONV_ID) {
+        CONVERSION_ACTIVE_CONV_MESSAGES = await window.ASENZO_API.getDmMessages(CONVERSION_ACTIVE_CONV_ID);
+      }
+
+      // Automatically select active sequence if not set
+      if (!CONVERSION_ACTIVE_SEQ_ID && seqs && seqs.length > 0) {
+        CONVERSION_ACTIVE_SEQ_ID = seqs[0].id;
+      }
+
+      // Fetch funnel preview, versions, and analytics if a funnel is active
+      if (CONVERSION_FUNNEL && CONVERSION_FUNNEL.id) {
+        const [prev, vers, anal] = await Promise.all([
+          window.ASENZO_API.getProfileFunnelPreview(CONVERSION_FUNNEL.id),
+          window.ASENZO_API.getProfileFunnelVersions(CONVERSION_FUNNEL.id),
+          window.ASENZO_API.getProfileFunnelAnalytics(CONVERSION_FUNNEL.id, CONVERSION_FUNNEL_ENV)
+        ]);
+        CONVERSION_FUNNEL_PREVIEW = prev;
+        CONVERSION_FUNNEL_VERSIONS = vers;
+        CONVERSION_FUNNEL_ANALYTICS = anal;
+      }
     } catch (err) {
       console.warn('Conversion OS data fetch error:', err.message);
     }
@@ -2558,24 +2606,33 @@ async function renderConversion() {
     </div>
 
     <!-- Conversion OS Sub-Tab Navigation Bar -->
-    <div class="engine-tab-bar" style="margin-bottom:18px">
+    <div class="engine-tab-bar" style="margin-bottom:18px; display:flex; flex-wrap:wrap; gap:4px">
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'dashboard' ? 'active' : ''}" onclick="switchConversionSubTab('dashboard')">
         🎯 Action Center
       </div>
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'pipeline' ? 'active' : ''}" onclick="switchConversionSubTab('pipeline')">
-        📊 CRM Pipeline Kanban
+        📊 CRM Kanban
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'funnel' ? 'active' : ''}" onclick="switchConversionSubTab('funnel')">
+        📄 Profile Funnel
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'dm-qualifier' ? 'active' : ''}" onclick="switchConversionSubTab('dm-qualifier')">
+        💬 AI DM Qualifier
+      </div>
+      <div class="engine-tab ${CONVERSION_SUB_TAB === 'story-sequences' ? 'active' : ''}" onclick="switchConversionSubTab('story-sequences')">
+        📖 Story Sequences
       </div>
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'coaching' ? 'active' : ''}" onclick="switchConversionSubTab('coaching')">
-        🎧 Post-Call AI Coaching
+        🎧 AI Coaching
       </div>
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'objections' ? 'active' : ''}" onclick="switchConversionSubTab('objections')">
-        🛡 Objection Library
+        🛡 Objections
       </div>
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'closer' ? 'active' : ''}" onclick="switchConversionSubTab('closer')">
-        📜 Closer Room Prep
+        📜 Closer Prep
       </div>
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'handoff' ? 'active' : ''}" onclick="switchConversionSubTab('handoff')">
-        🚀 Delivery Handoffs
+        🚀 Handoffs
       </div>
     </div>
 
@@ -2597,6 +2654,12 @@ function getConversionSubTabHtml() {
       return renderConversionDashboardSubTab();
     case 'pipeline':
       return renderConversionPipelineSubTab();
+    case 'funnel':
+      return renderConversionFunnelSubTab();
+    case 'dm-qualifier':
+      return renderConversionDmQualifierSubTab();
+    case 'story-sequences':
+      return renderConversionStorySequencesSubTab();
     case 'coaching':
       return renderConversionCoachingSubTab();
     case 'objections':
@@ -2866,7 +2929,7 @@ function renderCoachingResultCard(res) {
 }
 
 // ── SUB-TAB 4: OBJECTION LIBRARY ────────────────────────────────────────────
-function renderConversionObjectionsTab() {
+function renderConversionObjectionsSubTab() {
   return `
     <div class="dash-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -4624,4 +4687,970 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// ── ENGINE 2 EXTRA RENDERING FUNCTIONS ──────────────────────────────────────
+
+function renderConversionFunnelSubTab() {
+  if (!CONVERSION_FUNNEL) {
+    return `
+      <div style="padding:40px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px">
+        <h3 style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px">No Profile Funnel Configured</h3>
+        <p style="font-size:13px;color:#64748B;margin-bottom:16px">You have not initialized a conversion profile funnel yet. Compile one using your existing positioning and authority assets.</p>
+        <button class="btn btn-primary" onclick="handleCompileFunnelFromDna()">⚡ Compile Funnel from Business DNA</button>
+      </div>
+    `;
+  }
+
+  const f = CONVERSION_FUNNEL;
+  const prev = CONVERSION_FUNNEL_PREVIEW || { components: {}, vsl: {}, proofAssets: [], objections: [] };
+  const anal = CONVERSION_FUNNEL_ANALYTICS || { metrics: {} };
+  const m = anal.metrics || {};
+
+  return `
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:20px">
+      <!-- Funnel Workspace Control Center -->
+      <div class="dash-card" style="padding:16px">
+        <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:12px">Funnel Control Center</div>
+        
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <button class="btn ${CONVERSION_FUNNEL_PREVIEW_MODE === 'BUILDER' ? 'btn-primary' : 'btn-secondary'} btn-block" style="text-align:left; font-size:12px; padding:10px; cursor:pointer;" onclick="handlePreviewMode('BUILDER')">
+            ⚙️ Funnel Builder & DNA
+          </button>
+          <button class="btn ${CONVERSION_FUNNEL_PREVIEW_MODE === 'LIVE_PREVIEW' ? 'btn-primary' : 'btn-secondary'} btn-block" style="text-align:left; font-size:12px; padding:10px; cursor:pointer;" onclick="handlePreviewMode('LIVE_PREVIEW')">
+            👁 Live Funnel Preview
+          </button>
+          <button class="btn ${CONVERSION_FUNNEL_PREVIEW_MODE === 'ANALYTICS' ? 'btn-primary' : 'btn-secondary'} btn-block" style="text-align:left; font-size:12px; padding:10px; cursor:pointer;" onclick="handlePreviewMode('ANALYTICS')">
+            📈 Visitor Analytics
+          </button>
+        </div>
+
+        <div style="background:#F1F5F9;padding:12px;border-radius:8px;border:1px solid #E2E8F0;font-size:12px">
+          <div>Status: <span class="sb-badge ${f.publishingStatus === 'PUBLISHED' ? 'green' : 'blue'}" style="margin-left:4px">${f.publishingStatus}</span></div>
+          <div style="margin-top:6px">Active Version: <strong>v${f.version || 1}</strong></div>
+          <div style="margin-top:6px">Url Slug: <code style="background:#FFFFFF;padding:2px 4px;border-radius:4px;border:1px solid #CBD5E1">/${f.slug}</code></div>
+          <div style="margin-top:6px">Last Updated: <span style="color:#64748B">${new Date(f.updatedAt).toLocaleString()}</span></div>
+        </div>
+
+        <div style="margin-top:16px">
+          <button class="btn btn-secondary btn-block btn-sm" onclick="handleCompileFunnelFromDna()">⚡ Re-compile from DNA</button>
+        </div>
+      </div>
+
+      <!-- Funnel Stage Content Area -->
+      <div id="funnel-workspace-content">
+        ${getFunnelWorkspaceContentHtml(f, prev, m)}
+      </div>
+    </div>
+  `;
+}
+
+function getFunnelWorkspaceContentHtml(f, prev, m) {
+  if (CONVERSION_FUNNEL_PREVIEW_MODE === 'BUILDER') {
+    return `
+      <form onsubmit="handleSaveFunnel(event)" class="dash-card" style="display:flex;flex-direction:column;gap:14px">
+        <input type="hidden" id="funnel-id" value="${f.id || ''}" />
+        <div style="font-size:15px;font-weight:800;color:#0F172A;border-bottom:1px solid #E2E8F0;padding-bottom:6px">Funnel Copy & Positioning DNA</div>
+        
+        <div class="form-group">
+          <label>Funnel Title / Internal Identifier</label>
+          <input type="text" id="funnel-title" value="${escapeHtml(f.title)}" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+        </div>
+
+        <div class="form-group">
+          <label>Main Hook Headline</label>
+          <input type="text" id="funnel-headline" value="${escapeHtml(f.headline)}" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Target Audience (ICP)</label>
+            <input type="text" id="funnel-icp" value="${escapeHtml(f.targetIcpSummary)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+          <div class="form-group">
+            <label>Core Friction / Problem</label>
+            <input type="text" id="funnel-problem" value="${escapeHtml(f.coreProblem)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Desired Outcome (Promise)</label>
+            <input type="text" id="funnel-outcome" value="${escapeHtml(f.desiredOutcome)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+          <div class="form-group">
+            <label>Unique Mechanism Name</label>
+            <input type="text" id="funnel-mechanism" value="${escapeHtml(f.uniqueMechanism)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+        </div>
+
+        <div style="font-size:15px;font-weight:800;color:#0F172A;border-bottom:1px solid #E2E8F0;padding-bottom:6px;margin-top:10px">VSL Setup & Scripting</div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>VSL Presentation Title</label>
+            <input type="text" id="funnel-vsl-title" value="${escapeHtml(f.vslTitle)}" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+          <div class="form-group">
+            <label>VSL Video URL / Vimeo Reference</label>
+            <input type="text" id="funnel-vsl-url" value="${escapeHtml(f.vslVideoUrl)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>VSL Hook Script</label>
+          <textarea id="funnel-vsl-hook" rows="2" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;resize:vertical;">${escapeHtml(f.vslHook)}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>VSL Problem Breakdown Script</label>
+          <textarea id="funnel-vsl-problem" rows="2" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;resize:vertical;">${escapeHtml(f.vslProblem)}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>VSL Mechanism & Proof Script</label>
+          <textarea id="funnel-vsl-mechanism" rows="2" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;resize:vertical;">${escapeHtml(f.vslMechanism)}</textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>CTA Button Text</label>
+            <input type="text" id="funnel-cta" value="${escapeHtml(f.vslCtaText)}" required style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+          <div class="form-group">
+            <label>Booking URL (Calendly/Cal.com)</label>
+            <input type="text" id="funnel-booking-url" value="${escapeHtml(f.bookingUrl)}" style="width:100%;padding:8px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+          <button type="submit" class="btn btn-secondary">💾 Save Funnel Copy</button>
+          <button type="button" class="btn btn-primary" onclick="handlePublishFunnel('${f.id}')">🚀 Publish & Version Funnel</button>
+        </div>
+
+        <!-- Versions History List -->
+        <div style="margin-top:16px">
+          <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:8px">Funnel Version History Audit Log</div>
+          <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto">
+            ${CONVERSION_FUNNEL_VERSIONS.map(v => `
+              <div style="background:#F8FAFC;padding:8px 12px;border:1px solid #E2E8F0;border-radius:6px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <strong>v${v.versionNumber}</strong>: ${escapeHtml(v.changeSummary)}
+                  <span style="display:block;font-size:10px;color:#64748B">${new Date(v.createdAt).toLocaleString()}</span>
+                </div>
+                <span class="sb-badge gray">by ${v.createdBy}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </form>
+    `;
+  }
+
+  if (CONVERSION_FUNNEL_PREVIEW_MODE === 'LIVE_PREVIEW') {
+    return `
+      <div class="dash-card" style="padding:0;overflow:hidden;border:1px solid #CBD5E1">
+        <!-- Simulator Top Bar -->
+        <div style="background:#1E293B;color:#FFFFFF;padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#EF4444"></span>
+            <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B"></span>
+            <span style="width:10px;height:10px;border-radius:50%;background:#10B981"></span>
+            <strong style="margin-left:8px;color:#94A3B8">Simulation Device Preview</strong>
+          </div>
+          <div style="font-family:monospace;background:#334155;padding:2px 8px;border-radius:4px">http://localhost:3001/${f.slug}</div>
+        </div>
+
+        <!-- Simulated Landing Page Layout -->
+        <div style="background:#0B0F19;color:#F8FAFC;padding:40px 30px;min-height:480px;font-family:'Plus Jakarta Sans',sans-serif">
+          
+          <!-- Funnel Header -->
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1E293B;padding-bottom:16px;margin-bottom:30px">
+            <div style="font-weight:800;font-size:16px;letter-spacing:1px;color:#FFFFFF">ASENZO <span style="color:#38BDF8">OS</span></div>
+            <button class="btn btn-secondary btn-sm" style="color:#0B0F19;background:#FFFFFF;border:none; cursor:pointer;" onclick="handleTrackSimulatedEvent('CTA_CLICK')">Booking</button>
+          </div>
+
+          <!-- Hero & Headline -->
+          <div style="text-align:center;max-width:700px;margin:0 auto 30px">
+            <h2 style="font-size:26px;font-weight:800;line-height:1.25;color:#FFFFFF;background:linear-gradient(to right,#FFFFFF,#94A3B8);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${prev.components.headline}</h2>
+            <p style="font-size:13.5px;color:#94A3B8;margin-top:10px">${prev.components.targetIcp}</p>
+          </div>
+
+          <!-- VSL Simulated Video Card -->
+          <div style="max-width:640px;margin:0 auto 30px;background:#1E293B;border-radius:12px;border:1px solid #334155;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5)">
+            <div style="position:relative;background:#030712;aspect-ratio:16/9;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px" id="vsl-simulated-player">
+              <span style="font-size:42px;cursor:pointer;background:#38BDF8;color:#0B0F19;width:70px;height:70px;border-radius:50%;display:flex;justify-content:center;align-items:center;box-shadow:0 0 20px rgba(56,189,248,0.5)" onclick="simulateVslPlayback()">▶</span>
+              <div style="margin-top:14px;font-size:13px;font-weight:700;color:#FFFFFF">${prev.vsl.title}</div>
+              <div style="font-size:11px;color:#64748B;margin-top:4px">Click Play to watch the 5-step OS mechanism video teardown.</div>
+            </div>
+            
+            <!-- Playback scripts container (hidden by default, shown when play clicked) -->
+            <div id="vsl-playback-script" class="hidden" style="background:#0F172A;padding:16px;border-top:1px solid #1E293B;font-size:12px;line-height:1.5">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <span class="sb-badge green" style="background:#059669;color:#FFFFFF">VSL TRANSCRIPT PLAYBACK</span>
+                <span id="vsl-play-progress" style="font-family:monospace;color:#38BDF8">0% Complete</span>
+              </div>
+              <div id="vsl-play-turns" style="color:#E2E8F0;max-height:150px;overflow-y:auto">
+                <p><strong>[Hook]:</strong> ${prev.vsl.hook}</p>
+                <p style="margin-top:6px"><strong>[Problem]:</strong> ${prev.vsl.problem}</p>
+                <p style="margin-top:6px"><strong>[Mechanism]:</strong> ${prev.vsl.mechanism}</p>
+                <p style="margin-top:6px"><strong>[Proof]:</strong> ${prev.vsl.proofSummary}</p>
+                <p style="margin-top:6px"><strong>[CTA]:</strong> ${prev.vsl.ctaText}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom CTAs -->
+          <div style="display:flex;justify-content:center;gap:12px;margin-bottom:40px">
+            <button class="btn btn-primary" style="background:#38BDF8;color:#0B0F19;border:none;padding:12px 24px; cursor:pointer;" onclick="handleStartQuestionnaire()">
+              📋 Start Lead Qualification
+            </button>
+            <a class="btn btn-secondary" style="border:1px solid #334155;color:#FFFFFF;padding:12px 24px; text-decoration:none; cursor:pointer;" href="${prev.components.bookingUrl}" target="_blank" onclick="handleTrackSimulatedEvent('BOOKING')">
+              📅 ${prev.components.cta}
+            </a>
+          </div>
+
+          <!-- Sequential Questionnaire Simulation (Hidden by default) -->
+          <div id="funnel-questionnaire-card" class="hidden" style="max-width:500px;margin:0 auto 30px;background:#1E293B;border-radius:10px;border:1px solid #334155;padding:20px">
+            <div id="funnel-questionnaire-content">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Proof Section -->
+          <div style="margin-top:40px;border-top:1px solid #1E293B;padding-top:30px">
+            <div style="font-size:14px;font-weight:800;color:#FFFFFF;text-align:center;margin-bottom:20px;text-transform:uppercase;letter-spacing:1px">Verified Authority Proof Assets</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              ${prev.proofAssets.map(pa => `
+                <div style="background:#111827;padding:16px;border-radius:8px;border:1px solid #1E293B">
+                  <div style="font-size:12px;font-weight:700;color:#38BDF8;text-transform:uppercase">${pa.assetType}</div>
+                  <div style="font-size:13.5px;font-weight:800;color:#FFFFFF;margin-top:4px">${pa.title}</div>
+                  <div style="font-size:12px;color:#94A3B8;margin-top:6px">${pa.resultSummary}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Objection Reframing Section -->
+          <div style="margin-top:40px;border-top:1px solid #1E293B;padding-top:30px">
+            <div style="font-size:14px;font-weight:800;color:#FFFFFF;text-align:center;margin-bottom:20px;text-transform:uppercase;letter-spacing:1px">Objections Reframed</div>
+            <div style="display:flex;flex-direction:column;gap:12px;max-width:600px;margin:0 auto">
+              ${prev.objections.map((o, idx) => `
+                <div style="background:#111827;border-radius:8px;border:1px solid #1E293B;overflow:hidden">
+                  <div style="padding:12px;font-weight:700;font-size:13px;color:#FFFFFF;cursor:pointer;background:#1E293B;display:flex;justify-content:space-between;align-items:center" onclick="document.getElementById('obj-ans-${idx}').classList.toggle('hidden')">
+                    <span>Q: "${o.objectionText}"</span>
+                    <span style="color:#38BDF8">▼</span>
+                  </div>
+                  <div id="obj-ans-${idx}" class="hidden" style="padding:14px;font-size:12.5px;color:#94A3B8;line-height:1.5;border-top:1px solid #1E293B">
+                    <strong>Reframed Response:</strong> ${o.founderResponseScript}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+  }
+
+  if (CONVERSION_FUNNEL_PREVIEW_MODE === 'ANALYTICS') {
+    return `
+      <div class="dash-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <div class="dash-card-title">Real Funnel Visitor Analytics</div>
+            <div class="dash-card-sub">Event tracking compiled from user visits, CTA clicks, and qualifications.</div>
+          </div>
+          
+          <div style="display:flex;gap:6px;align-items:center">
+            <label style="font-size:12px;font-weight:700;color:#64748B">Environment:</label>
+            <select id="funnel-env-select" style="padding:4px 8px;border-radius:4px;border:1px solid #CBD5E1;font:inherit;font-size:12px" onchange="handleSwitchFunnelEnv(this.value)">
+              <option value="PRODUCTION" ${CONVERSION_FUNNEL_ENV === 'PRODUCTION' ? 'selected' : ''}>Production (Real Traffic)</option>
+              <option value="TEST_SIMULATED" ${CONVERSION_FUNNEL_ENV === 'TEST_SIMULATED' ? 'selected' : ''}>Simulated (Test Sandbox)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-bottom:20px">
+          <div class="metric-card" style="padding:12px">
+            <div style="font-size:11px;color:#64748B">Visits</div>
+            <div style="font-size:20px;font-weight:800;color:#0F172A">${m.visits || 0}</div>
+            <div style="font-size:10px;color:#64748B">Total Page Views</div>
+          </div>
+          <div class="metric-card" style="padding:12px">
+            <div style="font-size:11px;color:#64748B">CTA Clicks</div>
+            <div style="font-size:20px;font-weight:800;color:#0EA5E9">${m.ctaClicks || 0}</div>
+            <div style="font-size:10px;color:#64748B">${m.ctaCtrPercent || 0}% CTR</div>
+          </div>
+          <div class="metric-card" style="padding:12px">
+            <div style="font-size:11px;color:#64748B">Qual Starts</div>
+            <div style="font-size:20px;font-weight:800;color:#6366F1">${m.qualificationStarts || 0}</div>
+            <div style="font-size:10px;color:#64748B">Started questionnaire</div>
+          </div>
+          <div class="metric-card" style="padding:12px">
+            <div style="font-size:11px;color:#64748B">Qual Completes</div>
+            <div style="font-size:20px;font-weight:800;color:#10B981">${m.qualificationCompletions || 0}</div>
+            <div style="font-size:10px;color:#64748B">${m.qualCompletionRatePercent || 0}% Complete Rate</div>
+          </div>
+          <div class="metric-card" style="padding:12px">
+            <div style="font-size:11px;color:#64748B">Bookings</div>
+            <div style="font-size:20px;font-weight:800;color:#F59E0B">${m.bookings || 0}</div>
+            <div style="font-size:10px;color:#64748B">${m.bookingConversionRatePercent || 0}% Book Rate</div>
+          </div>
+        </div>
+
+        <div style="background:#F8FAFC;padding:16px;border-radius:10px;border:1px solid #E2E8F0">
+          <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:10px">Attribution Integrity Dashboard</div>
+          <div style="font-size:12px;color:#475569;line-height:1.5">
+            Visits, conversions, and booking parameters are verified and logged strictly from landing page events. Zero data is fabricated.
+            Use the <strong>"Live Funnel Preview"</strong> tab to trigger test interactions and watch the metrics update inside the <strong>"Simulated (Test Sandbox)"</strong> mode in real-time.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+async function handleCompileFunnelFromDna() {
+  try {
+    await window.ASENZO_API.generateProfileFunnelFromDna();
+    showToast('Compiled Profile Funnel from Positioning DNA!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Failed to compile funnel: ${err.message}`);
+  }
+}
+
+async function handlePublishFunnel(id) {
+  const summary = prompt('Enter a change summary for this funnel version:', 'Refined VSL hook script and updated CTA.');
+  if (summary === null) return;
+  try {
+    await window.ASENZO_API.publishProfileFunnel(id, summary);
+    showToast('Published Funnel Version Draft!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Publish Error: ${err.message}`);
+  }
+}
+
+async function handleSaveFunnel(e) {
+  e.preventDefault();
+  const id = document.getElementById('funnel-id').value;
+  const payload = {
+    id,
+    title: document.getElementById('funnel-title').value.trim(),
+    headline: document.getElementById('funnel-headline').value.trim(),
+    targetIcpSummary: document.getElementById('funnel-icp').value.trim(),
+    coreProblem: document.getElementById('funnel-problem').value.trim(),
+    desiredOutcome: document.getElementById('funnel-outcome').value.trim(),
+    uniqueMechanism: document.getElementById('funnel-mechanism').value.trim(),
+    vslTitle: document.getElementById('funnel-vsl-title').value.trim(),
+    vslVideoUrl: document.getElementById('funnel-vsl-url').value.trim(),
+    vslHook: document.getElementById('funnel-vsl-hook').value.trim(),
+    vslProblem: document.getElementById('funnel-vsl-problem').value.trim(),
+    vslMechanism: document.getElementById('funnel-vsl-mechanism').value.trim(),
+    vslCtaText: document.getElementById('funnel-cta').value.trim(),
+    bookingUrl: document.getElementById('funnel-booking-url').value.trim()
+  };
+
+  try {
+    await window.ASENZO_API.saveProfileFunnel(payload);
+    showToast('Funnel Copy Saved Cleanly!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Save Error: ${err.message}`);
+  }
+}
+
+function handlePreviewMode(mode) {
+  CONVERSION_FUNNEL_PREVIEW_MODE = mode;
+  renderConversion();
+}
+
+async function handleSwitchFunnelEnv(env) {
+  CONVERSION_FUNNEL_ENV = env;
+  renderConversion();
+}
+
+async function handleTrackSimulatedEvent(type) {
+  if (!CONVERSION_FUNNEL || !CONVERSION_FUNNEL.id) return;
+  try {
+    await window.ASENZO_API.trackFunnelEvent(CONVERSION_FUNNEL.id, {
+      eventType: type,
+      environment: 'TEST_SIMULATED',
+      visitorId: 'simulated_operator_vis_99'
+    });
+    showToast(`Simulated Event logged: ${type}`);
+    if (CONVERSION_FUNNEL_PREVIEW_MODE === 'ANALYTICS') {
+      renderConversion();
+    }
+  } catch (err) {
+    console.error('Failed to log simulated event:', err.message);
+  }
+}
+
+let VSL_SIMULATION_TIMER = null;
+function simulateVslPlayback() {
+  const container = document.getElementById('vsl-simulated-player');
+  const scriptCont = document.getElementById('vsl-playback-script');
+  const progText = document.getElementById('vsl-play-progress');
+  
+  if (VSL_SIMULATION_TIMER) clearInterval(VSL_SIMULATION_TIMER);
+  
+  handleTrackSimulatedEvent('VISIT');
+  scriptCont.classList.remove('hidden');
+  
+  let percent = 0;
+  VSL_SIMULATION_TIMER = setInterval(() => {
+    percent += 20;
+    progText.textContent = `${percent}% Complete`;
+    if (percent >= 100) {
+      clearInterval(VSL_SIMULATION_TIMER);
+      progText.textContent = '100% Played - Complete';
+      handleTrackSimulatedEvent('CTA_CLICK');
+    }
+  }, 500);
+}
+
+let CURRENT_QUESTION_INDEX = 0;
+let QUESTIONNAIRE_ANSWERS = [];
+const SIMULATED_QUESTIONS = [
+  'What is your current monthly revenue range?',
+  'How many hours per week do you spend on sales calls manually?',
+  'Are you looking for cheap outsourced DMs or internal capabilities?'
+];
+
+function handleStartQuestionnaire() {
+  CURRENT_QUESTION_INDEX = 0;
+  QUESTIONNAIRE_ANSWERS = [];
+  document.getElementById('funnel-questionnaire-card').classList.remove('hidden');
+  handleTrackSimulatedEvent('QUALIFICATION_START');
+  renderSimulatedQuestion();
+}
+
+function renderSimulatedQuestion() {
+  const cont = document.getElementById('funnel-questionnaire-content');
+  if (CURRENT_QUESTION_INDEX < SIMULATED_QUESTIONS.length) {
+    const q = SIMULATED_QUESTIONS[CURRENT_QUESTION_INDEX];
+    cont.innerHTML = `
+      <div style="font-weight:700;font-size:11px;color:#FFFFFF;margin-bottom:8px">Step ${CURRENT_QUESTION_INDEX + 1} of 3:</div>
+      <div style="font-size:13px;color:#FFFFFF;margin-bottom:10px">${q}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${CURRENT_QUESTION_INDEX === 0 ? `
+          <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(0, 'Doing $35k/mo')">$15k - $50k/mo</button>
+          <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(0, 'Pre-revenue')">Pre-revenue (< $10k/mo)</button>
+        ` : CURRENT_QUESTION_INDEX === 1 ? `
+          <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(1, '50 hours/week')">40+ hours/week</button>
+          <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(1, '5 hours/week')">< 10 hours/week</button>
+        ` : `
+          <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(2, 'Need internal Growth OS capability')">Internal capability installation</button>
+          <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(2, 'Looking for cheap outsourced DMs')">Cheap outsourced DM agents</button>
+        `}
+      </div>
+    `;
+  } else {
+    const revenue = QUESTIONNAIRE_ANSWERS[0];
+    const outsourced = QUESTIONNAIRE_ANSWERS[2];
+    
+    let isQualified = true;
+    let reason = '';
+    if (revenue === 'Pre-revenue') {
+      isQualified = false;
+      reason = 'Pre-revenue falls below growth OS threshold.';
+    } else if (outsourced === 'Looking for cheap outsourced DMs') {
+      isQualified = false;
+      reason = 'Seeks outsourced agency headcount instead of system capability installation.';
+    }
+
+    handleTrackSimulatedEvent('QUALIFICATION_COMPLETE');
+    
+    if (isQualified) {
+      cont.innerHTML = `
+        <div style="text-align:center;padding:10px">
+          <span style="font-size:28px">🏆</span>
+          <div style="font-weight:800;font-size:14px;color:#10B981;margin-top:8px">FOUNDER QUALIFIED!</div>
+          <div style="font-size:11.5px;color:#94A3B8;margin-top:4px">Your answers match the ASENZO B2B operating benchmark criteria. Let's install capability.</div>
+          <button class="btn btn-primary btn-sm" style="margin-top:10px;background:#38BDF8;color:#0B0F19;border:none" onclick="handleTrackSimulatedEvent('BOOKING')">Book Strategy Call</button>
+        </div>
+      `;
+    } else {
+      cont.innerHTML = `
+        <div style="text-align:center;padding:10px">
+          <span style="font-size:28px">⚠️</span>
+          <div style="font-weight:800;font-size:14px;color:#EF4444;margin-top:8px">OUT OF BENCHMARK</div>
+          <div style="font-size:11.5px;color:#94A3B8;margin-top:4px;margin-bottom:8px">${reason}</div>
+          <button class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size:11px" onclick="handleStartQuestionnaire()">🔄 Retry</button>
+        </div>
+      `;
+    }
+  }
+}
+
+function handleAnswerQuestionnaire(index, val) {
+  QUESTIONNAIRE_ANSWERS.push(val);
+  CURRENT_QUESTION_INDEX++;
+  renderSimulatedQuestion();
+}
+
+// AI DM Qualifier Sub-Tab
+
+function renderConversionDmQualifierSubTab() {
+  if (!CONVERSION_CONVERSATIONS || CONVERSION_CONVERSATIONS.length === 0) {
+    return `
+      <div style="padding:40px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px">
+        <h3 style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px">No DM Conversations Logged</h3>
+        <p style="font-size:13px;color:#64748B;margin-bottom:16px">No active inbox conversations fetched. Click below to register a test DM thread.</p>
+        <button class="btn btn-primary" onclick="handleCreateTestConversation()">+ Create Test Conversation</button>
+      </div>
+    `;
+  }
+
+  const activeConv = CONVERSION_CONVERSATIONS.find(c => c.id === CONVERSION_ACTIVE_CONV_ID) || CONVERSION_CONVERSATIONS[0];
+  const activeMessages = CONVERSION_ACTIVE_CONV_MESSAGES || [];
+
+  return `
+    <div style="display:grid;grid-template-columns:250px 1fr 340px;gap:16px;height:calc(100vh - 220px);min-height:500px">
+      
+      <!-- Left sidebar: conversations list -->
+      <div class="dash-card" style="padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+        <div style="font-size:12.5px;font-weight:800;color:#0F172A;padding:4px 6px">Inbound DM Inbox</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${CONVERSION_CONVERSATIONS.map(c => {
+            const isActive = c.id === CONVERSION_ACTIVE_CONV_ID;
+            return `
+              <div style="padding:10px;border-radius:8px;border:1px solid ${isActive ? '#0EA5E9' : '#E2E8F0'};background:${isActive ? '#F0F9FF' : '#FFFFFF'};cursor:pointer" onclick="handleSelectConversation('${c.id}')">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <strong style="font-size:12px;color:#0F172A">${c.participant_handle || c.participantHandle}</strong>
+                  <span class="sb-badge gray" style="font-size:9px">${c.platform}</span>
+                </div>
+                <div style="font-size:10px;color:#64748B;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  Status: <strong>${c.status || 'PENDING'}</strong>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div style="margin-top:auto;padding-top:10px">
+          <button class="btn btn-secondary btn-sm btn-block" onclick="handleCreateTestConversation()">+ New Test DM</button>
+        </div>
+      </div>
+
+      <!-- Center panel: chat view -->
+      <div class="dash-card" style="padding:12px;display:flex;flex-direction:column;justify-content:space-between;background:#F8FAFC;border:1px solid #E2E8F0">
+        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong style="font-size:13.5px;color:#0F172A">${activeConv.participant_handle || activeConv.participantHandle}</strong>
+            <span style="font-size:11px;color:#64748B;margin-left:6px">${activeConv.platform} Inbox</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="handleTriggerAiTriage('${activeConv.id}')">⚡ Run AI Triage Analysis</button>
+        </div>
+
+        <!-- Chat bubble container -->
+        <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:8px" id="chat-thread-container">
+          ${activeMessages.length > 0 ? activeMessages.map(m => {
+            const isFounder = m.sender_type === 'FOUNDER';
+            return `
+              <div style="display:flex;justify-content:${isFounder ? 'flex-end' : 'flex-start'}">
+                <div style="max-width:70%;padding:10px 14px;border-radius:12px;font-size:12.5px;line-height:1.45;
+                            background:${isFounder ? '#0EA5E9' : '#FFFFFF'};
+                            color:${isFounder ? '#FFFFFF' : '#0F172A'};
+                            border:1px solid ${isFounder ? '#0EA5E9' : '#CBD5E1'}">
+                  ${escapeHtml(m.message_text || m.messageText)}
+                  <span style="display:block;font-size:9px;color:${isFounder ? '#E0F2FE' : '#94A3B8'};text-align:right;margin-top:4px">
+                    ${new Date(m.sent_at || m.sentAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            `;
+          }).join('') : `
+            <div style="padding:40px;text-align:center;color:#64748B;font-size:12.5px">No messages in this thread yet. Send a message below to start.</div>
+          `}
+        </div>
+
+        <!-- Message input bar -->
+        <form onsubmit="handleSendDmMessage(event, '${activeConv.id}')" style="display:flex;gap:8px;margin-top:10px;border-top:1px solid #E2E8F0;padding-top:10px">
+          <input type="text" id="dm-message-input" placeholder="Type a message to prospect..." required style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;font-size:13px" />
+          <button type="submit" class="btn btn-primary btn-sm">Send</button>
+        </form>
+      </div>
+
+      <!-- Right sidebar: AI qualifier panel -->
+      <div class="dash-card" style="padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:13px;font-weight:800;color:#0F172A;border-bottom:1px solid #E2E8F0;padding-bottom:6px">AI Triage Qualifier</div>
+
+        ${CONVERSION_AI_TRIAGE_RESULT ? `
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:12px;font-weight:700;color:#64748B">Triage Status:</span>
+              <span class="sb-badge ${CONVERSION_AI_TRIAGE_RESULT.qualificationStatus === 'QUALIFIED' ? 'green' : CONVERSION_AI_TRIAGE_RESULT.qualificationStatus === 'DISQUALIFIED' ? 'red' : 'blue'}">
+                ${CONVERSION_AI_TRIAGE_RESULT.qualificationStatus}
+              </span>
+            </div>
+            
+            <div style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B">
+                <span>Confidence Score:</span>
+                <span>${CONVERSION_AI_TRIAGE_RESULT.confidence}%</span>
+              </div>
+              <div style="background:#E2E8F0;height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+                <div style="background:#0EA5E9;width:${CONVERSION_AI_TRIAGE_RESULT.confidence}%;height:100%"></div>
+              </div>
+            </div>
+
+            <!-- Evidence section -->
+            <div style="background:#F1F5F9;padding:8px;border-radius:6px;border:1px solid #E2E8F0;font-size:11.5px;margin-bottom:8px">
+              <div style="font-weight:700;color:#0F172A;margin-bottom:2px">Dialogue Evidence:</div>
+              <p style="color:#475569;margin:0;font-style:italic">"${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.evidence)}"</p>
+            </div>
+
+            <!-- Extracted variables -->
+            <div style="display:flex;flex-direction:column;gap:4px;font-size:11.5px;margin-bottom:8px">
+              <div>📍 Urgency: <strong>${CONVERSION_AI_TRIAGE_RESULT.extractedData.urgency}</strong></div>
+              <div>📍 Problem: <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.extractedData.problem)}</span></div>
+              <div>📍 Situation: <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.extractedData.currentSituation)}</span></div>
+              <div>📍 Signals: <span style="color:#059669">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.extractedData.buyingSignals)}</span></div>
+            </div>
+
+            <!-- Missing Info -->
+            <div style="font-size:11.5px;margin-bottom:8px">
+              <span style="font-weight:700;color:#DC2626">Missing Info:</span>
+              <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.missingInformation || 'None')}</span>
+            </div>
+
+            <!-- Next Action -->
+            <div style="font-size:11.5px;margin-bottom:8px">
+              <span style="font-weight:700;color:#4F46E5">Next Action:</span>
+              <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.recommendedNextAction)}</span>
+            </div>
+
+            <!-- AI Drafted Reply approval box -->
+            <div style="border-top:1px solid #E2E8F0;padding-top:8px;margin-top:8px">
+              <div style="font-weight:700;font-size:12px;color:#0F172A;margin-bottom:4px">AI Drafted Sales Message:</div>
+              <textarea id="ai-drafted-reply-input" rows="4" style="width:100%;padding:6px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;font-size:11.5px;resize:vertical">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.draftedReply)}</textarea>
+              <button class="btn btn-primary btn-sm btn-block" style="margin-top:6px" onclick="handleApproveAndSendDraft('${activeConv.id}')">Approve & Send Message</button>
+            </div>
+
+            <!-- Human Override -->
+            <div style="border-top:1px solid #E2E8F0;padding-top:8px;margin-top:8px">
+              <div style="font-weight:700;font-size:12px;color:#0F172A;margin-bottom:6px">Manual Override (CRM Sync)</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-secondary btn-sm" style="flex:1" onclick="handleOverrideStatus('${activeConv.id}', 'QUALIFIED')">Qualify</button>
+                <button class="btn btn-secondary btn-sm" style="flex:1" onclick="handleOverrideStatus('${activeConv.id}', 'DISQUALIFIED')">Disqualify</button>
+              </div>
+            </div>
+
+          </div>
+        ` : `
+          <div style="padding:20px;text-align:center;color:#64748B;font-size:12px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
+            Click <strong>"Run AI Triage Analysis"</strong> above to extract variables and qualify this lead conversation.
+          </div>
+        `}
+      </div>
+
+    </div>
+  `;
+}
+
+async function handleSelectConversation(id) {
+  CONVERSION_ACTIVE_CONV_ID = id;
+  CONVERSION_AI_TRIAGE_RESULT = null;
+  try {
+    CONVERSION_ACTIVE_CONV_MESSAGES = await window.ASENZO_API.getDmMessages(id);
+    renderConversion();
+  } catch (err) {
+    showToast(`Error fetching messages: ${err.message}`);
+  }
+}
+
+async function handleSendDmMessage(e, conversationId) {
+  e.preventDefault();
+  const input = document.getElementById('dm-message-input');
+  const messageText = input.value.trim();
+  if (!messageText) return;
+
+  try {
+    await window.ASENZO_API.sendDmMessage(conversationId, {
+      senderType: 'FOUNDER',
+      messageText,
+      businessId: 'biz_default'
+    });
+    input.value = '';
+    CONVERSION_ACTIVE_CONV_MESSAGES = await window.ASENZO_API.getDmMessages(conversationId);
+    showToast('Message sent!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Failed to send message: ${err.message}`);
+  }
+}
+
+async function handleTriggerAiTriage(conversationId) {
+  try {
+    const res = await window.ASENZO_API.qualifyDmConversation(conversationId);
+    CONVERSION_AI_TRIAGE_RESULT = res;
+    showToast('AI conversation triage analysis completed!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Triage Error: ${err.message}`);
+  }
+}
+
+async function handleApproveAndSendDraft(conversationId) {
+  const input = document.getElementById('ai-drafted-reply-input');
+  const messageText = input.value.trim();
+  if (!messageText) return;
+
+  try {
+    await window.ASENZO_API.sendDmMessage(conversationId, {
+      senderType: 'FOUNDER',
+      messageText,
+      businessId: 'biz_default'
+    });
+    CONVERSION_AI_TRIAGE_RESULT = null;
+    CONVERSION_ACTIVE_CONV_MESSAGES = await window.ASENZO_API.getDmMessages(conversationId);
+    showToast('AI sales message approved & sent!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Failed to send approved message: ${err.message}`);
+  }
+}
+
+async function handleOverrideStatus(conversationId, status) {
+  try {
+    const conv = CONVERSION_CONVERSATIONS.find(c => c.id === conversationId);
+    if (!conv) return;
+
+    if (status === 'QUALIFIED' && !conv.deal_id && !conv.dealId) {
+      const dealName = `${conv.participant_handle || conv.participantHandle} — Growth OS Setup`;
+      const createdDeal = await window.ASENZO_API.createDeal({
+        dealName,
+        contactName: conv.participant_handle || conv.participantHandle || 'DM Prospect',
+        stage: 'QUALIFIED_LEAD',
+        amount: 12500,
+        priority: 'HIGH',
+        prospectId: conv.prospect_id || conv.prospectId || ''
+      });
+      conv.deal_id = createdDeal.id;
+    }
+
+    await window.ASENZO_API.createDmConversation({
+      ...conv,
+      id: conversationId,
+      status
+    });
+
+    showToast(`Lead status manually overridden to ${status}!`);
+    renderConversion();
+  } catch (err) {
+    showToast(`Override Error: ${err.message}`);
+  }
+}
+
+async function handleCreateTestConversation() {
+  const handle = prompt('Enter Instagram/LinkedIn handle for test prospect:', '@founder_tim');
+  if (!handle) return;
+
+  try {
+    const created = await window.ASENZO_API.createDmConversation({
+      platform: 'LINKEDIN',
+      participantHandle: handle,
+      status: 'PENDING',
+      businessId: 'biz_default'
+    });
+
+    await window.ASENZO_API.sendDmMessage(created.id, {
+      senderType: 'PROSPECT',
+      messageText: 'Hey! Read your case study. We are doing $35k/mo but I am stuck working 50 hrs/wk myself. Can we book a call?',
+      businessId: 'biz_default'
+    });
+
+    CONVERSION_ACTIVE_CONV_ID = created.id;
+    showToast('Created test conversation thread with initial prospect DM!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Error creating conversation: ${err.message}`);
+  }
+}
+
+// Story Sequence Sub-Tab
+
+function renderConversionStorySequencesSubTab() {
+  if (!CONVERSION_STORY_SEQUENCES || CONVERSION_STORY_SEQUENCES.length === 0) {
+    return `
+      <div style="padding:40px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px">
+        <h3 style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px">No Story Sequences Configured</h3>
+        <p style="font-size:13px;color:#64748B;margin-bottom:16px">You have not created or generated any conversion sequences yet.</p>
+        <button class="btn btn-primary" onclick="handleGenerateStorySequence()">⚡ Generate AI Story Sequence</button>
+      </div>
+    `;
+  }
+
+  const activeSeq = CONVERSION_STORY_SEQUENCES.find(s => s.id === CONVERSION_ACTIVE_SEQ_ID) || CONVERSION_STORY_SEQUENCES[0];
+  const steps = activeSeq.steps || [];
+
+  return `
+    <div style="display:grid;grid-template-columns:250px 1fr;gap:20px;height:calc(100vh - 220px);min-height:500px">
+      
+      <!-- Left sidebar: sequence list -->
+      <div class="dash-card" style="padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+        <div style="font-size:12.5px;font-weight:800;color:#0F172A;padding:4px 6px">Nurture Sequences</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${CONVERSION_STORY_SEQUENCES.map(s => {
+            const isActive = s.id === CONVERSION_ACTIVE_SEQ_ID;
+            return `
+              <div style="padding:10px;border-radius:8px;border:1px solid ${isActive ? '#0EA5E9' : '#E2E8F0'};background:${isActive ? '#F0F9FF' : '#FFFFFF'};cursor:pointer" onclick="handleSelectSequence('${s.id}')">
+                <div style="font-size:12px;font-weight:700;color:#0F172A">${escapeHtml(s.name)}</div>
+                <div style="font-size:10px;color:#64748B;margin-top:4px">${s.triggerEvent || s.trigger_event}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        
+        <div style="margin-top:auto;padding-top:10px">
+          <button class="btn btn-secondary btn-sm btn-block" onclick="handleGenerateStorySequence()">⚡ AI Generate Sequence</button>
+        </div>
+      </div>
+
+      <!-- Right panel: active sequence details -->
+      <div class="dash-card" style="padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px">
+        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#0F172A">${escapeHtml(activeSeq.name)}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px">Trigger: <code style="background:#F1F5F9;padding:1px 4px;border-radius:4px">${activeSeq.triggerEvent || activeSeq.trigger_event}</code></div>
+          </div>
+          
+          <!-- Platform adaptation buttons -->
+          <div style="display:flex;gap:4px;background:#F1F5F9;padding:2px;border-radius:6px;border:1px solid #E2E8F0">
+            ${['LINKEDIN', 'X_TWITTER', 'NEWSLETTER', 'EMAIL'].map(p => `
+              <button class="btn btn-sm" style="font-size:11px;padding:4px 8px;border:none;
+                                                background:${CONVERSION_STORY_PLATFORM === p ? '#FFFFFF' : 'transparent'};
+                                                box-shadow:${CONVERSION_STORY_PLATFORM === p ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'};
+                                                font-weight:${CONVERSION_STORY_PLATFORM === p ? '700' : '400'};
+                                                color:${CONVERSION_STORY_PLATFORM === p ? '#0F172A' : '#64748B'}"
+                      onclick="handleSwitchStoryPlatform('${p}')">
+                ${p.replace('_TWITTER', ' (X)')}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Timeline steps mapping (Curiosity -> Problem -> Mechanism -> Proof -> CTA) -->
+        <div style="display:flex;flex-direction:column;gap:20px;position:relative;padding-left:14px">
+          <!-- Timeline line -->
+          <div style="position:absolute;left:4px;top:10px;bottom:10px;width:2px;background:#E2E8F0"></div>
+
+          ${steps.map((s, idx) => {
+            const platformText = getAdaptedPlatformText(s.storyAngle || s.story_angle || s.description, CONVERSION_STORY_PLATFORM, s.subject);
+            const attributionLink = `https://asenzo.ai/growth-os-audit?utm_source=story_seq&sequence_id=${activeSeq.id}&step=${idx + 1}&platform=${CONVERSION_STORY_PLATFORM}`;
+            
+            return `
+              <div style="position:relative">
+                <!-- Timeline dot -->
+                <div style="position:absolute;left:-14px;top:4px;width:10px;height:10px;border-radius:50%;background:#0EA5E9;border:2px solid #FFFFFF"></div>
+                
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <span style="font-size:11px;font-weight:700;color:#0EA5E9;text-transform:uppercase;letter-spacing:0.5px">Step ${idx + 1}: ${getFrameworkStageLabel(idx + 1)}</span>
+                    <span class="sb-badge gray" style="font-size:10px">Day ${s.day}</span>
+                  </div>
+
+                  <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">${escapeHtml(s.subject)}</div>
+                  
+                  <div style="font-size:12.5px;color:#334155;background:#FFFFFF;padding:10px;border:1px solid #CBD5E1;border-radius:6px;line-height:1.45;white-space:pre-wrap;font-family:inherit" id="story-step-text-${idx}">
+                    ${escapeHtml(platformText)}
+                  </div>
+
+                  <!-- Attribution & CTA Info -->
+                  <div style="margin-top:8px;font-size:11px;color:#64748B;display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;padding:6px 10px;border-radius:6px;border:1px solid #BFDBFE">
+                    <span>CTA Link: <code style="color:#1E40AF">${s.ctaText || s.cta_text || 'Learn More'}</code></span>
+                    <a href="${attributionLink}" target="_blank" style="color:#0EA5E9;font-weight:700;text-decoration:none" onclick="event.preventDefault(); showToast('CTA attribution link copied: ' + this.href)">
+                      📋 Attribution Link
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;border-top:1px solid #E2E8F0;padding-top:14px">
+          <button class="btn btn-secondary" onclick="handleGenerateStorySequence()">⚡ Regenerate Sequence</button>
+          <button class="btn btn-primary" onclick="handleSaveStorySequence('${activeSeq.id}')">💾 Save Sequence Configuration</button>
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function getFrameworkStageLabel(step) {
+  const stages = {
+    1: 'CURIOSITY HOOK',
+    2: 'ICP PROBLEM DEFINITION',
+    3: 'UNIQUE MECHANISM PITCH',
+    4: 'VERIFIED PROOF',
+    5: 'OFFER CALL-TO-ACTION'
+  };
+  return stages[step] || 'STAGE';
+}
+
+function getAdaptedPlatformText(text, platform, subject) {
+  if (!text) return '';
+  switch (platform) {
+    case 'X_TWITTER':
+      let shortText = text.substring(0, 240);
+      if (text.length > 240) shortText += '...';
+      return `${shortText}\n\n👉 Read: asenzo.ai/audit`;
+    case 'LINKEDIN':
+      const spaced = text.replace(/\. /g, '.\n\n');
+      return `💡 ${spaced}\n\n#GrowthOS #B2BFounders #ConversionEngine`;
+    case 'NEWSLETTER':
+      return `Subject: ${subject}\n\nHey Reader,\n\n${text}\n\nBest,\nAlex Morgan\nFounder & Growth Operator`;
+    case 'EMAIL':
+      return `Subject: ${subject}\n\nHi there,\n\n${text}\n\nRegards,\nAlex`;
+    default:
+      return text;
+  }
+}
+
+function handleSelectSequence(id) {
+  CONVERSION_ACTIVE_SEQ_ID = id;
+  renderConversion();
+}
+
+function handleSwitchStoryPlatform(platform) {
+  CONVERSION_STORY_PLATFORM = platform;
+  renderConversion();
+}
+
+async function handleGenerateStorySequence() {
+  try {
+    const res = await window.ASENZO_API.generateStorySequence({ platform: CONVERSION_STORY_PLATFORM });
+    const existingIdx = CONVERSION_STORY_SEQUENCES.findIndex(s => s.id === res.id);
+    if (existingIdx >= 0) {
+      CONVERSION_STORY_SEQUENCES[existingIdx] = res;
+    } else {
+      CONVERSION_STORY_SEQUENCES.push(res);
+    }
+    CONVERSION_ACTIVE_SEQ_ID = res.id;
+
+    showToast('AI compiled 5-stage Story Sequence from Business DNA!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Generation Error: ${err.message}`);
+  }
+}
+
+async function handleSaveStorySequence(id) {
+  const seq = CONVERSION_STORY_SEQUENCES.find(s => s.id === id);
+  if (!seq) return;
+
+  try {
+    await window.ASENZO_API.saveStorySequence(seq);
+    showToast('Story Sequence Saved to Database!');
+    renderConversion();
+  } catch (err) {
+    showToast(`Save Error: ${err.message}`);
+  }
 }

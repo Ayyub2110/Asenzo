@@ -4808,6 +4808,183 @@ app.post('/api/dm-conversations/:id/messages', async (req, res) => {
   }
 });
 
+// AI DM Conversations Qualifier Endpoint
+app.post('/api/dm-conversations/:id/qualify', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conversation = await get(`SELECT * FROM dm_conversations WHERE id = ?`, [id]);
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+
+    const messages = await all(`SELECT * FROM dm_messages WHERE conversation_id = ? ORDER BY sent_at ASC`, [id]);
+    
+    const [icp, pos, offer, dmq, proofAssets] = await Promise.all([
+      get(`SELECT * FROM icps WHERE business_id = 'biz_default' AND is_active = 1 LIMIT 1`),
+      get(`SELECT * FROM positionings WHERE business_id = 'biz_default' AND is_active = 1 LIMIT 1`),
+      get(`SELECT * FROM offers WHERE business_id = 'biz_default' LIMIT 1`),
+      get(`SELECT * FROM dm_qualifiers WHERE business_id = 'biz_default' AND is_active = 1 LIMIT 1`),
+      all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND permission_status = 'APPROVED' LIMIT 5`)
+    ]);
+
+    const activeDmq = dmq || {
+      minRevenueThreshold: '$20k/mo',
+      disqualificationCriteria: ['Pre-revenue', 'Looking for cheap outsourced DMs'],
+      bookingTriggerScore: 80,
+      bookingUrl: 'https://cal.com/asenzo/growth-audit'
+    };
+
+    let conversationText = messages.map(m => `${m.sender_type}: ${m.message_text}`).join('\n');
+    let lowerText = conversationText.toLowerCase();
+
+    let problem = '';
+    let problemKeywords = ['bottleneck', 'workweek', 'manual', 'spent', 'agency', 'retainer', 'busy', 'stuck', 'hours', 'time', 'drain'];
+    let problemTurns = messages.filter(m => m.sender_type === 'PROSPECT' && problemKeywords.some(kw => m.message_text.toLowerCase().includes(kw)));
+    if (problemTurns.length > 0) {
+      problem = problemTurns.map(t => t.message_text).join(' | ');
+    } else if (pos) {
+      problem = `Implied bottleneck matching positioning pain: ${pos.problem}`;
+    } else {
+      problem = 'General operational bottleneck';
+    }
+
+    let desiredOutcome = '';
+    let outcomeKeywords = ['scale', 'system', 'independence', 'grow', 'freedom', 'mrr', 'revenue', 'target', 'want', 'goal'];
+    let outcomeTurns = messages.filter(m => m.sender_type === 'PROSPECT' && outcomeKeywords.some(kw => m.message_text.toLowerCase().includes(kw)));
+    if (outcomeTurns.length > 0) {
+      desiredOutcome = outcomeTurns.map(t => t.message_text).join(' | ');
+    } else if (offer) {
+      desiredOutcome = `Implied target promise: ${offer.promise}`;
+    } else {
+      desiredOutcome = 'Scale business revenue & build growth OS assets';
+    }
+
+    let currentSituation = '';
+    let sitKeywords = ['revenue', 'making', 'doing', 'arr', 'mrr', '$', 'usd', 'team', 'members', 'people', 'size'];
+    let sitTurns = messages.filter(m => m.sender_type === 'PROSPECT' && sitKeywords.some(kw => m.message_text.toLowerCase().includes(kw)));
+    if (sitTurns.length > 0) {
+      currentSituation = sitTurns.map(t => t.message_text).join(' | ');
+    } else {
+      currentSituation = 'Undetermined B2B Agency size/revenue';
+    }
+
+    let urgency = 'MEDIUM';
+    if (/now|immediately|quick|asap|burnout|tired|stressed|critical|stuck/.test(lowerText)) {
+      urgency = 'HIGH';
+    } else if (/quarter|later|month|circle back/.test(lowerText)) {
+      urgency = 'LOW';
+    }
+
+    let buyingSignals = [];
+    if (/call|book|schedule|meet/.test(lowerText)) buyingSignals.push('Requested Call / Meeting');
+    if (/cost|price|pricing|invest|rate/.test(lowerText)) buyingSignals.push('Inquired about pricing');
+    if (/how do i|sign up|start|onboard/.test(lowerText)) buyingSignals.push('Inquired about kickoff process');
+    if (/yes|sure|sounds good|interested/.test(lowerText)) buyingSignals.push('Expressed interest');
+
+    let riskSignals = [];
+    if (/pre-revenue|no money|free|cheap|discount/.test(lowerText)) riskSignals.push('Low budget or pre-revenue indications');
+    if (/skeptical|scam|trust|guarantee/.test(lowerText)) riskSignals.push('Skeptical or risk-averse behavior');
+    if (/course|program|ecom/.test(lowerText)) riskSignals.push('E-commerce / course seller (ICP Mismatch)');
+
+    let objectionsList = [];
+    if (/expensive|budget|price/.test(lowerText)) objectionsList.push('Pricing objection');
+    if (/time|busy|workload/.test(lowerText)) objectionsList.push('Time commitment objection');
+    if (/partner|cofounder|wife|husband|board/.test(lowerText)) objectionsList.push('Decision maker loop objection');
+
+    let missingInformation = [];
+    if (!/\d+(\s*k)?(\s*(mrr|arr|month|year))?|revenue|making|doing/i.test(conversationText)) {
+      missingInformation.push('Confirm exact monthly revenue range');
+    }
+    if (!/timeline|when|start/i.test(conversationText)) {
+      missingInformation.push('Verify launch timeline and urgency');
+    }
+
+    let evidence = '';
+    const prospectMessages = messages.filter(m => m.sender_type === 'PROSPECT');
+    if (prospectMessages.length > 0) {
+      const bestTurn = prospectMessages.find(m => /\d+(\s*k)?|\b(mrr|arr|month|year|manual|hours|stuck|call|book)\b/i.test(m.message_text)) || prospectMessages[prospectMessages.length - 1];
+      evidence = `Prospect states: "${bestTurn.message_text}"`;
+    } else {
+      evidence = 'No prospect message turns observed.';
+    }
+
+    let score = 50;
+    if (lowerText.includes('mrr') || lowerText.includes('arr') || /\b\d+k\b/.test(lowerText) || lowerText.includes('revenue')) {
+      score += 20;
+    }
+    if (buyingSignals.length > 0) score += 20;
+    if (urgency === 'HIGH') score += 15;
+    if (riskSignals.length > 0) score -= 30;
+    score = Math.max(0, Math.min(100, score));
+
+    let budgetQualified = true;
+    let disqualificationReason = '';
+    let isDisqualified = false;
+
+    const criteria = Array.isArray(activeDmq.disqualificationCriteria) ? activeDmq.disqualificationCriteria : JSON.parse(activeDmq.disqualification_criteria || '[]');
+    for (const c of criteria) {
+      if (lowerText.includes(c.toLowerCase())) {
+        isDisqualified = true;
+        disqualificationReason = `Matches disqualifier: ${c}`;
+      }
+    }
+
+    const revenueMatches = lowerText.match(/(\d+)\s*k/);
+    if (revenueMatches) {
+      const revNum = parseInt(revenueMatches[1], 10);
+      if (revNum < 20) {
+        budgetQualified = false;
+        isDisqualified = true;
+        disqualificationReason = 'Monthly revenue falls below target $20k/mo threshold.';
+      }
+    }
+
+    let qualificationStatus = 'PENDING';
+    if (isDisqualified) {
+      qualificationStatus = 'DISQUALIFIED';
+    } else if (score >= (activeDmq.bookingTriggerScore || 80)) {
+      qualificationStatus = 'QUALIFIED';
+    }
+
+    let recommendedNextAction = 'Ask clarifying question regarding monthly revenue and core operations.';
+    if (qualificationStatus === 'QUALIFIED') {
+      recommendedNextAction = 'Route to booking page to schedule Founder Growth OS Audit.';
+    } else if (qualificationStatus === 'DISQUALIFIED') {
+      recommendedNextAction = 'Politely decline or redirect to free resources.';
+    }
+
+    let draftedReply = '';
+    if (qualificationStatus === 'QUALIFIED') {
+      draftedReply = `Hey, that makes complete sense. Running sales calls manually for 50+ hours a week is the exact bottleneck our framework eliminates. Let's get you calculated. We should book a quick Founder Growth Audit to map out your scores: ${activeDmq.bookingUrl || 'https://cal.com/asenzo/growth-audit'}`;
+    } else if (qualificationStatus === 'DISQUALIFIED') {
+      draftedReply = `Appreciate you reaching out! It sounds like we might be a bit too early for a full Growth OS installation sprint right now. I recommend checking out our free Attention OS content pillars guide here: asenzo.ai/resources`;
+    } else {
+      draftedReply = `Hey! Thanks for connecting. To make sure I give you the best feedback on your bottleneck, what is your current monthly revenue range and how much is manual outreach?`;
+    }
+
+    const output = {
+      qualificationStatus,
+      confidence: score,
+      evidence,
+      missingInformation: missingInformation.join(', ') || 'Confirm decision maker presence on discovery call',
+      recommendedNextAction,
+      draftedReply,
+      extractedData: {
+        problem,
+        desiredOutcome,
+        currentSituation,
+        urgency,
+        buyingSignals: buyingSignals.join(', ') || 'None',
+        riskSignals: riskSignals.join(', ') || 'None',
+        objections: objectionsList.join(', ') || 'None'
+      }
+    };
+
+    await logAudit('AI_GENERATE', 'lead_qualifications', id, { score, qualificationStatus });
+    res.json(output);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 4. Sales Call Details (Transcripts, Participants, Notes, Outcomes)
 app.get('/api/sales-calls/:id/transcript', async (req, res) => {
   try {
@@ -5173,6 +5350,77 @@ app.post('/api/conversion/story-sequences', async (req, res) => {
     );
     await logAudit('CREATE', 'story_sequences', id, parsed);
     res.status(201).json(await get(`SELECT * FROM story_sequences WHERE id = ?`, [id]));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// AI Story Sequence Generation Endpoint (Curiosity -> Problem -> Mechanism -> Proof -> CTA)
+app.post('/api/conversion/story-sequences/generate', async (req, res) => {
+  try {
+    const [icp, pos, offer, proofAssets] = await Promise.all([
+      get(`SELECT * FROM icps WHERE business_id = 'biz_default' AND is_active = 1 LIMIT 1`),
+      get(`SELECT * FROM positionings WHERE business_id = 'biz_default' AND is_active = 1 LIMIT 1`),
+      get(`SELECT * FROM offers WHERE business_id = 'biz_default' LIMIT 1`),
+      all(`SELECT * FROM authority_assets WHERE business_id = 'biz_default' AND permission_status = 'APPROVED' LIMIT 5`)
+    ]);
+
+    const activeIcp = icp || { name: 'Bootstrapped B2B Founders', industry: 'Digital Agencies', targetCustomer: 'B2B Founders' };
+    const activePos = pos || { mechanism: 'The ASENZO 5-Engine Growth OS', problem: 'Trapped in 60-hr workweeks' };
+    const activeOffer = offer || { pricingContext: '$12,500 setup fee', promise: 'Scale to $100k/mo MRR' };
+
+    const proofAsset = (proofAssets && proofAssets.length > 0)
+      ? proofAssets[0]
+      : { id: 'auth_seed_1', title: 'Apex Logistics Case Study', proof_summary: 'Apex Logistics grown pipeline 2.4x in 90 days.' };
+
+    const steps = [
+      {
+        day: 1,
+        subject: `Why standard ${activeIcp.industry || 'B2B'} agency retainers keep founders trapped`,
+        storyAngle: `Curiosity: Did you know that 90% of B2B founders are trapped in 60-hour workweeks because they build labor dependency instead of operating capability? Let me share why vanity views mean nothing without systemized client acquisition.`,
+        ctaText: 'Calculate your Founder Independence Score',
+        proofAssetId: ''
+      },
+      {
+        day: 2,
+        subject: `The single biggest marketing bottleneck in ${activeIcp.targetCustomer || 'bootstrapped agencies'}`,
+        storyAngle: `Problem: Let's talk about the bottleneck: ${activePos.problem || 'being the single point of failure in sales & outreach'}. If you stop manual outreach, your pipeline collapses. This isn't a sales problem — it's an operating system problem.`,
+        ctaText: 'Check out the DM Inbox SOP checklist',
+        proofAssetId: ''
+      },
+      {
+        day: 3,
+        subject: `How we installed ${activePos.mechanism || 'the Growth OS'} framework`,
+        storyAngle: `Mechanism: Rather than renting random marketing agency retainers, we install a production-grade Growth Operating System. This embeds Attention OS and Conversion OS directly into your brand, capturing sales behavior as reusable intelligence.`,
+        ctaText: 'Watch the 5-Engine architecture breakdown VSL',
+        proofAssetId: ''
+      },
+      {
+        day: 4,
+        subject: `Case Study: How we helped scale pipeline and autonomy`,
+        storyAngle: `Proof: Don't take my word for it. Here is actual evidence: ${proofAsset.title || proofAsset.proof_summary}. Result: ${proofAsset.proof_summary || 'Scaled pipeline 2.4x in 90 days while dropping founder workload to 15 hrs/week.'}`,
+        ctaText: 'Read the complete case study teardown',
+        proofAssetId: proofAsset.id || ''
+      },
+      {
+        day: 5,
+        subject: `Install the Growth OS in your business (${activeOffer.pricingContext || '$12,500 setup'})`,
+        storyAngle: `CTA: Ready to transition from a bottleneck to an independent growth operator? Let's install the growth infrastructure in your business. The setup sprint is a one-time setup that delivers full operating capability.`,
+        ctaText: 'Book your 1:1 Founder Growth Audit',
+        proofAssetId: ''
+      }
+    ];
+
+    const generatedSequence = {
+      id: makeId('seq'),
+      businessId: 'biz_default',
+      name: `${activePos.mechanism || 'Growth OS'} 5-Stage Story Sequence`,
+      triggerEvent: 'QUALIFIED_LEAD_CAPTURED',
+      steps,
+      isActive: true
+    };
+
+    res.status(201).json(generatedSequence);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
