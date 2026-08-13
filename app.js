@@ -283,21 +283,25 @@ function renderOverview() {
       </div>
     </div>
 
-    <!-- CURRENT GROWTH CONSTRAINT HERO BLOCK (Phase 4 Specification) -->
-    <div class="cmd-hero" style="border: 2px solid #ea580c; background: linear-gradient(135deg, #1b1b1d 0%, #2a1f1b 100%);">
-      <div class="cmd-hero-title" style="color:#ffffff;display:flex;align-items:center;gap:10px">
-        <span class="material-symbols-outlined" style="color:#ea580c;font-size:24px">warning</span>
+    <!-- CURRENT GROWTH CONSTRAINT HERO BLOCK (Apple Dark Glass Edition) -->
+    <div class="cmd-hero" style="border: 1px solid rgba(251, 191, 36, 0.3); background: linear-gradient(135deg, rgba(30, 24, 16, 0.85) 0%, rgba(18, 18, 24, 0.9) 100%); backdrop-filter: blur(24px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(251, 191, 36, 0.2); border-radius: var(--r-lg); padding: 24px; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -50px; right: -50px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(0, 0, 0, 0) 70%); pointer-events: none;"></div>
+      <div class="cmd-hero-title" style="color:#f5f5f7; display:flex; align-items:center; gap:12px; font-weight:800; font-size:16px; letter-spacing:-0.01em">
+        <div style="width:36px; height:36px; border-radius:10px; background:rgba(251, 191, 36, 0.15); display:flex; align-items:center; justify-content:center; border:1px solid rgba(251, 191, 36, 0.3)">
+          <span class="material-symbols-outlined" style="color:#fbbf24; font-size:20px">warning</span>
+        </div>
         <span>CURRENT SYSTEM CONSTRAINT: Proposal Follow-up Velocity</span>
-        <span class="sc-delta-pill red-tag" style="margin-left:auto;font-size:12px;padding:4px 12px">HIGH LEVERAGE BOTTLENECK</span>
+        <span class="sc-delta-pill red-tag" style="margin-left:auto; font-size:11px; padding:4px 12px; background:rgba(239, 68, 68, 0.15); color:#f87171; border:1px solid rgba(239, 68, 68, 0.3); font-weight:700">HIGH LEVERAGE BOTTLENECK</span>
       </div>
-      <div class="cmd-hero-sub" style="color:#cbd5e1;margin-top:6px">
+      <div class="cmd-hero-sub" style="color:#a1a1a6; margin-top:12px; font-size:14px; line-height:1.5">
         3 active proposals sent over 48 hours ago are pending client response. No automated nudge or objection-handling sequence has been dispatched yet.
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.12)">
-        <div style="font-size:13px;color:#f8fafc">
-          <strong>Impact:</strong> $32,000 in proposal value stalling in Conversion Stage 6.
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:20px; padding-top:16px; border-top:1px solid rgba(255, 255, 255, 0.08)">
+        <div style="font-size:13.5px; color:#f5f5f7; display:flex; align-items:center; gap:8px">
+          <span class="material-symbols-outlined" style="color:#fbbf24; font-size:18px">attach_money</span>
+          <span><strong>Impact:</strong> <span style="color:#fbbf24; font-weight:700">$32,000</span> in proposal value stalling in Conversion Stage 6.</span>
         </div>
-        <button class="btn btn-primary" onclick="go('actions')" style="background:#ea580c;color:#ffffff;border:none">
+        <button class="btn btn-primary" onclick="go('actions')" style="background:linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color:#000000; border:none; font-weight:800; padding:0 22px">
           Review & Dispatch Follow-up Sequence →
         </button>
       </div>
@@ -435,14 +439,14 @@ function renderOverview() {
   `;
 }
 
-// ── 1B. FOUNDATION OS — SHARED BUSINESS TRUTH ────────────────────────────────
+// ── SESSION 02: FOUNDATION OS — SINGLE SOURCE OF BUSINESS TRUTH ──────────────
 function renderFoundationPage() {
   const ca = document.getElementById('content-area');
   if (!ca) return;
 
   const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
   const icp = pos.icp_summary || pos.icpSummary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo';
-  const pain = pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales';
+  const pain = pos.problem || 'Trapped in 60-hr workweeks serving as the single bottleneck for marketing & sales';
   const result = pos.result || 'Scale to $100k/mo while increasing Founder Independence Score from 30 to 85+';
   const mechanism = pos.mechanism || 'The ASENZO 5-Engine Growth OS Framework';
   const score = pos.score || 88;
@@ -451,161 +455,241 @@ function renderFoundationPage() {
   const proofCount = (AUTHORITY_ASSET_ITEMS && AUTHORITY_ASSET_ITEMS.length) || 4;
   const knowledgeCount = (KNOWLEDGE_ITEMS && KNOWLEDGE_ITEMS.length) || 6;
 
+  // Completeness of each section (0–100%)
+  const calcCompleteness = (fields) => {
+    const filled = fields.filter(Boolean).length;
+    return Math.round((filled / fields.length) * 100);
+  };
+
+  const audienceComplete = calcCompleteness([icp, pain, result]);
+  const posComplete = calcCompleteness([icp, pain, result, mechanism]);
+  const proofComplete = Math.min(100, proofCount * 25);
+  const voiceComplete = 80; // known from hardcoded voice profile
+
+  function foundationRow(icon, color, num, title, subtitle, completeness, lastUpdated, fields, editFn) {
+    const isComplete = completeness >= 100;
+    const badgeColor = completeness >= 80 ? '#16a34a' : completeness >= 50 ? '#d97706' : '#ef4444';
+    const badgeBg = completeness >= 80 ? '#dcfce7' : completeness >= 50 ? '#fef3c7' : '#fee2e2';
+    return `
+      <div class="foundation-row">
+        <div class="foundation-row-head">
+          <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0">
+            <div style="width:40px;height:40px;border-radius:12px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <span class="material-symbols-outlined" style="font-size:20px;color:#ffffff;font-variation-settings:'FILL' 1">${icon}</span>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Section ${num}</span>
+                <span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:999px">${completeness}% Complete</span>
+              </div>
+              <div style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-0.01em;margin-top:1px">${title}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${subtitle}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+            <span style="font-size:11px;color:var(--text-faint)">Updated ${lastUpdated}</span>
+            <button class="btn btn-secondary btn-sm" onclick="${editFn}">
+              <span class="material-symbols-outlined" style="font-size:14px">edit</span> Edit
+            </button>
+          </div>
+        </div>
+        <div class="foundation-row-body">
+          ${fields}
+        </div>
+      </div>`;
+  }
+
+  function fieldPair(label, val) {
+    return `<div class="foundation-field"><div class="foundation-field-label">${label}</div><div class="foundation-field-val">${val || '<span style="color:#94a3b8;font-style:italic">Not yet defined</span>'}</div></div>`;
+  }
+
   ca.innerHTML = `
+    <!-- Header -->
     <div class="pg-header">
       <div>
-        <h1 class="pg-title">Foundation OS — Business Truth</h1>
-        <p class="pg-sub">The single shared origin governing all 5 Growth OS engines, AI content generation, and execution agents.</p>
+        <h1 class="pg-title">Foundation</h1>
+        <p class="pg-sub">The single source of truth that governs content creation, sales conversations, delivery, and every AI-generated output.</p>
       </div>
       <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="openNewKnowledgeModal()"><span class="material-symbols-outlined" style="font-size:16px">add</span> Ingest Voice Source</button>
-        <button class="btn btn-primary" onclick="openPositioningModal()"><span class="material-symbols-outlined" style="font-size:16px">edit</span> Edit Business DNA</button>
+        <button class="btn btn-secondary" onclick="openNewKnowledgeModal()">
+          <span class="material-symbols-outlined" style="font-size:16px">add</span> Ingest Voice Source
+        </button>
+        <button class="btn btn-primary" onclick="openPositioningModal()">
+          <span class="material-symbols-outlined" style="font-size:16px">edit</span> Edit Positioning DNA
+        </button>
       </div>
     </div>
 
-    <!-- Foundation Overview Cards -->
-    <div class="stat-grid">
+    <!-- Completeness Overview -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
       <div class="stat-card">
         <div class="sc-top">
-          <div class="sc-icon-box purple"><span class="material-symbols-outlined">verified</span></div>
-          <span class="sc-delta-pill">Active v${version}</span>
+          <div class="sc-icon-box purple"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">verified</span></div>
+          <span class="sc-delta-pill">v${version}</span>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Positioning Score</div>
-          <div class="sc-value">${score}<span>/100</span></div>
-        </div>
+        <div class="sc-label">Positioning Score</div>
+        <div class="sc-value">${score}<span>/100</span></div>
       </div>
       <div class="stat-card">
         <div class="sc-top">
-          <div class="sc-icon-box blue"><span class="material-symbols-outlined">groups</span></div>
-          <span class="sc-delta-pill">Defined</span>
+          <div class="sc-icon-box blue"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">groups</span></div>
+          <span class="sc-delta-pill">${audienceComplete}% filled</span>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Target ICP Segment</div>
-          <div class="sc-value" style="font-size:16px;line-height:20px;font-weight:700">${icp.substring(0, 32)}...</div>
-        </div>
+        <div class="sc-label">Audience Definition</div>
+        <div class="sc-value" style="font-size:18px;line-height:22px">ICP Defined</div>
       </div>
       <div class="stat-card">
         <div class="sc-top">
-          <div class="sc-icon-box green"><span class="material-symbols-outlined">shield</span></div>
-          <span class="sc-delta-pill">${proofCount} Verified</span>
+          <div class="sc-icon-box green"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">shield</span></div>
+          <span class="sc-delta-pill">${proofCount} assets</span>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Authority Proof Assets</div>
-          <div class="sc-value">${proofCount} Assets</div>
-        </div>
+        <div class="sc-label">Proof & Authority</div>
+        <div class="sc-value">${proofCount} <span>Assets</span></div>
       </div>
       <div class="stat-card">
         <div class="sc-top">
-          <div class="sc-icon-box orange"><span class="material-symbols-outlined">record_voice_over</span></div>
-          <span class="sc-delta-pill">${knowledgeCount} Ingested</span>
+          <div class="sc-icon-box orange"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">record_voice_over</span></div>
+          <span class="sc-delta-pill">${knowledgeCount} ingested</span>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Founder Voice Sources</div>
-          <div class="sc-value">${knowledgeCount} Sources</div>
-        </div>
+        <div class="sc-label">Founder Voice Sources</div>
+        <div class="sc-value">${knowledgeCount} <span>Sources</span></div>
       </div>
     </div>
 
-    <!-- Foundation Core Grid (6 Blocks of Truth) -->
-    <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin-top:4px">
-      
-      <!-- 1. Identity & Vision -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="material-symbols-outlined" style="color:var(--primary)">badge</span>
-            <div class="dash-card-title">1. Business Identity & Vision</div>
-          </div>
-          <span class="badge badge-stage-approved">Source of Truth</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Brand & Company Name</div>
-            <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:2px">ASENZO Growth Operating System</div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Category Position</div>
-            <div style="font-size:13px;color:var(--text-main);margin-top:2px">Founder Growth OS / Capability Installation Platform</div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Core Mission</div>
-            <div style="font-size:13px;color:var(--text-main);margin-top:2px">Eliminate founder execution bottlenecks and systematically increase Founder Independence Score (FIS).</div>
-          </div>
-        </div>
+    <!-- N8N Context Banner -->
+    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:14px">
+      <span class="material-symbols-outlined" style="font-size:20px;color:#94a3b8;flex-shrink:0">hub</span>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text-main)">Foundation is the root of every ASENZO AI action</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Content ideas, scripts, sales calls, onboarding flows, and retention messages all inherit data from this module. Keep it current.</div>
       </div>
+      <span style="background:#e0f2fe;color:#0284c7;font-size:10.5px;font-weight:700;padding:4px 12px;border-radius:999px;white-space:nowrap">Live Source of Truth</span>
+    </div>
 
-      <!-- 2. Positioning DNA -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="material-symbols-outlined" style="color:var(--purple-accent)">target</span>
-            <div class="dash-card-title">2. Positioning DNA</div>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="openPositioningModal()">Edit DNA</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Target ICP</div>
-            <div style="font-size:13px;font-weight:700;color:var(--text-main);margin-top:2px">${icp}</div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Core Pain</div>
-            <div style="font-size:13px;color:var(--text-main);margin-top:2px">${pain}</div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Quantified Result</div>
-            <div style="font-size:13px;font-weight:700;color:#16a34a;margin-top:2px">${result}</div>
-          </div>
-          <div>
-            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Unique Mechanism</div>
-            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-top:2px">${mechanism}</div>
-          </div>
-        </div>
-      </div>
+    <!-- Foundation Sections -->
+    <div style="display:flex;flex-direction:column;gap:14px">
 
-      <!-- 3. Offer Architecture -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="material-symbols-outlined" style="color:var(--orange-accent)">inventory_2</span>
-            <div class="dash-card-title">3. Offer Architecture</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
-          <div style="background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E2E8F0">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-size:13px;font-weight:700;color:var(--text-main)">ASENZO OS 90-Day Installation Sprint</div>
-              <span class="badge badge-stage-approved">$12,500</span>
+      ${foundationRow(
+        'badge', '#0058bc',
+        '1', 'Business Identity',
+        'Who you are, what you do, and the category you occupy.',
+        95, 'Today',
+        `<div class="foundation-fields-grid">
+          ${fieldPair('Business Name', 'ASENZO Growth Operating System')}
+          ${fieldPair('Category', 'Founder Growth OS / Capability Installation Platform')}
+          ${fieldPair('Core Mission', 'Eliminate founder execution bottlenecks and systematically increase the Founder Independence Score.')}
+          ${fieldPair('Business Stage', 'Growth — $15k–$50k/mo MRR')}
+        </div>`,
+        `openPositioningModal()`
+      )}
+
+      ${foundationRow(
+        'groups', '#9333ea',
+        '2', 'Audience & ICP',
+        'The specific person you are building this business for.',
+        audienceComplete, 'Today',
+        `<div class="foundation-fields-grid">
+          ${fieldPair('Target ICP', icp)}
+          ${fieldPair('Core Problem', pain)}
+          ${fieldPair('Buying Trigger', 'Founder realizes they are the bottleneck—cannot scale without systematizing marketing and sales')}
+          ${fieldPair('Primary Objection', 'Not sure how to implement — wants done-with-you installation, not a course')}
+        </div>`,
+        `openPositioningModal()`
+      )}
+
+      ${foundationRow(
+        'target', '#ea580c',
+        '3', 'Positioning & Differentiation',
+        'Why you and not anyone else. The unique mechanism that creates certainty.',
+        posComplete, 'Today',
+        `<div class="foundation-fields-grid">
+          ${fieldPair('Unique Mechanism', mechanism)}
+          ${fieldPair('Quantified Result', result)}
+          ${fieldPair('Positioning Statement', 'The only Founder Growth OS that installs all 5 acquisition-to-retention engines in 90 days')}
+          ${fieldPair('Key Differentiator', 'Operating logic, not just tools. Connected system, not isolated dashboards.')}
+        </div>`,
+        `openPositioningModal()`
+      )}
+
+      ${foundationRow(
+        'inventory_2', '#16a34a',
+        '4', 'Offer Architecture',
+        'What you sell, what it costs, and what the client receives.',
+        85, '2 days ago',
+        `<div class="foundation-fields-grid">
+          ${fieldPair('Core Offer', 'ASENZO OS 90-Day Installation Sprint')}
+          ${fieldPair('Price Point', '$12,500 (one-time installation)')}
+          ${fieldPair('Primary Outcome', 'Full installation of 5 growth engines with automated execution queue')}
+          ${fieldPair('Delivery Format', 'Done-with-you — weekly sessions + async OS build-out')}
+        </div>`,
+        `openPositioningModal()`
+      )}
+
+      ${foundationRow(
+        'person', '#0284c7',
+        '5', 'Founder Identity',
+        'Your expertise, story, and the authority behind the brand.',
+        70, '5 days ago',
+        `<div class="foundation-fields-grid">
+          ${fieldPair('Founder Expertise', 'Growth systems, content compounding, and founder-led sales')}
+          ${fieldPair('Years of Experience', '8+ years building B2B service businesses')}
+          ${fieldPair('Proof of Concept', 'Built own business to $50k/mo using the same 5-engine system being taught')}
+          ${fieldPair('Point of View', 'Founders should not be trapped in their own business — systems create freedom')}
+        </div>`,
+        `openPositioningModal()`
+      )}
+
+      ${foundationRow(
+        'record_voice_over', '#7c3aed',
+        '6', 'Brand Voice',
+        'How you communicate — the tone, style, and rules every AI output must follow.',
+        voiceComplete, '3 days ago',
+        `<div class="foundation-fields-grid">
+          ${fieldPair('Tone', 'Authoritative, direct, practitioner-first, zero fluff')}
+          ${fieldPair('Style Rules', 'Short sentences. Metric-backed claims. Clear call-to-actions.')}
+          ${fieldPair('Forbidden Words', '"game-changer", "synergy", "unleash", "unlock potential", "crush it"')}
+          ${fieldPair('Content Personality', 'Practitioner, not guru. Evidence, not hype.')}
+        </div>`,
+        `openPositioningModal()`
+      )}
+
+      ${foundationRow(
+        'shield', '#059669',
+        '7', 'Proof & Authority Assets',
+        'The results, testimonials, and case studies that create belief.',
+        proofComplete, 'Today',
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          ${proofCount > 0 ? `
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-main)">Apex Logistics — Founder Dave</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Engine 3 installed. Revenue from $28k to $47k MRR in 90 days.</div>
+              </div>
+              <span class="badge-stage-approved">Verified</span>
             </div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Full installation of 5 growth engines, business DNA setup, and automated execution queue.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Voice Profile & Principles -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="material-symbols-outlined" style="color:var(--blue-accent)">record_voice_over</span>
-            <div class="dash-card-title">4. Brand Voice Profile</div>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
-          <div style="font-size:12.5px;color:var(--text-main)"><strong>Tone:</strong> Authoritative, direct, practitioner-first, zero fluff</div>
-          <div style="font-size:12.5px;color:var(--text-main)"><strong>Style:</strong> Short sentences, metric-backed claims, clear call-to-actions</div>
-          <div style="font-size:12.5px;color:#ef4444"><strong>Forbidden Words:</strong> "game-changer", "synergy", "unleash", "unlock potential"</div>
-        </div>
-      </div>
+            <div style="background:#F8FAFC;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-main)">Lumina Tech — Founder Elena</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Full OS delegated. Founder working 22 hrs/week at $62k MRR.</div>
+              </div>
+              <span class="badge-stage-approved">Verified</span>
+            </div>
+          ` : '<div style="color:var(--text-faint);font-style:italic;font-size:13px">No proof assets yet. Add your first case study or testimonial.</div>'}
+          <button class="btn btn-secondary btn-sm" style="align-self:flex-start;margin-top:4px" onclick="go('retention')">
+            <span class="material-symbols-outlined" style="font-size:14px">add</span> Add Proof Asset
+          </button>
+        </div>`,
+        `go('retention')`
+      )}
 
     </div>
 
-    <!-- Knowledge Vault Section -->
-    <div class="dash-card" style="margin-top:16px">
+    <!-- Founder Knowledge Vault -->
+    <div class="dash-card">
       <div class="dash-card-header">
         <div>
           <h3 class="dash-card-title">Founder Knowledge Vault</h3>
-          <p class="dash-card-sub">Ingested articles, transcripts, and transcripts powering AI voice generation</p>
+          <p class="dash-card-sub">Ingested articles, transcripts, and voice sources powering AI content generation</p>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="openNewKnowledgeModal()">+ Add Knowledge Source</button>
       </div>
@@ -613,7 +697,6 @@ function renderFoundationPage() {
     </div>
   `;
 }
-
 // ── 1C. REVENUE OS — REVENUE HEALTH & PRICING ─────────────────────────────────
 function renderRevenue() {
   const ca = document.getElementById('content-area');
