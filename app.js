@@ -20,7 +20,6 @@ window.onunhandledrejection = function(event) {
 
 let CURRENT_PAGE = 'overview';
 let CHART_TIMEFRAME = 'Monthly';
-let ATTENTION_SUB_TAB = 'dashboard'; // 'dashboard', 'strategy', 'ideas', 'pipeline', 'attribution', 'knowledge', 'market', 'recommendations'
 
 // Content Strategy & Idea Engine State
 let CONTENT_PILLARS = [];
@@ -35,6 +34,7 @@ let POSITIONING = {
   mechanism: 'The ASENZO 5-Engine Growth OS Framework',
   version: 1
 };
+let POSITIONING_SUITE_DATA = null;
 
 // ── DYNAMIC FIS SCORE CALCULATOR (PHASE 11) ──────────────────────────────────
 function calculateDynamicFIS() {
@@ -201,22 +201,24 @@ function go(page, el) {
     if (matchedNav) matchedNav.classList.add('active');
   }
 
+  // Clean topbar module labels — plain, not jargon-heavy
   const pageTitles = {
-    overview: 'Growth Command Center — Founder Operating System',
-    foundation: 'Business Truth & Foundation OS (ICP, Positioning, Proof)',
-    attention: 'Engine 1 — Attention OS (Growth Marketing & Compounding)',
-    conversion: 'Engine 2 — Conversion OS (Sales & Pipeline)',
-    revenue: 'Engine 3 — Revenue OS (Revenue Health & Pricing)',
-    delivery: 'Engine 4 — Delivery OS (Client Success & Execution)',
-    retention: 'Engine 5 — Retention OS (LTV & Expansion)',
-    intelligence: 'Engine 6 — Intelligence OS (Decisions & Leaks)',
-    actions: 'Action Queue — Central Automation Approval Layer',
-    operator: 'Engine 7 — Operator OS (Capabilities & Playbooks)',
-    calendar: 'Growth Schedule & Calendar'
+    overview: 'Command Center',
+    foundation: 'Foundation — Business Truth',
+    attention: 'Attention — Create Demand',
+    conversion: 'Conversion — Capture Demand',
+    revenue: 'Revenue — Monetize Demand',
+    delivery: 'Delivery — Fulfill the Promise',
+    retention: 'Retention — Compound Client Value',
+    intelligence: 'Intelligence — Understand What Is Changing',
+    actions: 'Action Queue',
+    // Legacy aliases
+    operator: 'Delivery — Fulfill the Promise',
+    calendar: 'Delivery — Fulfill the Promise'
   };
 
   const titleEl = document.getElementById('topbar-title');
-  if (titleEl) titleEl.textContent = pageTitles[page] || 'Growth Command Center';
+  if (titleEl) titleEl.textContent = pageTitles[page] || 'Command Center';
 
   const renderMap = {
     overview: renderOverview,
@@ -228,9 +230,16 @@ function go(page, el) {
     retention: renderRetention,
     intelligence: renderIntelligence,
     actions: renderActionQueue,
-    operator: renderOperator,
-    calendar: renderCalendar
+    // Legacy aliases — route into parent engine
+    operator: renderDelivery,
+    calendar: renderDelivery
   };
+
+  // Align sidebar active state for aliased routes
+  if (page === 'operator' || page === 'calendar') {
+    const deliveryNav = document.getElementById('nav-delivery');
+    if (deliveryNav) deliveryNav.classList.add('active');
+  }
 
   (renderMap[page] || renderOverview)();
 
@@ -242,6 +251,8 @@ function go(page, el) {
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed');
 }
+
+
 
 // ── 1. RENDER OVERVIEW (FOUNDER COMMAND DASHBOARD) ────────────────────────
 function renderOverview() {
@@ -4482,7 +4493,6 @@ function renderCalendar() {
 }
 
 // ── POSITIONING & BUSINESS DNA SUITE MODAL LOGIC ──────────────────────────────
-let POSITIONING_SUITE_DATA = null;
 
 async function openPositioningModal() {
   switchDnaTab('core');

@@ -260,7 +260,75 @@ input, select, textarea {
 
 .sb-label {
   flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
 }
+
+/* Sidebar label group (label + sub-label) */
+.sb-label-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sb-label-sub {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.sb-item.active .sb-label-sub {
+  color: rgba(18, 18, 20, 0.5);
+}
+
+/* Sidebar section dividers */
+.sb-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 6px;
+  margin-top: 4px;
+}
+
+.sb-divider-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.28);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .sb-divider {
+  display: none;
+}
+
+/* Action Queue red badge */
+.sb-action-badge {
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: var(--r-full);
+  min-width: 20px;
+  text-align: center;
+  line-height: 18px;
+}
+
+.sb-item.active .sb-action-badge {
+  background: #EF4444;
+  color: #FFFFFF;
+}
+
+/* Collapsed sidebar: hide sub-labels and divider labels */
+.sidebar.collapsed .sb-label-sub {
+  display: none;
+}
+
+
 
 /* Sidebar FIS Upgrade Box */
 .sb-upgrade-card {

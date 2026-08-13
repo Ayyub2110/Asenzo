@@ -416,9 +416,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Category Color</label>
-          <select id="evt-type">
-            <option value="green">Green — Discovery / Sales Call</option>
+              <option value="green">Green — Discovery / Sales Call</option>
             <option value="yellow">Yellow — Content Sprint / Scripting</option>
             <option value="orange">Orange — Client Onboarding / Delivery</option>
             <option value="grey">Grey — Weekly Directive Audit</option>
@@ -435,7 +433,7 @@
   <!-- ══════════════ MAIN FULLSCREEN VIEWPORT SHELL ══════════════ -->
   <div class="app-shell">
 
-    <!-- ══════════════ LEFT SIDEBAR (GOOGLE STITCH AMBIENT OS) ══════════════ -->
+    <!-- ══════════════ LEFT SIDEBAR ══════════════ -->
     <aside class="sidebar" id="sidebar">
       
       <!-- Top Brand Header -->
@@ -453,44 +451,71 @@
 
       <!-- Sidebar Navigation Menu -->
       <nav class="sb-nav">
+
+        <!-- Command + Foundation -->
         <div class="sb-item active" id="nav-overview" onclick="go('overview', this)">
           <span class="material-symbols-outlined">grid_view</span>
           <span class="sb-label">Command Center</span>
         </div>
 
         <div class="sb-item" id="nav-foundation" onclick="go('foundation', this)">
-          <span class="material-symbols-outlined">tune</span>
+          <span class="material-symbols-outlined">fingerprint</span>
           <span class="sb-label">Foundation</span>
+        </div>
+
+        <!-- Divider: Growth Engines -->
+        <div class="sb-divider">
+          <span class="sb-divider-label">Growth Engines</span>
         </div>
 
         <div class="sb-item" id="nav-attention" onclick="go('attention', this)">
           <span class="material-symbols-outlined">auto_graph</span>
-          <span class="sb-label">Attention OS</span>
+          <div class="sb-label-group">
+            <span class="sb-label">Attention</span>
+            <span class="sb-label-sub">Create demand</span>
+          </div>
         </div>
 
         <div class="sb-item" id="nav-conversion" onclick="go('conversion', this)">
-          <span class="material-symbols-outlined">payments</span>
-          <span class="sb-label">Conversion OS</span>
+          <span class="material-symbols-outlined">person_search</span>
+          <div class="sb-label-group">
+            <span class="sb-label">Conversion</span>
+            <span class="sb-label-sub">Capture demand</span>
+          </div>
         </div>
 
         <div class="sb-item" id="nav-revenue" onclick="go('revenue', this)">
-          <span class="material-symbols-outlined">account_balance</span>
-          <span class="sb-label">Revenue OS</span>
+          <span class="material-symbols-outlined">payments</span>
+          <div class="sb-label-group">
+            <span class="sb-label">Revenue</span>
+            <span class="sb-label-sub">Monetize demand</span>
+          </div>
         </div>
 
         <div class="sb-item" id="nav-delivery" onclick="go('delivery', this)">
           <span class="material-symbols-outlined">hub</span>
-          <span class="sb-label">Delivery OS</span>
+          <div class="sb-label-group">
+            <span class="sb-label">Delivery</span>
+            <span class="sb-label-sub">Fulfill the promise</span>
+          </div>
         </div>
 
         <div class="sb-item" id="nav-retention" onclick="go('retention', this)">
-          <span class="material-symbols-outlined">repeat</span>
-          <span class="sb-label">Retention OS</span>
+          <span class="material-symbols-outlined">cycle</span>
+          <div class="sb-label-group">
+            <span class="sb-label">Retention</span>
+            <span class="sb-label-sub">Compound LTV</span>
+          </div>
+        </div>
+
+        <!-- Divider: System Layer -->
+        <div class="sb-divider">
+          <span class="sb-divider-label">System Layer</span>
         </div>
 
         <div class="sb-item" id="nav-intelligence" onclick="go('intelligence', this)">
           <span class="material-symbols-outlined">psychology</span>
-          <span class="sb-label">Intelligence OS</span>
+          <span class="sb-label">Intelligence</span>
         </div>
 
         <div class="sb-item" id="nav-actions" onclick="go('actions', this)">
