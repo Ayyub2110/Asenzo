@@ -36,6 +36,34 @@ let POSITIONING = {
   version: 1
 };
 
+// ── DYNAMIC FIS SCORE CALCULATOR (PHASE 11) ──────────────────────────────────
+function calculateDynamicFIS() {
+  const contentCount = CONTENT_ITEMS ? CONTENT_ITEMS.length : 12;
+  const proofCount = AUTHORITY_ASSET_ITEMS ? AUTHORITY_ASSET_ITEMS.length : 4;
+  const attentionScore = Math.min(100, (contentCount * 4) + (proofCount * 8));
+
+  const deals = DEALS || [];
+  const pipelineVal = deals.reduce((acc, d) => acc + (d.val || 0), 0);
+  const conversionScore = Math.min(100, Math.floor(pipelineVal / 1000) + 50);
+
+  const revenueScore = 85;
+  const deliveryScore = 90;
+  const retentionScore = 94;
+
+  const totalScore = Math.round(
+    (attentionScore * 0.20) +
+    (conversionScore * 0.25) +
+    (revenueScore * 0.20) +
+    (deliveryScore * 0.20) +
+    (retentionScore * 0.15)
+  );
+
+  const el = document.getElementById('sb-fis-score-val');
+  if (el) el.textContent = `FIS: ${totalScore}/100 (Calculated)`;
+
+  return totalScore;
+}
+
 // ── ENGINE DATA STORES ──────────────────────────────────────────────────────
 
 // Engine 1 — Attention OS Data Stores
@@ -166,31 +194,49 @@ async function initAppData() {
 function go(page, el) {
   CURRENT_PAGE = page;
   document.querySelectorAll('.sb-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
+  if (el) {
+    el.classList.add('active');
+  } else {
+    const matchedNav = document.getElementById(`nav-${page}`);
+    if (matchedNav) matchedNav.classList.add('active');
+  }
 
   const pageTitles = {
-    overview: 'ASENZO Overview — Founder Growth OS',
-    attention: 'Engine 1 — Attention OS (Growth Marketing)',
+    overview: 'Growth Command Center — Founder Operating System',
+    foundation: 'Business Truth & Foundation OS (ICP, Positioning, Proof)',
+    attention: 'Engine 1 — Attention OS (Growth Marketing & Compounding)',
     conversion: 'Engine 2 — Conversion OS (Sales & Pipeline)',
-    delivery: 'Engine 3 — Delivery OS (Client Success & Milestones)',
-    intelligence: 'Engine 4 — Intelligence OS (Decisions & Leaks)',
-    operator: 'Engine 5 — Operator OS (Capability & SOPs)',
+    revenue: 'Engine 3 — Revenue OS (Revenue Health & Pricing)',
+    delivery: 'Engine 4 — Delivery OS (Client Success & Execution)',
+    retention: 'Engine 5 — Retention OS (LTV & Expansion)',
+    intelligence: 'Engine 6 — Intelligence OS (Decisions & Leaks)',
+    actions: 'Action Queue — Central Automation Approval Layer',
+    operator: 'Engine 7 — Operator OS (Capabilities & Playbooks)',
     calendar: 'Growth Schedule & Calendar'
   };
 
-  document.getElementById('topbar-title').textContent = pageTitles[page] || 'Overview Dashboard';
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = pageTitles[page] || 'Growth Command Center';
 
   const renderMap = {
     overview: renderOverview,
+    foundation: renderFoundationPage,
     attention: renderAttention,
     conversion: renderConversion,
+    revenue: renderRevenue,
     delivery: renderDelivery,
+    retention: renderRetention,
     intelligence: renderIntelligence,
+    actions: renderActionQueue,
     operator: renderOperator,
     calendar: renderCalendar
   };
 
   (renderMap[page] || renderOverview)();
+
+  if (typeof calculateDynamicFIS === 'function') {
+    calculateDynamicFIS();
+  }
 }
 
 function toggleSidebar() {
@@ -200,276 +246,695 @@ function toggleSidebar() {
 // ── 1. RENDER OVERVIEW (FOUNDER COMMAND DASHBOARD) ────────────────────────
 function renderOverview() {
   const ca = document.getElementById('content-area');
+  if (!ca) return;
+
+  const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
+  const icp = pos.icp_summary || pos.icpSummary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo';
+
+  const deals = DEALS || [];
+  const pipelineVal = deals.reduce((acc, d) => acc + (d.val || 0), 0);
+  const activeContentCount = CONTENT_ITEMS ? CONTENT_ITEMS.length : 12;
+
   ca.innerHTML = `
     <!-- Header -->
     <div class="pg-header">
       <div>
-        <h1 class="pg-title">Growth Command</h1>
-        <p class="pg-sub">Welcome back, Alex. Your FIS is up 6 points this week.</p>
+        <h1 class="pg-title">Growth Command Center</h1>
+        <p class="pg-sub">Real-time system state monitoring, bottleneck identification, and cross-engine execution queue.</p>
       </div>
       <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="openPositioningModal()">
-          Export Report
+        <button class="btn btn-secondary" onclick="go('foundation')">
+          <span class="material-symbols-outlined" style="font-size:16px">tune</span> Foundation DNA
         </button>
-        <button class="btn btn-primary" onclick="openPanel()">
-          Share Directive
+        <button class="btn btn-primary" onclick="go('actions')">
+          <span class="material-symbols-outlined" style="font-size:16px">checklist</span> Action Queue (3)
         </button>
       </div>
     </div>
 
-    <!-- 4 Stat Cards Row (Google Stitch Design) -->
+    <!-- CURRENT GROWTH CONSTRAINT HERO BLOCK (Phase 4 Specification) -->
+    <div class="cmd-hero" style="border: 2px solid #ea580c; background: linear-gradient(135deg, #1b1b1d 0%, #2a1f1b 100%);">
+      <div class="cmd-hero-title" style="color:#ffffff;display:flex;align-items:center;gap:10px">
+        <span class="material-symbols-outlined" style="color:#ea580c;font-size:24px">warning</span>
+        <span>CURRENT SYSTEM CONSTRAINT: Proposal Follow-up Velocity</span>
+        <span class="sc-delta-pill red-tag" style="margin-left:auto;font-size:12px;padding:4px 12px">HIGH LEVERAGE BOTTLENECK</span>
+      </div>
+      <div class="cmd-hero-sub" style="color:#cbd5e1;margin-top:6px">
+        3 active proposals sent over 48 hours ago are pending client response. No automated nudge or objection-handling sequence has been dispatched yet.
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.12)">
+        <div style="font-size:13px;color:#f8fafc">
+          <strong>Impact:</strong> $32,000 in proposal value stalling in Conversion Stage 6.
+        </div>
+        <button class="btn btn-primary" onclick="go('actions')" style="background:#ea580c;color:#ffffff;border:none">
+          Review & Dispatch Follow-up Sequence →
+        </button>
+      </div>
+    </div>
+
+    <!-- 4 System State Stat Cards -->
     <div class="stat-grid">
-      <div class="stat-card">
+      <div class="stat-card" onclick="go('foundation')" style="cursor:pointer">
         <div class="sc-top">
           <div class="sc-icon-box purple">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
           </div>
-          <span class="sc-delta-pill">12.4% ↗</span>
+          <span class="sc-delta-pill">Calculated</span>
         </div>
         <div class="sc-main">
           <div class="sc-label">Founder Independence Score</div>
-          <div class="sc-value">84<span>/100</span></div>
+          <div class="sc-value">84<span>/100 (Demo)</span></div>
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" onclick="go('conversion')" style="cursor:pointer">
         <div class="sc-top">
           <div class="sc-icon-box orange">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
           </div>
-          <span class="sc-delta-pill">2.1% ↗</span>
+          <span class="sc-delta-pill">Active CRM</span>
         </div>
         <div class="sc-main">
           <div class="sc-label">Pipeline Value</div>
-          <div class="sc-value">$48,200</div>
+          <div class="sc-value">$${pipelineVal.toLocaleString()}</div>
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" onclick="go('attention')" style="cursor:pointer">
         <div class="sc-top">
           <div class="sc-icon-box blue">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_graph</span>
           </div>
-          <span class="sc-delta-pill">6 ↗</span>
+          <span class="sc-delta-pill">${activeContentCount} Assets</span>
         </div>
         <div class="sc-main">
-          <div class="sc-label">Active Clients</div>
-          <div class="sc-value">6 Clients</div>
+          <div class="sc-label">Attention Compounding</div>
+          <div class="sc-value">Active</div>
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" onclick="go('actions')" style="cursor:pointer">
         <div class="sc-top">
           <div class="sc-icon-box red">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pending_actions</span>
           </div>
-          <span class="sc-delta-pill red-tag">low ↗</span>
+          <span class="sc-delta-pill red-tag">3 Pending</span>
         </div>
         <div class="sc-main">
-          <div class="sc-label">Bottleneck Signal</div>
-          <div class="sc-value" style="font-size:22px">Proposal Follow-up</div>
+          <div class="sc-label">Action Queue</div>
+          <div class="sc-value" style="font-size:22px">Review Proposals</div>
         </div>
       </div>
     </div>
 
-    <!-- ASENZO Compounding Loop Strip -->
-    <div style="margin-top:2px">
+    <!-- ASENZO Compounding Growth Loop Strip -->
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Connected Growth Loop Architecture</div>
       <div class="loop-strip">
-        <div class="loop-step" onclick="go('attention', document.getElementById('nav-attention'))">
-          <span>1. Acquire</span>
+        <div class="loop-step" onclick="go('foundation')">
+          <span>0. Foundation</span>
         </div>
         <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('conversion', document.getElementById('nav-conversion'))">
-          <span>2. Convert</span>
+        <div class="loop-step" onclick="go('attention')">
+          <span>1. Acquire (Attention)</span>
         </div>
         <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('delivery', document.getElementById('nav-delivery'))">
-          <span>3. Deliver</span>
+        <div class="loop-step" onclick="go('conversion')">
+          <span>2. Convert (Sales)</span>
         </div>
         <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('intelligence', document.getElementById('nav-intelligence'))">
-          <span>4. Retain & Expand</span>
+        <div class="loop-step" onclick="go('revenue')">
+          <span>3. Monetize (Revenue)</span>
         </div>
         <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('operator', document.getElementById('nav-operator'))">
-          <span>5. Optimize & Compound</span>
+        <div class="loop-step" onclick="go('delivery')">
+          <span>4. Deliver (Success)</span>
+        </div>
+        <span class="loop-arrow">→</span>
+        <div class="loop-step" onclick="go('retention')">
+          <span>5. Retain (Expansion)</span>
         </div>
       </div>
     </div>
 
-    <!-- Dual Dashboard Grid: Growth Performance (Stripe Style) + Engine Allocation (Stripe Style) -->
-    <div class="dashboard-grid">
-      
-      <!-- Growth Performance Line Chart Card (Stripe Analytics Style) -->
-      <div class="stripe-chart-card">
-        <div class="stripe-chart-top">
-          <div>
-            <div class="dash-card-title">Growth Performance</div>
-            <div class="dash-card-sub">Compounding portfolio reach & pipeline velocity</div>
-            <div class="stripe-metric-wrap">
-              <div class="stripe-metric-val">$91,000.00</div>
-              <span class="stripe-badge-green">+24.5% vs last month</span>
-            </div>
-          </div>
-          <div class="time-pills">
-            <div class="time-pill ${CHART_TIMEFRAME==='Daily'?'active':''}" onclick="setChartTimeframe('Daily')">Daily</div>
-            <div class="time-pill ${CHART_TIMEFRAME==='Weekly'?'active':''}" onclick="setChartTimeframe('Weekly')">Weekly</div>
-            <div class="time-pill ${CHART_TIMEFRAME==='Monthly'?'active':''}" onclick="setChartTimeframe('Monthly')">Monthly</div>
-          </div>
+    <!-- 5 Engine Health Matrix -->
+    <div class="dash-card" style="margin-top:4px">
+      <div class="dash-card-header">
+        <div>
+          <h3 class="dash-card-title">Engine Health & Capability Matrix</h3>
+          <p class="dash-card-sub">Current operating status of all 5 installed Growth OS engines</p>
         </div>
-
-        <div class="stripe-chart-body" id="performance-chart-wrap">
-          <!-- Floating Stripe Data Callout -->
-          <div class="stripe-tooltip-callout">
-            <span>Mar 15 · $91,000 Pipeline Value</span>
-          </div>
-
-          <!-- Y Axis Labels -->
-          <div class="stripe-y-axis">
-            <span>$100k</span>
-            <span>$75k</span>
-            <span>$50k</span>
-            <span>$25k</span>
-            <span>$0</span>
-          </div>
-
-          <div class="stripe-chart-svg-wrap">
-            <svg viewBox="0 0 450 176" preserveAspectRatio="none" style="width:100%;height:100%;overflow:visible">
-              <defs>
-                <linearGradient id="stripeAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#635BFF" stop-opacity="0.12"/>
-                  <stop offset="100%" stop-color="#635BFF" stop-opacity="0.0"/>
-                </linearGradient>
-              </defs>
-              
-              <!-- Subtle Horizontal Grid Lines -->
-              <line x1="0" y1="10" x2="450" y2="10" stroke="#F1F5F9" stroke-width="1"/>
-              <line x1="0" y1="50" x2="450" y2="50" stroke="#F1F5F9" stroke-width="1"/>
-              <line x1="0" y1="90" x2="450" y2="90" stroke="#F1F5F9" stroke-width="1"/>
-              <line x1="0" y1="130" x2="450" y2="130" stroke="#F1F5F9" stroke-width="1"/>
-              <line x1="0" y1="160" x2="450" y2="160" stroke="#CBD5E1" stroke-width="1"/>
-
-              <!-- Previous Period Baseline (Subtle Dashed Gray Line) -->
-              <path d="M 10,140 C 90,120 170,135 250,110 C 310,90 370,50 440,70" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="3 3"/>
-
-              <!-- Translucent Stripe Area Fill -->
-              <path d="M 10,120 C 90,85 170,115 250,85 C 310,50 370,20 440,25 L 440,160 L 10,160 Z" fill="url(#stripeAreaGrad)"/>
-
-              <!-- Primary Stripe Indigo Metric Curve -->
-              <path d="M 10,120 C 90,85 170,115 250,85 C 310,50 370,20 440,25" fill="none" stroke="#635BFF" stroke-width="2.5" stroke-linecap="round"/>
-
-              <!-- Interactive Crosshair & Active Point -->
-              <line x1="440" y1="10" x2="440" y2="160" stroke="#E2E8F0" stroke-width="1.5"/>
-              <circle cx="440" cy="25" r="4.5" fill="#635BFF" stroke="#FFFFFF" stroke-width="2"/>
-
-              <!-- X Axis Month Labels -->
-              <g font-size="10.5" font-weight="600" fill="#94A3B8" text-anchor="middle">
-                <text x="15" y="174">OCT</text>
-                <text x="100" y="174">NOV</text>
-                <text x="185" y="174">DEC</text>
-                <text x="270" y="174">JAN</text>
-                <text x="355" y="174">FEB</text>
-                <text x="435" y="174">MAR</text>
-              </g>
-            </svg>
-          </div>
-        </div>
+        <button class="btn btn-secondary btn-sm" onclick="go('intelligence')">View Intelligence Signal Map</button>
       </div>
 
-      <!-- Engine Allocation Donut Chart Card (Stripe Analytics Style) -->
-      <div class="stripe-chart-card">
-        <div class="dash-card-header">
-          <div>
-            <div class="dash-card-title">Engine Allocation</div>
-            <div class="dash-card-sub">Growth OS activity mix</div>
-          </div>
-          <span class="sc-delta-pill" style="background:#F1F5F9;color:#475569;font-weight:700">Optimal</span>
-        </div>
+      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-top:6px">
         
-        <div class="stripe-donut-container">
-          <div class="stripe-donut-wrap">
-            <svg viewBox="0 0 100 100" style="width:135px;height:135px;transform:rotate(-90deg)">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#F1F5F9" stroke-width="8"/>
-              
-              <!-- Segment 1: Attention 40% (Stripe Indigo #635BFF) -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#635BFF" stroke-width="8" stroke-dasharray="100 251" stroke-dashoffset="0" stroke-linecap="round"/>
-              <!-- Segment 2: Conversion 25% (Stripe Teal #00D4B6) -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#00D4B6" stroke-width="8" stroke-dasharray="63 251" stroke-dashoffset="-104" stroke-linecap="round"/>
-              <!-- Segment 3: Delivery 20% (Stripe Amber #FFC700) -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#FFC700" stroke-width="8" stroke-dasharray="50 251" stroke-dashoffset="-170" stroke-linecap="round"/>
-              <!-- Segment 4: Intelligence 15% (Stripe Slate #0A2540) -->
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#0A2540" stroke-width="8" stroke-dasharray="38 251" stroke-dashoffset="-223" stroke-linecap="round"/>
-            </svg>
-            
-            <div class="stripe-donut-center">
-              <div class="stripe-donut-num">84</div>
-              <div class="stripe-donut-sub">FIS SCORE</div>
-            </div>
-          </div>
-
-          <!-- Stripe Tabular Legend Breakdown -->
-          <div class="stripe-table-breakdown">
-            <div class="stripe-table-row">
-              <div class="stripe-row-left">
-                <span class="stripe-dot indigo"></span>
-                <span>Attention Engine</span>
-              </div>
-              <span class="stripe-row-val">40% · 12 Assets</span>
-            </div>
-
-            <div class="stripe-table-row">
-              <div class="stripe-row-left">
-                <span class="stripe-dot teal"></span>
-                <span>Conversion Engine</span>
-              </div>
-              <span class="stripe-row-val">25% · $48.2k</span>
-            </div>
-
-            <div class="stripe-table-row">
-              <div class="stripe-row-left">
-                <span class="stripe-dot amber"></span>
-                <span>Delivery Engine</span>
-              </div>
-              <span class="stripe-row-val">20% · 6 Clients</span>
-            </div>
-
-            <div class="stripe-table-row">
-              <div class="stripe-row-left">
-                <span class="stripe-dot slate"></span>
-                <span>Intelligence Engine</span>
-              </div>
-              <span class="stripe-row-val">15% · 3 Leaks</span>
-            </div>
-          </div>
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('attention')" class="pvs-item">
+          <div style="font-size:11px;font-weight:800;color:#9333ea;text-transform:uppercase">Engine 1 — Attention</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">Active Compounding</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${activeContentCount} Content Assets Queued</div>
         </div>
-      </div>
 
-    </div>
-
-    <!-- Weekly Growth Directive Section -->
-    <div class="dash-card">
-      <div class="dash-card-title">Weekly Growth Directive</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#FAFAFA;border-radius:14px;border:1px solid #F1F5F9">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:30px;height:30px;border-radius:50%;background:#FEE2E2;color:#EF4444;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">1</div>
-          <div style="font-size:13.5px;font-weight:600;color:#121214">Follow up on ACME Corp Proposal - Sent 3 days ago</div>
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('conversion')" class="pvs-item">
+          <div style="font-size:11px;font-weight:800;color:#ea580c;text-transform:uppercase">Engine 2 — Conversion</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">Bottleneck Signal</div>
+          <div style="font-size:11.5px;color:#ef4444;margin-top:2px">Proposal follow-up delayed</div>
         </div>
-        <span class="sc-delta-pill red-tag" style="font-size:11px;font-weight:700">High Impact</span>
+
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('revenue')" class="pvs-item">
+          <div style="font-size:11px;font-weight:800;color:#16a34a;text-transform:uppercase">Engine 3 — Revenue</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">$42,500 MRR</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">$18.4k Avg Contract Value</div>
+        </div>
+
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('delivery')" class="pvs-item">
+          <div style="font-size:11px;font-weight:800;color:#0284c7;text-transform:uppercase">Engine 4 — Delivery</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">6 Active Clients</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">All milestones on track</div>
+        </div>
+
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('retention')" class="pvs-item">
+          <div style="font-size:11px;font-weight:800;color:#059669;text-transform:uppercase">Engine 5 — Retention</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">94.2% Retention</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">0 churn risk accounts</div>
+        </div>
+
       </div>
     </div>
   `;
 }
 
-// ── 2. ENGINE 1 — ATTENTION OS (PRODUCTION ENGINE) ────────────────────────
-let ATTENTION_ZONE = 'today'; // 'today', 'create', 'prove', 'foundation'
+// ── 1B. FOUNDATION OS — SHARED BUSINESS TRUTH ────────────────────────────────
+function renderFoundationPage() {
+  const ca = document.getElementById('content-area');
+  if (!ca) return;
 
-function switchAttentionZone(zone) {
-  ATTENTION_ZONE = zone;
+  const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
+  const icp = pos.icp_summary || pos.icpSummary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo';
+  const pain = pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck for marketing & sales';
+  const result = pos.result || 'Scale to $100k/mo while increasing Founder Independence Score from 30 to 85+';
+  const mechanism = pos.mechanism || 'The ASENZO 5-Engine Growth OS Framework';
+  const score = pos.score || 88;
+  const version = pos.version || 1;
+
+  const proofCount = (AUTHORITY_ASSET_ITEMS && AUTHORITY_ASSET_ITEMS.length) || 4;
+  const knowledgeCount = (KNOWLEDGE_ITEMS && KNOWLEDGE_ITEMS.length) || 6;
+
+  ca.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-title">Foundation OS — Business Truth</h1>
+        <p class="pg-sub">The single shared origin governing all 5 Growth OS engines, AI content generation, and execution agents.</p>
+      </div>
+      <div class="pg-actions">
+        <button class="btn btn-secondary" onclick="openNewKnowledgeModal()"><span class="material-symbols-outlined" style="font-size:16px">add</span> Ingest Voice Source</button>
+        <button class="btn btn-primary" onclick="openPositioningModal()"><span class="material-symbols-outlined" style="font-size:16px">edit</span> Edit Business DNA</button>
+      </div>
+    </div>
+
+    <!-- Foundation Overview Cards -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box purple"><span class="material-symbols-outlined">verified</span></div>
+          <span class="sc-delta-pill">Active v${version}</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Positioning Score</div>
+          <div class="sc-value">${score}<span>/100</span></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box blue"><span class="material-symbols-outlined">groups</span></div>
+          <span class="sc-delta-pill">Defined</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Target ICP Segment</div>
+          <div class="sc-value" style="font-size:16px;line-height:20px;font-weight:700">${icp.substring(0, 32)}...</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box green"><span class="material-symbols-outlined">shield</span></div>
+          <span class="sc-delta-pill">${proofCount} Verified</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Authority Proof Assets</div>
+          <div class="sc-value">${proofCount} Assets</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box orange"><span class="material-symbols-outlined">record_voice_over</span></div>
+          <span class="sc-delta-pill">${knowledgeCount} Ingested</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Founder Voice Sources</div>
+          <div class="sc-value">${knowledgeCount} Sources</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Foundation Core Grid (6 Blocks of Truth) -->
+    <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin-top:4px">
+      
+      <!-- 1. Identity & Vision -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="color:var(--primary)">badge</span>
+            <div class="dash-card-title">1. Business Identity & Vision</div>
+          </div>
+          <span class="badge badge-stage-approved">Source of Truth</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Brand & Company Name</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:2px">ASENZO Growth Operating System</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Category Position</div>
+            <div style="font-size:13px;color:var(--text-main);margin-top:2px">Founder Growth OS / Capability Installation Platform</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Core Mission</div>
+            <div style="font-size:13px;color:var(--text-main);margin-top:2px">Eliminate founder execution bottlenecks and systematically increase Founder Independence Score (FIS).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Positioning DNA -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="color:var(--purple-accent)">target</span>
+            <div class="dash-card-title">2. Positioning DNA</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="openPositioningModal()">Edit DNA</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Target ICP</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-main);margin-top:2px">${icp}</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Core Pain</div>
+            <div style="font-size:13px;color:var(--text-main);margin-top:2px">${pain}</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Quantified Result</div>
+            <div style="font-size:13px;font-weight:700;color:#16a34a;margin-top:2px">${result}</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Unique Mechanism</div>
+            <div style="font-size:13px;font-weight:700;color:var(--primary);margin-top:2px">${mechanism}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Offer Architecture -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="color:var(--orange-accent)">inventory_2</span>
+            <div class="dash-card-title">3. Offer Architecture</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+          <div style="background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E2E8F0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:13px;font-weight:700;color:var(--text-main)">ASENZO OS 90-Day Installation Sprint</div>
+              <span class="badge badge-stage-approved">$12,500</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Full installation of 5 growth engines, business DNA setup, and automated execution queue.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Voice Profile & Principles -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="material-symbols-outlined" style="color:var(--blue-accent)">record_voice_over</span>
+            <div class="dash-card-title">4. Brand Voice Profile</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+          <div style="font-size:12.5px;color:var(--text-main)"><strong>Tone:</strong> Authoritative, direct, practitioner-first, zero fluff</div>
+          <div style="font-size:12.5px;color:var(--text-main)"><strong>Style:</strong> Short sentences, metric-backed claims, clear call-to-actions</div>
+          <div style="font-size:12.5px;color:#ef4444"><strong>Forbidden Words:</strong> "game-changer", "synergy", "unleash", "unlock potential"</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Knowledge Vault Section -->
+    <div class="dash-card" style="margin-top:16px">
+      <div class="dash-card-header">
+        <div>
+          <h3 class="dash-card-title">Founder Knowledge Vault</h3>
+          <p class="dash-card-sub">Ingested articles, transcripts, and transcripts powering AI voice generation</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="openNewKnowledgeModal()">+ Add Knowledge Source</button>
+      </div>
+      ${renderKnowledgeTab()}
+    </div>
+  `;
+}
+
+// ── 1C. REVENUE OS — REVENUE HEALTH & PRICING ─────────────────────────────────
+function renderRevenue() {
+  const ca = document.getElementById('content-area');
+  if (!ca) return;
+
+  const deals = DEALS || [];
+  const pipelineVal = deals.reduce((acc, d) => acc + (d.val || 0), 0);
+  const closedWon = deals.filter(d => d.stage === 'Closed Won' || d.stage === 'CLOSED_WON').reduce((acc, d) => acc + (d.val || 0), 0);
+
+  ca.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-title">Engine 3 — Revenue OS</h1>
+        <p class="pg-sub">Revenue health, cash velocity, contract value optimization, and monetization strategy.</p>
+      </div>
+      <div class="pg-actions">
+        <button class="btn btn-secondary" onclick="openDealModal()"><span class="material-symbols-outlined" style="font-size:16px">add</span> Log Opportunity</button>
+      </div>
+    </div>
+
+    <!-- Revenue Stat Grid -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box green"><span class="material-symbols-outlined">attach_money</span></div>
+          <span class="sc-delta-pill">+14.2% MoM</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Monthly Recurring Revenue (MRR)</div>
+          <div class="sc-value">$42,500</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box orange"><span class="material-symbols-outlined">bar_chart</span></div>
+          <span class="sc-delta-pill">Active Pipeline</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Pipeline Value</div>
+          <div class="sc-value">$${pipelineVal.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box blue"><span class="material-symbols-outlined">request_quote</span></div>
+          <span class="sc-delta-pill">Average Ticket</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Average Contract Value (ACV)</div>
+          <div class="sc-value">$18,400</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box purple"><span class="material-symbols-outlined">verified</span></div>
+          <span class="sc-delta-pill">Closed Won</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Cash Collected (MTD)</div>
+          <div class="sc-value">$${closedWon > 0 ? closedWon.toLocaleString() : '15,000'}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue Breakdown Card -->
+    <div class="dash-card" style="margin-top:16px">
+      <div class="dash-card-header">
+        <div>
+          <h3 class="dash-card-title">Revenue Opportunities & Contract Breakdown</h3>
+          <p class="dash-card-sub">Active deals mapped directly to Revenue OS pipeline value</p>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="cmd-table">
+          <thead>
+            <tr>
+              <th>Deal / Company</th>
+              <th>Stage</th>
+              <th>Contract Value</th>
+              <th>Founder Action Required</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${deals.map(d => `
+              <tr>
+                <td><strong>${d.name}</strong></td>
+                <td><span class="badge badge-stage-script">${d.stage}</span></td>
+                <td style="font-weight:800;color:#16a34a">$${(d.val || 0).toLocaleString()}</td>
+                <td>${d.objection || 'None — On track'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ── 1D. RETENTION OS — LTV & CLIENT EXPANSION ─────────────────────────────────
+function renderRetention() {
+  const ca = document.getElementById('content-area');
+  if (!ca) return;
+
+  ca.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-title">Engine 5 — Retention OS</h1>
+        <p class="pg-sub">Client retention, churn prevention, satisfaction tracking, and expansion revenue.</p>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box green"><span class="material-symbols-outlined">repeat</span></div>
+          <span class="sc-delta-pill">Optimal</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Gross Client Retention</div>
+          <div class="sc-value">94.2%</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box blue"><span class="material-symbols-outlined">group_add</span></div>
+          <span class="sc-delta-pill">+2 Accounts</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Expansion MRR</div>
+          <div class="sc-value">$6,800</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box orange"><span class="material-symbols-outlined">sentiment_satisfied</span></div>
+          <span class="sc-delta-pill">High</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Client Health Score</div>
+          <div class="sc-value">91<span>/100</span></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box red"><span class="material-symbols-outlined">warning</span></div>
+          <span class="sc-delta-pill red-tag">0 Critical</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Churn Risk Accounts</div>
+          <div class="sc-value">0 Accounts</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-card" style="margin-top:16px">
+      <div class="dash-card-header">
+        <div>
+          <h3 class="dash-card-title">Active Retention Accounts & Renewals</h3>
+          <p class="dash-card-sub">Monitored client accounts with upcoming renewal & expansion milestones</p>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="cmd-table">
+          <thead>
+            <tr>
+              <th>Client Account</th>
+              <th>Health Score</th>
+              <th>Milestone Status</th>
+              <th>Expansion Signal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Apex Logistics</strong></td>
+              <td><span class="badge badge-stage-approved">96/100 · Strong</span></td>
+              <td>Engine 3 Installed</td>
+              <td>Ready for Engine 4 Scaling</td>
+            </tr>
+            <tr>
+              <td><strong>Nexus Growth</strong></td>
+              <td><span class="badge badge-stage-script">84/100 · Good</span></td>
+              <td>Positioning Intake</td>
+              <td>Awaiting Intake Brief</td>
+            </tr>
+            <tr>
+              <td><strong>Lumina Tech</strong></td>
+              <td><span class="badge badge-stage-approved">98/100 · Exceptional</span></td>
+              <td>Full OS Delegated</td>
+              <td>Case Study Verified · Expansion Ready</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ── 1E. ACTION QUEUE — CENTRAL AUTOMATION APPROVAL LAYER ─────────────────────
+function renderActionQueue() {
+  const ca = document.getElementById('content-area');
+  if (!ca) return;
+
+  ca.innerHTML = `
+    <div class="pg-header">
+      <div>
+        <h1 class="pg-title">Action Queue — Central Approval Layer</h1>
+        <p class="pg-sub">Propose, never execute without founder authorization. Review, modify, approve, or reject automated execution proposals.</p>
+      </div>
+      <div class="pg-actions">
+        <button class="btn btn-secondary" onclick="showToast('Queue refreshed')"><span class="material-symbols-outlined" style="font-size:16px">refresh</span> Refresh Queue</button>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box orange"><span class="material-symbols-outlined">pending_actions</span></div>
+          <span class="sc-delta-pill red-tag">Action Needed</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Pending Approval</div>
+          <div class="sc-value">3 Actions</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box green"><span class="material-symbols-outlined">task_alt</span></div>
+          <span class="sc-delta-pill">This Week</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Executed Actions</div>
+          <div class="sc-value">14 Approved</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box blue"><span class="material-symbols-outlined">cable</span></div>
+          <span class="sc-delta-pill">n8n Connected</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Automation Engine</div>
+          <div class="sc-value" style="font-size:18px">n8n Webhook Ready</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon-box purple"><span class="material-symbols-outlined">schedule</span></div>
+          <span class="sc-delta-pill">Avg 2.4 min</span>
+        </div>
+        <div class="sc-main">
+          <div class="sc-label">Founder Review Time</div>
+          <div class="sc-value">Fast</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+      
+      <!-- Proposal Card 1 -->
+      <div class="dash-card" style="border-left:4px solid #EA580C">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-stage-script" style="background:#ffedd5;color:#ea580c">ATTENTION ENGINE</span>
+              <span style="font-size:12px;color:var(--text-muted)">Generated 20 mins ago by n8n Pipeline Worker</span>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:6px">Publish Mechanism Post: "The 5-Engine Growth OS Blueprint"</h3>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Proposed content hook matched top performance pillar (Mechanism Proof, 88/100 score). Scheduled for LinkedIn publishing at 09:00 AM tomorrow.</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')">✓ Approve & Execute</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proposal Card 2 -->
+      <div class="dash-card" style="border-left:4px solid #0058bc">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-stage-script" style="background:#e0f2fe;color:#0284c7">CONVERSION ENGINE</span>
+              <span style="font-size:12px;color:var(--text-muted)">Generated 1 hour ago</span>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:6px">Send Follow-up Sequence to SaaSify Inc (Mark Vance)</h3>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Proposal sent 3 days ago. n8n classifier detected objection on onboarding timeline. Drafted personalized response reassuring 14-day installation timeline.</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')">✓ Approve & Send Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proposal Card 3 -->
+      <div class="dash-card" style="border-left:4px solid #16a34a">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-stage-script" style="background:#dcfce7;color:#16a34a">DELIVERY ENGINE</span>
+              <span style="font-size:12px;color:var(--text-muted)">Generated 2 hours ago</span>
+            </div>
+            <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:6px">Trigger Milestone 2 Onboarding Checklist for Apex Logistics</h3>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Engine 3 installation verified. Send client portal welcome package and schedule strategy review sprint.</p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')">✓ Approve & Execute</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ── 2. ENGINE 1 — ATTENTION OS (FOUNDER CONTENT OPERATING SYSTEM) ───────────
+let ATTENTION_SUB_TAB = 'overview'; // 'overview', 'ideas', 'scripts', 'production', 'published', 'learn'
+
+function switchAttentionSubTab(tab) {
+  ATTENTION_SUB_TAB = tab;
   renderAttention();
 }
 
 function openFoundationModal() {
-  switchAttentionZone('foundation');
+  go('foundation');
 }
 
 async function renderAttention() {
@@ -494,304 +959,455 @@ async function renderAttention() {
   const ca = document.getElementById('content-area');
   if (!ca) return;
 
-  const activeIdeasCount = CONTENT_IDEAS ? CONTENT_IDEAS.filter(i=>i.status==='NEW'||i.status==='PRIORITIZED').length : 12;
-  const verifiedProofCount = AUTHORITY_ASSET_ITEMS ? AUTHORITY_ASSET_ITEMS.filter(a=>a.permission_status==='APPROVED'||a.status==='APPROVED').length : 18;
-  const activeDirectivesCount = AI_RECOMMENDATIONS ? AI_RECOMMENDATIONS.filter(r => r.status === 'pending' || r.status === 'PENDING').length || 3 : 3;
-
   ca.innerHTML = `
     <!-- Header -->
     <div class="pg-header">
       <div>
-        <h1 class="pg-title">Engine 1 — Attention OS</h1>
-        <p class="pg-sub">Organic customer acquisition engine: Convert attention into qualified DMs & pipeline revenue.</p>
+        <h1 class="pg-title">ATTENTION OS</h1>
+        <p class="pg-sub">Turn your expertise into attention that compounds.</p>
       </div>
-      <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="openFoundationModal()"><span class="material-symbols-outlined" style="font-size:16px">tune</span> Foundation</button>
-        <button class="btn btn-primary" onclick="openScriptGeneratorModal()"><span class="material-symbols-outlined" style="font-size:16px">auto_awesome</span> AI Hook & Script Generator</button>
-      </div>
-    </div>
-
-    <!-- 4 Zone Launcher Grid (Replaces old 10 top tabs) -->
-    <div class="attention-zone-grid">
-      <div class="zone-card ${ATTENTION_ZONE === 'today' ? 'active' : ''}" onclick="switchAttentionZone('today')">
-        <div class="zc-icon-wrap today">
-          <span class="material-symbols-outlined">dashboard</span>
-        </div>
-        <div class="zc-content">
-          <div class="zc-title">TODAY</div>
-          <div class="zc-sub">Daily Command & Directives</div>
-        </div>
-        <span class="zc-badge today">${activeDirectivesCount} Directives</span>
-      </div>
-
-      <div class="zone-card ${ATTENTION_ZONE === 'create' ? 'active' : ''}" onclick="switchAttentionZone('create')">
-        <div class="zc-icon-wrap create">
-          <span class="material-symbols-outlined">edit_note</span>
-        </div>
-        <div class="zc-content">
-          <div class="zc-title">CREATE</div>
-          <div class="zc-sub">Ideas → Pillars → Pipeline</div>
-        </div>
-        <span class="zc-badge create">${activeIdeasCount} Active</span>
-      </div>
-
-      <div class="zone-card ${ATTENTION_ZONE === 'prove' ? 'active' : ''}" onclick="switchAttentionZone('prove')">
-        <div class="zc-icon-wrap prove">
-          <span class="material-symbols-outlined">verified</span>
-        </div>
-        <div class="zc-content">
-          <div class="zc-title">PROVE & GROW</div>
-          <div class="zc-sub">Proof, Signals, Outreach, Analytics</div>
-        </div>
-        <span class="zc-badge prove">${verifiedProofCount} Verified</span>
-      </div>
-
-      <div class="zone-card ${ATTENTION_ZONE === 'foundation' ? 'active' : ''}" onclick="switchAttentionZone('foundation')">
-        <div class="zc-icon-wrap foundation">
-          <span class="material-symbols-outlined">inventory_2</span>
-        </div>
-        <div class="zc-content">
-          <div class="zc-title">FOUNDATION</div>
-          <div class="zc-sub">ICP, Positioning & Voice</div>
-        </div>
-        <span class="zc-badge foundation">Locked · Setup</span>
+      <div class="pg-actions" style="align-items:center">
+        <span class="sb-badge green" style="font-weight:600;font-size:11.5px;cursor:pointer;padding:6px 12px" onclick="go('foundation')">
+          ⚡ Foundation Context Active
+        </span>
+        <button class="btn btn-primary" onclick="openCreateContentModal()">
+          <span class="material-symbols-outlined" style="font-size:18px">add</span> + Create Content
+        </button>
       </div>
     </div>
 
-    <!-- Zone Body Container -->
-    <div id="attention-zone-content">
-      ${renderAttentionZoneContent()}
+    <!-- 6 Sub-Tab Navigation Bar -->
+    <div class="engine-tab-bar" style="margin-bottom:14px; display:flex; flex-wrap:wrap; gap:4px">
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'overview' ? 'active' : ''}" onclick="switchAttentionSubTab('overview')">
+        📊 Overview
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'ideas' ? 'active' : ''}" onclick="switchAttentionSubTab('ideas')">
+        💡 Ideas
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'scripts' ? 'active' : ''}" onclick="switchAttentionSubTab('scripts')">
+        📝 Scripts
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'production' ? 'active' : ''}" onclick="switchAttentionSubTab('production')">
+        🎬 Production
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'published' ? 'active' : ''}" onclick="switchAttentionSubTab('published')">
+        🚀 Published
+      </div>
+      <div class="engine-tab ${ATTENTION_SUB_TAB === 'learn' ? 'active' : ''}" onclick="switchAttentionSubTab('learn')">
+        🧠 Learn
+      </div>
+    </div>
+
+    <!-- Sub-Tab Content View Container -->
+    <div id="attention-subtab-content">
+      ${getAttentionSubTabHtml()}
     </div>
   `;
 }
 
-function renderAttentionZoneContent() {
-  if (ATTENTION_ZONE === 'today') {
-    return renderTodayZone();
-  } else if (ATTENTION_ZONE === 'create') {
-    return renderCreateZone();
-  } else if (ATTENTION_ZONE === 'prove') {
-    return renderProveZone();
-  } else if (ATTENTION_ZONE === 'foundation') {
-    return renderFoundationZone();
-  } else {
-    return renderTodayZone();
+function getAttentionSubTabHtml() {
+  switch (ATTENTION_SUB_TAB) {
+    case 'overview':
+      return renderAttentionOverviewSubTab();
+    case 'ideas':
+      return renderAttentionIdeasSubTab();
+    case 'scripts':
+      return renderAttentionScriptsSubTab();
+    case 'production':
+      return renderAttentionProductionSubTab();
+    case 'published':
+      return renderAttentionPublishedSubTab();
+    case 'learn':
+      return renderAttentionLearnSubTab();
+    default:
+      return renderAttentionOverviewSubTab();
   }
 }
 
-// ── ZONE 1: TODAY ────────────────────────────────────────────────────────────
-function renderTodayZone() {
-  const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
-  const icp = pos.icp_summary || pos.icpSummary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo';
-  const pain = pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck';
-  const result = pos.result || 'Scale to $100k/mo while increasing FIS from 30 to 85+';
-  const mechanism = pos.mechanism || 'The ASENZO 5-Engine Growth OS Framework';
-
-  // Counts for pipeline velocity strip
+// ── ATTENTION SUB-TAB 1: OVERVIEW ───────────────────────────────────────────
+function renderAttentionOverviewSubTab() {
   const ideas = CONTENT_IDEAS ? CONTENT_IDEAS.filter(i => i.status !== 'ARCHIVED') : [];
-  const stageIdeaCount = ideas.length + (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => c.status === 'IDEA').length : 0);
-  const stageScriptCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => ['OUTLINE', 'DRAFT', 'SCRIPT', 'REVIEW'].includes(c.status)).length : 0) || 4;
-  const stageProdCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => ['FILMING', 'EDITING', 'PRODUCTION', 'ASSETS_READY', 'APPROVED'].includes(c.status)).length : 0) || 3;
-  const stageSchedCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => c.status === 'SCHEDULED').length : 0) || 2;
-  const stagePubCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => ['PUBLISHED', 'DISTRIBUTED'].includes(c.status)).length : 0) || 12;
+  const topIdea = ideas.length > 0 ? ideas[0] : null;
+
+  const stageIdeaCount = ideas.length;
+  const stageScriptCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => ['OUTLINE', 'DRAFT', 'SCRIPT', 'REVIEW'].includes(c.stage || c.status)).length : 0);
+  const stageProdCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => ['PRODUCTION', 'APPROVED'].includes(c.stage || c.status)).length : 0);
+  const stageSchedCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => (c.stage || c.status) === 'SCHEDULED').length : 0);
+  const stagePubCount = (CONTENT_ITEMS ? CONTENT_ITEMS.filter(c => ['PUBLISHED', 'ANALYZING', 'REPURPOSED'].includes(c.stage || c.status)).length : 0);
+
+  const topOpportunities = ideas.slice(0, 4);
+  const recentPublished = (CONTENT_ITEMS || []).filter(c => (c.stage || c.status) === 'PUBLISHED').slice(0, 3);
 
   return `
     <div style="display:flex; flex-direction:column; gap:16px;">
-      <!-- Single-Line Compact Business DNA Strip -->
-      <div class="compact-dna-strip">
-        <div class="dna-strip-text">
-          <strong>ICP:</strong> ${icp} &nbsp;·&nbsp;
-          <strong>Pain:</strong> ${pain.substring(0, 45)}... &nbsp;·&nbsp;
-          <strong>Result:</strong> ${result.substring(0, 40)}... &nbsp;·&nbsp;
-          <strong>Mechanism:</strong> ${mechanism}
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="switchAttentionZone('foundation')">Edit Foundation</button>
-      </div>
-
-      <!-- Pipeline Velocity Count Strip (Deep links to Create) -->
-      <div class="pipeline-velocity-strip">
-        <div class="pvs-item" onclick="switchAttentionZone('create')">
-          <span class="pvs-label">Ideas</span>
-          <span class="pvs-count">${stageIdeaCount}</span>
-        </div>
-        <span style="color:var(--text-faint)">→</span>
-        <div class="pvs-item" onclick="switchAttentionZone('create')">
-          <span class="pvs-label">Scripts</span>
-          <span class="pvs-count">${stageScriptCount}</span>
-        </div>
-        <span style="color:var(--text-faint)">→</span>
-        <div class="pvs-item" onclick="switchAttentionZone('create')">
-          <span class="pvs-label">Production</span>
-          <span class="pvs-count">${stageProdCount}</span>
-        </div>
-        <span style="color:var(--text-faint)">→</span>
-        <div class="pvs-item" onclick="switchAttentionZone('create')">
-          <span class="pvs-label">Scheduled</span>
-          <span class="pvs-count">${stageSchedCount}</span>
-        </div>
-        <span style="color:var(--text-faint)">→</span>
-        <div class="pvs-item" onclick="switchAttentionZone('create')">
-          <span class="pvs-label">Published</span>
-          <span class="pvs-count">${stagePubCount}</span>
-        </div>
-      </div>
-
-      <!-- Main Dashboard Synthesis & AI Directives -->
-      ${renderAttentionDashboard()}
-    </div>
-  `;
-}
-
-// ── ZONE 2: CREATE (Ideas + Pillars + Pipeline) ──────────────────────────────
-function renderCreateZone() {
-  return `
-    <div style="display:flex; flex-direction:column; gap:20px;">
-      <!-- Section 1: Scored Idea Queue -->
-      <div class="dash-card">
-        <div class="dash-card-header">
+      
+      <!-- NEXT BEST CONTENT ACTION -->
+      <div class="dash-card" style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <h3 class="dash-card-title">Scored Idea Queue</h3>
-            <p class="dash-card-sub">Top active content ideas scored against Business DNA (Near-duplicates collapsed)</p>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openScriptGeneratorModal()">Generate Batch</button>
-        </div>
-        ${renderContentIdeasTab()}
-      </div>
-
-      <!-- Section 2: Content Pillars Mix -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">Content Strategy & Pillars</h3>
-            <p class="dash-card-sub">Target distribution across mechanism, positioning, proof, and authority</p>
-          </div>
-        </div>
-        ${renderContentStrategyTab()}
-      </div>
-
-      <!-- Section 3: Active Content Pipeline Kanban -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">Active Content Pipeline</h3>
-            <p class="dash-card-sub">11-Stage State Machine (Active stages shown)</p>
-          </div>
-        </div>
-        ${renderPipelineTab()}
-      </div>
-    </div>
-  `;
-}
-
-// ── ZONE 3: PROVE & GROW (Authority + Market + Outreach + Analytics) ────────
-function renderProveZone() {
-  return `
-    <div style="display:flex; flex-direction:column; gap:20px;">
-      <!-- Section 1: Performance Attribution Snapshot -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">Attribution & Performance Snapshot</h3>
-            <p class="dash-card-sub">Multi-touch pipeline attribution & compounding trajectory score</p>
-          </div>
-        </div>
-        ${renderAttributionTab()}
-      </div>
-
-      <!-- Section 2: Authority Proof Library -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">Verified Authority Proof Library</h3>
-            <p class="dash-card-sub">Verified metric proofs, case studies, and client result assets</p>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="openNewAuthorityAssetModal()">+ Add Asset</button>
-        </div>
-        ${renderAuthorityTab()}
-      </div>
-
-      <!-- Section 3: Outreach Tracker -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">Outreach Tracker & AI Reply Classifier</h3>
-            <p class="dash-card-sub">Inbound prospect DMs categorized by buyer intent</p>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="openNewOutreachModal()">+ Track Prospect</button>
-        </div>
-        ${renderOutreachTab()}
-      </div>
-
-      <!-- Section 4: Market Radar -->
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">Market Radar Signals</h3>
-            <p class="dash-card-sub">Industry developments & competitor signals</p>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="openNewMarketIntelModal()">+ Add Signal</button>
-        </div>
-        ${renderMarketIntelTab()}
-      </div>
-    </div>
-  `;
-}
-
-// ── ZONE 4: FOUNDATION (One-Time Setup Workspace) ────────────────────────────
-function renderFoundationZone() {
-  const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
-  const score = pos.score || 88;
-
-  return `
-    <div style="display:flex; flex-direction:column; gap:20px;">
-      <!-- Locked Compact Summary Card -->
-      <div class="dash-card" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
-        <div class="dash-card-header">
-          <div>
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-              <span class="material-symbols-outlined" style="color:#0058bc">lock</span>
-              <h3 class="dash-card-title" style="margin:0">Business DNA & Positioning (Locked · Version ${pos.version || 7})</h3>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="sb-badge green" style="font-size:10px;font-weight:700">⚡ NEXT BEST CONTENT ACTION</span>
+              <span style="font-size:11px;color:#94A3B8">AI Opportunity Directive</span>
             </div>
-            <p class="dash-card-sub">One-time foundation setup: Governs AI script generation & idea auto-scoring.</p>
+            ${topIdea ? `
+              <div style="font-size:18px;font-weight:800;color:#F8FAFC;margin-top:8px;line-height:1.3">
+                "${topIdea.title}"
+              </div>
+              <div style="font-size:12.5px;color:#CBD5E1;margin-top:6px">
+                <b>Purpose:</b> ${topIdea.objective || 'Belief Shift & ICP Qualification'} &nbsp;·&nbsp;
+                <b>Format:</b> ${(topIdea.content_format || 'Post').replace(/_/g, ' ')} &nbsp;·&nbsp;
+                <b>Funnel Stage:</b> <span style="color:#34D399;font-weight:700">${topIdea.funnel_stage || 'TRUST'}</span>
+              </div>
+              <div style="font-size:12px;color:#94A3B8;margin-top:6px;font-style:italic">
+                Reason: Audience engagement signal shows high demand for mechanism breakdowns over generic tips.
+              </div>
+            ` : `
+              <div style="font-size:15px;font-weight:700;color:#94A3B8;margin-top:8px">
+                Not enough content data yet to rank recommendations.
+              </div>
+            `}
           </div>
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="sc-delta-pill" style="background:#e0f2fe; color:#0284c7; font-weight:800; font-size:13px; padding:6px 12px;">
-              Score: ${score}/100
-            </span>
-            <button class="btn btn-primary btn-sm" onclick="openPositioningModal()">⚡ Unlock & Edit Business DNA</button>
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-top:10px;">
-          <div style="background:#ffffff; padding:14px; border-radius:12px; border:1px solid #f1f5f9;">
-            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Target ICP</div>
-            <div style="font-size:13.5px; font-weight:700; color:var(--text-main);">${pos.icp_summary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo'}</div>
-          </div>
-          <div style="background:#ffffff; padding:14px; border-radius:12px; border:1px solid #f1f5f9;">
-            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Core Pain</div>
-            <div style="font-size:13.5px; font-weight:700; color:var(--text-main);">${pos.problem || 'Trapped in 60-hr workweeks serving as single bottleneck'}</div>
-          </div>
-          <div style="background:#ffffff; padding:14px; border-radius:12px; border:1px solid #f1f5f9;">
-            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Quantified Result</div>
-            <div style="font-size:13.5px; font-weight:700; color:var(--text-main);">${pos.result || 'Scale to $100k/mo while increasing FIS from 30 to 85+'}</div>
-          </div>
-          <div style="background:#ffffff; padding:14px; border-radius:12px; border:1px solid #f1f5f9;">
-            <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Proprietary Mechanism</div>
-            <div style="font-size:13.5px; font-weight:700; color:var(--text-main);">${pos.mechanism || 'The ASENZO 5-Engine Growth OS Framework'}</div>
+          <div>
+            ${topIdea ? `
+              <button class="btn btn-primary" style="background:#3B82F6;color:#FFF" onclick="handleWriteScriptFromIdea('${topIdea.id}')">
+                📝 Write Script Now
+              </button>
+            ` : `
+              <button class="btn btn-secondary btn-sm" onclick="openIdeaGeneratorModal()">⚡ Generate Ideas</button>
+            `}
           </div>
         </div>
       </div>
 
-      <!-- Collapsible Founder Vault / Knowledge Sources -->
+      <!-- CONTENT PIPELINE TRACKER -->
       <div class="dash-card">
-        <div class="dash-card-header">
-          <div>
-            <h3 class="dash-card-title">📚 Founder Knowledge Vault & Voice Profile</h3>
-            <p class="dash-card-sub">Ingested articles, posts, transcripts & aggregated brand voice patterns</p>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="openNewKnowledgeModal()">+ Ingest Source</button>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px;font-weight:800;color:#0F172A">Content Pipeline Flow</div>
+          <span style="font-size:11px;color:#64748B">${stageIdeaCount + stageScriptCount + stageProdCount + stageSchedCount + stagePubCount} total assets tracked</span>
         </div>
-        ${renderKnowledgeTab()}
+        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-top:10px">
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('ideas')">
+            <div style="font-size:11px;font-weight:700;color:#64748B">IDEAS</div>
+            <div style="font-size:22px;font-weight:800;color:#0F172A;margin-top:2px">${stageIdeaCount}</div>
+          </div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('scripts')">
+            <div style="font-size:11px;font-weight:700;color:#64748B">SCRIPTS</div>
+            <div style="font-size:22px;font-weight:800;color:#2563EB;margin-top:2px">${stageScriptCount}</div>
+          </div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('production')">
+            <div style="font-size:11px;font-weight:700;color:#64748B">PRODUCTION</div>
+            <div style="font-size:22px;font-weight:800;color:#D97706;margin-top:2px">${stageProdCount}</div>
+          </div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('production')">
+            <div style="font-size:11px;font-weight:700;color:#64748B">SCHEDULED</div>
+            <div style="font-size:22px;font-weight:800;color:#059669;margin-top:2px">${stageSchedCount}</div>
+          </div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('published')">
+            <div style="font-size:11px;font-weight:700;color:#64748B">PUBLISHED</div>
+            <div style="font-size:22px;font-weight:800;color:#7C3AED;margin-top:2px">${stagePubCount}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DUAL ROW: TOP OPPORTUNITIES & RECENT PERFORMANCE -->
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:16px">
+        
+        <!-- TOP CONTENT OPPORTUNITIES -->
+        <div class="dash-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="dash-card-title">Top Content Opportunities</div>
+              <div class="dash-card-sub">Prioritized ideas ready to move to script</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="switchAttentionSubTab('ideas')">View All Ideas (${ideas.length})</button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+            ${topOpportunities.length === 0 ? `
+              <div style="text-align:center;padding:24px;color:#94A3B8">No content opportunities queued. Click "+ Create Content" to add your first idea.</div>
+            ` : topOpportunities.map(op => `
+              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start">
+                <div style="flex:1;padding-right:12px">
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <span class="sb-badge blue" style="font-size:9.5px">${op.funnel_stage || 'TRUST'}</span>
+                    <span class="sb-badge" style="font-size:9.5px">${(op.content_format || 'POST').replace(/_/g,' ')}</span>
+                  </div>
+                  <div style="font-weight:700;color:#0F172A;font-size:13px;margin-top:4px">${op.title}</div>
+                  <div style="font-size:11.5px;color:#64748B;margin-top:2px">${(op.premise || '').substring(0, 110)}...</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="handleWriteScriptFromIdea('${op.id}')">📝 Write Script</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- RECENT PERFORMANCE & LEARNING -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          
+          <div class="dash-card">
+            <div class="dash-card-title">Recent Performance</div>
+            <div class="dash-card-sub">Top published work this week</div>
+            
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+              ${recentPublished.length === 0 ? `
+                <div style="font-size:12px;color:#94A3B8;padding:12px;text-align:center">No published assets recorded yet.</div>
+              ` : recentPublished.map(rp => `
+                <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
+                  <div style="font-weight:700;font-size:12px;color:#0F172A">${rp.title}</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:11px;color:#64748B">
+                    <span>👁 ${(rp.views || 4200).toLocaleString()} views</span>
+                    <span style="color:#059669;font-weight:700">💬 ${(rp.dms || 12)} SQL DMs</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- LEARNING OBSERVATION -->
+          <div class="dash-card" style="background:#F0FDF4;border:1px solid #BBF7D0">
+            <div style="font-weight:800;color:#065F46;font-size:13px">🧠 Audience Learning Insight</div>
+            <div style="font-size:12px;color:#047857;margin-top:4px;line-height:1.4">
+              Mechanism breakdowns generate 3.4x more qualified DMs than general tips posts.
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:8px;background:#FFF;color:#047857;border-color:#A7F3D0" onclick="switchAttentionSubTab('learn')">
+              View Insights →
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+// ── ATTENTION SUB-TAB 2: IDEAS ──────────────────────────────────────────────
+function renderAttentionIdeasSubTab() {
+  let ideas = CONTENT_IDEAS ? CONTENT_IDEAS.slice() : [];
+  const f = IDEA_FILTERS;
+
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    ideas = ideas.filter(i => (i.title + ' ' + (i.premise || '') + ' ' + (i.pain || '')).toLowerCase().includes(q));
+  }
+  if (f.status) ideas = ideas.filter(i => i.status === f.status);
+  if (f.priority) ideas = ideas.filter(i => i.priority === f.priority);
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- Automation Status & Header -->
+      <div class="dash-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="dash-card-title">Content Ideas Vault</span>
+              <span style="font-size:12px;color:#10B981;font-weight:700">● Content Intelligence Connected</span>
+            </div>
+            <div class="dash-card-sub">Filtered content opportunities scored against Business DNA</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="openIdeaGeneratorModal()">⚡ AI Generate Ideas</button>
+            <button class="btn btn-primary btn-sm" onclick="openIdeaModal()">+ New Idea</button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+          <input id="idea-search-input" class="stitch-input" value="${f.q || ''}" placeholder="🔍 Search ideas, premises, pains..." style="flex:1;min-width:200px" oninput="setIdeaFilter('q', this.value)" />
+          
+          <select class="stitch-select" onchange="setIdeaFilter('status', this.value)">
+            <option value="">All Statuses</option>
+            ${['NEW','PRIORITIZED','PLANNED','CONVERTED'].map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${s.replace(/_/g,' ')}</option>`).join('')}
+          </select>
+
+          <select class="stitch-select" onchange="setIdeaFilter('priority', this.value)">
+            <option value="">All Priorities</option>
+            ${['HIGH','MEDIUM','LOW'].map(p => `<option value="${p}" ${f.priority === p ? 'selected' : ''}>${p}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- Ideas Grid -->
+      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:14px">
+        ${ideas.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No content ideas found. Click "+ New Idea" or "⚡ AI Generate Ideas" to add items.</div>` : ''}
+        ${ideas.map(i => `
+          <div class="dash-card" style="border-left:4px solid ${i.priority === 'HIGH' ? '#10B981' : i.priority === 'MEDIUM' ? '#F97316' : '#94A3B8'}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div style="font-size:14px;font-weight:800;color:#0F172A;line-height:1.35">${i.title}</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:${i.score >= 80 ? '#10B981' : '#F97316'};color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">${i.score || 85}</div>
+            </div>
+            <div style="font-size:12px;color:#475569;margin-top:6px;line-height:1.45">${(i.premise || '').substring(0, 140)}...</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+              <span class="sb-badge blue" style="font-size:9.5px">${i.funnel_stage || 'TRUST'}</span>
+              <span class="sb-badge" style="font-size:9.5px">${(i.content_format || 'POST').replace(/_/g,' ')}</span>
+              <span class="sb-badge green" style="font-size:9.5px">${i.source || 'AI_GENERATED'}</span>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:8px;border-top:1px solid #F1F5F9">
+              <button class="btn btn-secondary btn-sm" onclick="openIdeaModal('${i.id}')">✏️ Edit</button>
+              <button class="btn btn-primary btn-sm" onclick="handleWriteScriptFromIdea('${i.id}')">📝 Write Script</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ── ATTENTION SUB-TAB 3: SCRIPTS ───────────────────────────────────────────
+function renderAttentionScriptsSubTab() {
+  const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
+  const icp = pos.icp_summary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo';
+  const mechanism = pos.mechanism || 'ASENZO 5-Engine Growth OS';
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <!-- Silent Foundation Context Banner -->
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 16px;font-size:12.5px;color:#047857;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          ⚡ <b>Foundation Context Active:</b> Target ICP: <b>${icp}</b> &nbsp;·&nbsp; Mechanism: <b>${mechanism}</b>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="background:#FFF;color:#047857;border-color:#A7F3D0" onclick="go('foundation')">
+          View Foundation →
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:16px">
+        <!-- Main Script Generator & Writer Workspace -->
+        <div class="dash-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="dash-card-title">Structured Script Workspace</div>
+              <div class="dash-card-sub">7-Stage Script Framework tailored to founder authority</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="openScriptGeneratorModal()">⚡ Generator Wizard</button>
+          </div>
+
+          <form onsubmit="event.preventDefault(); handleSaveGeneratedScriptToKanban();" style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+            <div>
+              <label style="font-weight:700;font-size:12px;color:#0F172A">Topic / Core Premise</label>
+              <input id="script-tab-topic" class="stitch-input" placeholder="e.g. Why $10k/mo agency retainers keep founders trapped in sales bottleneck" style="width:100%;margin-top:4px" />
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label style="font-weight:700;font-size:12px;color:#0F172A">Format</label>
+                <select id="script-tab-format" class="stitch-select" style="width:100%;margin-top:4px">
+                  <option value="SHORT_VIDEO">Short-Form Video (TikTok/Reels/Shorts)</option>
+                  <option value="CAROUSEL">LinkedIn Carousel</option>
+                  <option value="POST">Written Post / Thread</option>
+                  <option value="NEWSLETTER">Newsletter / Article</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-weight:700;font-size:12px;color:#0F172A">Funnel Objective</label>
+                <select id="script-tab-stage" class="stitch-select" style="width:100%;margin-top:4px">
+                  <option value="TRUST">TRUST (MOF - Belief Shift)</option>
+                  <option value="DISCOVER">DISCOVER (TOF - Pattern Interrupt)</option>
+                  <option value="DECIDE">DECIDE (BOF - Case Study / Offer)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style="font-weight:700;font-size:12px;color:#0F172A">🪝 Hook (Pattern Interrupt)</label>
+              <input id="script-tab-hook" class="stitch-input" placeholder="If you're still relying on retainer agencies to scale your B2B business, stop." style="width:100%;margin-top:4px" />
+            </div>
+
+            <div>
+              <label style="font-weight:700;font-size:12px;color:#0F172A">📜 Full Script Body</label>
+              <textarea id="script-tab-body" class="stitch-input" rows="8" style="width:100%;margin-top:4px" placeholder="Hook → Problem → Insight → Mechanism → Proof → Payoff → CTA..."></textarea>
+            </div>
+
+            <div>
+              <label style="font-weight:700;font-size:12px;color:#0F172A">🎯 Call-To-Action (CTA)</label>
+              <input id="script-tab-cta" class="stitch-input" placeholder="Comment 'OS' below and I'll send you our 5-Engine architecture map." style="width:100%;margin-top:4px" />
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #E2E8F0">
+              <button type="button" class="btn btn-secondary" onclick="handleImproveScriptWithAI()">⚡ Auto-Improve Script with AI</button>
+              <button type="submit" class="btn btn-primary">🚀 Approve & Send to Production</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Script Quality Checklist Sidebar -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="dash-card" style="background:#F8FAFC">
+            <div class="dash-card-title">Script Quality Check</div>
+            <div class="dash-card-sub">Foundation alignment score</div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+                <span>🪝 Hook Strength</span>
+                <span class="sb-badge green" style="font-size:10px">Strong</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+                <span>🎯 ICP Bottleneck Clarity</span>
+                <span class="sb-badge green" style="font-size:10px">Strong</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+                <span>💡 Belief Shift Focus</span>
+                <span class="sb-badge green" style="font-size:10px">Strong</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+                <span>⚙️ Mechanism Included</span>
+                <span class="sb-badge green" style="font-size:10px">Verified</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+                <span>🛡️ Proof Anchor</span>
+                <span class="sb-badge orange" style="font-size:10px">Needs Proof</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+                <span>📣 Clear CTA</span>
+                <span class="sb-badge green" style="font-size:10px">Strong</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+// ── ATTENTION SUB-TAB 4: PRODUCTION ─────────────────────────────────────────
+function renderAttentionProductionSubTab() {
+  const items = (CONTENT_ITEMS || []).filter(c => ['SCRIPT', 'REVIEW', 'APPROVED', 'PRODUCTION', 'SCHEDULED'].includes(c.stage || c.status));
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="dash-card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="dash-card-title">Production & Scheduling Queue</div>
+            <div class="dash-card-sub">Content in production (Approved → Filming / Editing → Scheduled)</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openProductionWorkspaceModal()">+ New Asset</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:14px">
+        ${items.length === 0 ? `
+          <div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">
+            No items currently in production. Move scripts to production from the Scripts tab.
+          </div>
+        ` : items.map(c => `
+          <div class="dash-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <span class="sb-badge blue" style="font-size:9.5px">${(c.primary_platform || c.target_platform || 'POST').replace(/_/g,' ')}</span>
+                <span class="sb-badge green" style="font-size:9.5px">${c.stage || c.status || 'PRODUCTION'}</span>
+                <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:6px">${c.title}</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#64748B;margin-top:6px">Owner: ${c.owner || 'Alex Morgan'} &nbsp;·&nbsp; Due: ${c.deadline || 'This week'}</div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;padding-top:8px;border-top:1px solid #F1F5F9">
+              <button class="btn btn-secondary btn-sm" onclick="openProductionWorkspaceModal('${c.id}')">✏️ Workspace</button>
+              <button class="btn btn-primary btn-sm" onclick="handleMoveToPublished('${c.id}')">🚀 Mark Published</button>
+            </div>
+          </div>
+        `).join('')}
       </div>
     </div>
   `;
