@@ -6,7 +6,7 @@
 window.onerror = function(msg, url, line, col, error) {
   console.error('[Frontend Error Boundary]', { msg, url, line, col, error });
   if (typeof showToast === 'function') {
-    showToast(`⚠️ UI Warning: ${msg}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ UI Warning: ${msg}`);
   }
   return false;
 };
@@ -14,7 +14,7 @@ window.onerror = function(msg, url, line, col, error) {
 window.onunhandledrejection = function(event) {
   console.warn('[Unhandled Rejection Boundary]', event.reason);
   if (typeof showToast === 'function') {
-    showToast(`⚠️ Operation Notice: ${event.reason && event.reason.message ? event.reason.message : 'Transient network error'}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ Operation Notice: ${event.reason && event.reason.message ? event.reason.message : 'Transient network error'}`);
   }
 };
 
@@ -259,183 +259,145 @@ function renderOverview() {
   const ca = document.getElementById('content-area');
   if (!ca) return;
 
-  const pos = (POSITIONING_SUITE_DATA && POSITIONING_SUITE_DATA.positioning) || POSITIONING || {};
-  const icp = pos.icp_summary || pos.icpSummary || pos.icp || 'Bootstrapped B2B Founders doing $15k–$50k/mo';
-
   const deals = DEALS || [];
   const pipelineVal = deals.reduce((acc, d) => acc + (d.val || 0), 0);
-  const activeContentCount = CONTENT_ITEMS ? CONTENT_ITEMS.length : 12;
+  const formattedPipeline = '$' + pipelineVal.toLocaleString();
 
-  ca.innerHTML = `
-    <!-- Header -->
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Growth Command Center</h1>
-        <p class="pg-sub">Real-time system state monitoring, bottleneck identification, and cross-engine execution queue.</p>
-      </div>
-      <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="go('foundation')">
-          <span class="material-symbols-outlined" style="font-size:16px">tune</span> Foundation DNA
-        </button>
-        <button class="btn btn-primary" onclick="go('actions')">
-          <span class="material-symbols-outlined" style="font-size:16px">checklist</span> Action Queue (3)
-        </button>
-      </div>
-    </div>
-
-    <!-- CURRENT GROWTH CONSTRAINT HERO BLOCK (Apple Dark Glass Edition) -->
-    <div class="cmd-hero" style="border: 1px solid rgba(251, 191, 36, 0.3); background: linear-gradient(135deg, rgba(30, 24, 16, 0.85) 0%, rgba(18, 18, 24, 0.9) 100%); backdrop-filter: blur(24px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(251, 191, 36, 0.2); border-radius: var(--r-lg); padding: 24px; position: relative; overflow: hidden;">
-      <div style="position: absolute; top: -50px; right: -50px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(0, 0, 0, 0) 70%); pointer-events: none;"></div>
-      <div class="cmd-hero-title" style="color:#f5f5f7; display:flex; align-items:center; gap:12px; font-weight:800; font-size:16px; letter-spacing:-0.01em">
-        <div style="width:36px; height:36px; border-radius:10px; background:rgba(251, 191, 36, 0.15); display:flex; align-items:center; justify-content:center; border:1px solid rgba(251, 191, 36, 0.3)">
-          <span class="material-symbols-outlined" style="color:#fbbf24; font-size:20px">warning</span>
-        </div>
-        <span>CURRENT SYSTEM CONSTRAINT: Proposal Follow-up Velocity</span>
-        <span class="sc-delta-pill red-tag" style="margin-left:auto; font-size:11px; padding:4px 12px; background:rgba(239, 68, 68, 0.15); color:#f87171; border:1px solid rgba(239, 68, 68, 0.3); font-weight:700">HIGH LEVERAGE BOTTLENECK</span>
-      </div>
-      <div class="cmd-hero-sub" style="color:#a1a1a6; margin-top:12px; font-size:14px; line-height:1.5">
-        3 active proposals sent over 48 hours ago are pending client response. No automated nudge or objection-handling sequence has been dispatched yet.
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:20px; padding-top:16px; border-top:1px solid rgba(255, 255, 255, 0.08)">
-        <div style="font-size:13.5px; color:#f5f5f7; display:flex; align-items:center; gap:8px">
-          <span class="material-symbols-outlined" style="color:#fbbf24; font-size:18px">attach_money</span>
-          <span><strong>Impact:</strong> <span style="color:#fbbf24; font-weight:700">$32,000</span> in proposal value stalling in Conversion Stage 6.</span>
-        </div>
-        <button class="btn btn-primary" onclick="go('actions')" style="background:linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color:#000000; border:none; font-weight:800; padding:0 22px">
-          Review & Dispatch Follow-up Sequence →
-        </button>
-      </div>
-    </div>
-
-    <!-- 4 System State Stat Cards -->
-    <div class="stat-grid">
-      <div class="stat-card" onclick="go('foundation')" style="cursor:pointer">
-        <div class="sc-top">
-          <div class="sc-icon-box purple">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
-          </div>
-          <span class="sc-delta-pill">Calculated</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Founder Independence Score</div>
-          <div class="sc-value">84<span>/100 (Demo)</span></div>
-        </div>
-      </div>
-
-      <div class="stat-card" onclick="go('conversion')" style="cursor:pointer">
-        <div class="sc-top">
-          <div class="sc-icon-box orange">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
-          </div>
-          <span class="sc-delta-pill">Active CRM</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Pipeline Value</div>
-          <div class="sc-value">$${pipelineVal.toLocaleString()}</div>
-        </div>
-      </div>
-
-      <div class="stat-card" onclick="go('attention')" style="cursor:pointer">
-        <div class="sc-top">
-          <div class="sc-icon-box blue">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_graph</span>
-          </div>
-          <span class="sc-delta-pill">${activeContentCount} Assets</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Attention Compounding</div>
-          <div class="sc-value">Active</div>
-        </div>
-      </div>
-
-      <div class="stat-card" onclick="go('actions')" style="cursor:pointer">
-        <div class="sc-top">
-          <div class="sc-icon-box red">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pending_actions</span>
-          </div>
-          <span class="sc-delta-pill red-tag">3 Pending</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Action Queue</div>
-          <div class="sc-value" style="font-size:22px">Review Proposals</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ASENZO Compounding Growth Loop Strip -->
-    <div>
-      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Connected Growth Loop Architecture</div>
-      <div class="loop-strip">
-        <div class="loop-step" onclick="go('foundation')">
-          <span>0. Foundation</span>
-        </div>
-        <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('attention')">
-          <span>1. Acquire (Attention)</span>
-        </div>
-        <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('conversion')">
-          <span>2. Convert (Sales)</span>
-        </div>
-        <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('revenue')">
-          <span>3. Monetize (Revenue)</span>
-        </div>
-        <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('delivery')">
-          <span>4. Deliver (Success)</span>
-        </div>
-        <span class="loop-arrow">→</span>
-        <div class="loop-step" onclick="go('retention')">
-          <span>5. Retain (Expansion)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5 Engine Health Matrix -->
-    <div class="dash-card" style="margin-top:4px">
-      <div class="dash-card-header">
-        <div>
-          <h3 class="dash-card-title">Engine Health & Capability Matrix</h3>
-          <p class="dash-card-sub">Current operating status of all 5 installed Growth OS engines</p>
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="go('intelligence')">View Intelligence Signal Map</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-top:6px">
-        
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('attention')" class="pvs-item">
-          <div style="font-size:11px;font-weight:800;color:#9333ea;text-transform:uppercase">Engine 1 — Attention</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">Active Compounding</div>
-          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">${activeContentCount} Content Assets Queued</div>
-        </div>
-
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('conversion')" class="pvs-item">
-          <div style="font-size:11px;font-weight:800;color:#ea580c;text-transform:uppercase">Engine 2 — Conversion</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">Bottleneck Signal</div>
-          <div style="font-size:11.5px;color:#ef4444;margin-top:2px">Proposal follow-up delayed</div>
-        </div>
-
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('revenue')" class="pvs-item">
-          <div style="font-size:11px;font-weight:800;color:#16a34a;text-transform:uppercase">Engine 3 — Revenue</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">$42,500 MRR</div>
-          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">$18.4k Avg Contract Value</div>
-        </div>
-
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('delivery')" class="pvs-item">
-          <div style="font-size:11px;font-weight:800;color:#0284c7;text-transform:uppercase">Engine 4 — Delivery</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">6 Active Clients</div>
-          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">All milestones on track</div>
-        </div>
-
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px" onclick="go('retention')" class="pvs-item">
-          <div style="font-size:11px;font-weight:800;color:#059669;text-transform:uppercase">Engine 5 — Retention</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px">94.2% Retention</div>
-          <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">0 churn risk accounts</div>
-        </div>
-
-      </div>
-    </div>
+    ca.innerHTML = `
+    <!-- Dashboard Content -->
+    <div class="p-10 max-w-7xl mx-auto space-y-8 gap-10">
+<div class="flex justify-between items-end mb-6">
+<div>
+<h1 class="text-3xl font-bold text-slate-900 mb-2">Growth Command Center</h1>
+<p class="text-slate-500">Welcome back, A. Mercer. Your pipeline is up 12% this quarter.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Export CSV</button>
+<button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Share Insights</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 rounded-xl bg-electric-blue flex items-center justify-center shadow-lg shadow-electric-blue/20">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">+2.4% <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
+</div>
+<p class="font-label-md text-label-md text-slate-500 mb-2">FIS Score</p>
+<h3 class="font-display-lg text-3xl font-bold text-slate-900">84<span class="text-slate-400 text-xl">/100</span></h3>
+</div>
+<div class="metric-card rounded-[24px] p-6 ambient-shadow bg-slate-50 hover:shadow-lg transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+</div>
+<span class="px-2 py-1 bg-white text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">+12% <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
+</div>
+<p class="font-label-md text-label-md text-slate-500 mb-2">Pipeline Value</p>
+<h3 class="font-display-lg text-3xl font-bold text-slate-900">${formattedPipeline}</h3>
+</div>
+<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">work</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">Active <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
+</div>
+<p class="font-label-md text-label-md text-slate-500 mb-2">Active Leads</p>
+<h3 class="font-display-lg text-3xl font-bold text-slate-900">24</h3>
+</div>
+<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
+<div class="flex justify-between items-start mb-6">
+<div class="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">schedule</span>
+</div>
+<span class="px-2 py-1 bg-red-50 text-red-500 rounded-md font-label-sm text-label-sm flex items-center gap-1">Action <span class="material-symbols-outlined text-[14px]">arrow_forward</span></span>
+</div>
+<p class="font-label-md text-label-md text-slate-500 mb-2">Pending Ops</p>
+<h3 class="font-display-lg text-3xl font-bold text-slate-900">12<span class="text-slate-400 text-xl">/100</span></h3>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="metric-card rounded-[24px] p-8 ambient-shadow lg:col-span-2">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h3 class="text-xl font-bold text-slate-900 mb-1">Acquisition Velocity</h3>
+<p class="text-sm text-slate-500">Pipeline value over the last 6 months</p>
+</div>
+<div class="flex gap-4 text-sm font-medium">
+<span class="text-slate-400 cursor-pointer">Daily</span>
+<span class="text-slate-400 cursor-pointer">Weekly</span>
+<span class="text-electric-blue border-b-2 border-electric-blue pb-1 cursor-pointer">Monthly</span>
+</div>
+</div>
+<div class="h-64 relative flex items-end justify-between px-4 pb-4 pt-10">
+<!-- Simplified Chart Visualization for Demo -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none" viewbox="0 0 100 100">
+<defs>
+<lineargradient id="gradBlue" x1="0%" x2="0%" y1="0%" y2="100%"><stop offset="0%" style="stop-color:#64748b;stop-opacity:0.2"></stop><stop offset="100%" style="stop-color:#64748b;stop-opacity:0"></stop></lineargradient>
+<lineargradient id="gradGreen" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#10b981;stop-opacity:0.2"></stop>
+<stop offset="100%" style="stop-color:#10b981;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,80 C10,70 20,40 30,30 C40,20 50,60 60,70 C70,80 80,40 90,50 L100,50 L100,100 L0,100 Z" fill="url(#gradBlue)" stroke="#3b82f6" stroke-width="0.5"></path>
+<path d="M0,90 C15,80 25,30 35,20 C45,10 55,50 65,40 C75,30 85,70 95,60 L100,60 L100,100 L0,100 Z" fill="url(#gradGreen)" stroke="#10b981" stroke-width="0.5"></path>
+</svg>
+<div class="absolute left-0 bottom-0 h-full flex flex-col justify-between text-xs text-slate-400 py-4">
+<span>400</span>
+<span>300</span>
+<span>200</span>
+<span>100</span>
+<span>0</span>
+</div>
+<div class="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-slate-400">
+<span>May</span>
+<span>Jun</span>
+<span>Jul</span>
+<span>Aug</span>
+<span>Sep</span>
+<span>Oct</span>
+<span>Nov</span>
+<span>Dec</span>
+<span>Jan</span>
+<span>Feb</span>
+<span>Mar</span>
+</div>
+</div>
+</div>
+<div class="metric-card rounded-[24px] p-8 ambient-shadow flex flex-col">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-xl font-bold text-slate-900">Growth Architecture</h3>
+<button class="flex items-center text-sm text-slate-500 gap-1">All <span class="material-symbols-outlined text-sm">expand_more</span></button>
+</div>
+<div class="flex-1 flex flex-col items-center justify-center relative">
+<div class="w-48 h-48 rounded-full border-[12px] border-slate-100 relative mb-8">
+<div class="absolute inset-0 rounded-full border-[12px] border-cyan-400" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);"></div>
+<div class="absolute inset-0 rounded-full border-[12px] border-amber-400" style="clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); transform: rotate(45deg);"></div>
+<div class="absolute inset-0 rounded-full border-[12px] border-emerald-400" style="clip-path: polygon(50% 0, 100% 0, 100% 50%, 50% 50%); transform: rotate(-45deg);"></div>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="text-2xl font-bold text-slate-900">$101k</span>
+</div>
+</div>
+<div class="flex justify-between w-full mt-auto">
+<div class="text-center">
+<p class="text-lg font-bold text-slate-900">55%</p>
+<p class="text-sm text-slate-500">Signal</p>
+</div>
+<div class="text-center">
+<p class="text-lg font-bold text-slate-900">20%</p>
+<p class="text-sm text-slate-500">Conv.</p>
+</div>
+<div class="text-center">
+<p class="text-lg font-bold text-slate-900">10%</p>
+<p class="text-sm text-slate-500">Retain</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
   `;
 }
 
@@ -473,20 +435,20 @@ function renderFoundationPage() {
     return `
       <div class="foundation-row">
         <div class="foundation-row-head">
-          <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0">
+          <div class="flex-row gap-12" style="flex:1;min-width:0">
             <div style="width:40px;height:40px;border-radius:12px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
               <span class="material-symbols-outlined" style="font-size:20px;color:#ffffff;font-variation-settings:'FILL' 1">${icon}</span>
             </div>
             <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:8px">
+              <div class="flex-row gap-8">
                 <span style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Section ${num}</span>
                 <span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:999px">${completeness}% Complete</span>
               </div>
-              <div style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-0.01em;margin-top:1px">${title}</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:1px">${subtitle}</div>
+              <div class="mt-1" style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-0.01em">${title}</div>
+              <div class="txt-body-sm text-muted mt-1">${subtitle}</div>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <div class="flex-row gap-12" style="flex-shrink:0">
             <span style="font-size:11px;color:var(--text-faint)">Updated ${lastUpdated}</span>
             <button class="btn btn-secondary btn-sm" onclick="${editFn}">
               <span class="material-symbols-outlined" style="font-size:14px">edit</span> Edit
@@ -557,17 +519,17 @@ function renderFoundationPage() {
     </div>
 
     <!-- N8N Context Banner -->
-    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:14px">
+    <div class="flex-row gap-12" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px 20px">
       <span class="material-symbols-outlined" style="font-size:20px;color:#94a3b8;flex-shrink:0">hub</span>
       <div style="flex:1">
         <div style="font-size:12.5px;font-weight:700;color:var(--text-main)">Foundation is the root of every ASENZO AI action</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Content ideas, scripts, sales calls, onboarding flows, and retention messages all inherit data from this module. Keep it current.</div>
+        <div class="txt-body-sm text-muted mt-2">Content ideas, scripts, sales calls, onboarding flows, and retention messages all inherit data from this module. Keep it current.</div>
       </div>
       <span style="background:#e0f2fe;color:#0284c7;font-size:10.5px;font-weight:700;padding:4px 12px;border-radius:999px;white-space:nowrap">Live Source of Truth</span>
     </div>
 
     <!-- Foundation Sections -->
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="flex-col gap-12">
 
       ${foundationRow(
         'badge', '#0058bc',
@@ -658,24 +620,24 @@ function renderFoundationPage() {
         '7', 'Proof & Authority Assets',
         'The results, testimonials, and case studies that create belief.',
         proofComplete, 'Today',
-        `<div style="display:flex;flex-direction:column;gap:8px;">
+        `<div class="flex-col gap-8">
           ${proofCount > 0 ? `
             <div style="background:#F8FAFC;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0">
               <div>
                 <div style="font-size:13px;font-weight:700;color:var(--text-main)">Apex Logistics — Founder Dave</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Engine 3 installed. Revenue from $28k to $47k MRR in 90 days.</div>
+                <div class="txt-body-sm text-muted mt-2">Engine 3 installed. Revenue from $28k to $47k MRR in 90 days.</div>
               </div>
               <span class="badge-stage-approved">Verified</span>
             </div>
             <div style="background:#F8FAFC;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0">
               <div>
                 <div style="font-size:13px;font-weight:700;color:var(--text-main)">Lumina Tech — Founder Elena</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Full OS delegated. Founder working 22 hrs/week at $62k MRR.</div>
+                <div class="txt-body-sm text-muted mt-2">Full OS delegated. Founder working 22 hrs/week at $62k MRR.</div>
               </div>
               <span class="badge-stage-approved">Verified</span>
             </div>
           ` : '<div style="color:var(--text-faint);font-style:italic;font-size:13px">No proof assets yet. Add your first case study or testimonial.</div>'}
-          <button class="btn btn-secondary btn-sm" style="align-self:flex-start;margin-top:4px" onclick="go('retention')">
+          <button class="btn btn-secondary btn-sm mt-4" style="align-self:flex-start" onclick="go('retention')">
             <span class="material-symbols-outlined" style="font-size:14px">add</span> Add Proof Asset
           </button>
         </div>`,
@@ -765,7 +727,7 @@ function renderRevenue() {
     </div>
 
     <!-- Revenue Breakdown Card -->
-    <div class="dash-card" style="margin-top:16px">
+    <div class="dash-card mt-16">
       <div class="dash-card-header">
         <div>
           <h3 class="dash-card-title">Revenue Opportunities & Contract Breakdown</h3>
@@ -854,7 +816,7 @@ function renderRetention() {
       </div>
     </div>
 
-    <div class="dash-card" style="margin-top:16px">
+    <div class="dash-card mt-16">
       <div class="dash-card-header">
         <div>
           <h3 class="dash-card-title">Active Retention Accounts & Renewals</h3>
@@ -959,58 +921,58 @@ function renderActionQueue() {
       </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+    <div class="flex-col gap-12 mt-16">
       
       <!-- Proposal Card 1 -->
       <div class="dash-card" style="border-left:4px solid #EA580C">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="flex-between align-start">
           <div>
-            <div style="display:flex;align-items:center;gap:8px">
+            <div class="flex-row gap-8">
               <span class="badge badge-stage-script" style="background:#ffedd5;color:#ea580c">ATTENTION ENGINE</span>
-              <span style="font-size:12px;color:var(--text-muted)">Generated 20 mins ago by n8n Pipeline Worker</span>
+              <span class="txt-body-sm text-muted">Generated 20 mins ago by n8n Pipeline Worker</span>
             </div>
-            <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:6px">Publish Mechanism Post: "The 5-Engine Growth OS Blueprint"</h3>
-            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Proposed content hook matched top performance pillar (Mechanism Proof, 88/100 score). Scheduled for LinkedIn publishing at 09:00 AM tomorrow.</p>
+            <h3 class="mt-6" style="font-size:16px;font-weight:700;color:var(--text-main)">Publish Mechanism Post: "The 5-Engine Growth OS Blueprint"</h3>
+            <p class="mt-4" style="font-size:13px;color:var(--text-muted)">Proposed content hook matched top performance pillar (Mechanism Proof, 88/100 score). Scheduled for LinkedIn publishing at 09:00 AM tomorrow.</p>
           </div>
-          <div style="display:flex;gap:8px">
+          <div class="flex-row gap-8">
             <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')">✓ Approve & Execute</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Approve & Execute</button>
           </div>
         </div>
       </div>
 
       <!-- Proposal Card 2 -->
       <div class="dash-card" style="border-left:4px solid #0058bc">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="flex-between align-start">
           <div>
-            <div style="display:flex;align-items:center;gap:8px">
+            <div class="flex-row gap-8">
               <span class="badge badge-stage-script" style="background:#e0f2fe;color:#0284c7">CONVERSION ENGINE</span>
-              <span style="font-size:12px;color:var(--text-muted)">Generated 1 hour ago</span>
+              <span class="txt-body-sm text-muted">Generated 1 hour ago</span>
             </div>
-            <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:6px">Send Follow-up Sequence to SaaSify Inc (Mark Vance)</h3>
-            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Proposal sent 3 days ago. n8n classifier detected objection on onboarding timeline. Drafted personalized response reassuring 14-day installation timeline.</p>
+            <h3 class="mt-6" style="font-size:16px;font-weight:700;color:var(--text-main)">Send Follow-up Sequence to SaaSify Inc (Mark Vance)</h3>
+            <p class="mt-4" style="font-size:13px;color:var(--text-muted)">Proposal sent 3 days ago. n8n classifier detected objection on onboarding timeline. Drafted personalized response reassuring 14-day installation timeline.</p>
           </div>
-          <div style="display:flex;gap:8px">
+          <div class="flex-row gap-8">
             <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')">✓ Approve & Send Email</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Approve & Send Email</button>
           </div>
         </div>
       </div>
 
       <!-- Proposal Card 3 -->
       <div class="dash-card" style="border-left:4px solid #16a34a">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="flex-between align-start">
           <div>
-            <div style="display:flex;align-items:center;gap:8px">
+            <div class="flex-row gap-8">
               <span class="badge badge-stage-script" style="background:#dcfce7;color:#16a34a">DELIVERY ENGINE</span>
-              <span style="font-size:12px;color:var(--text-muted)">Generated 2 hours ago</span>
+              <span class="txt-body-sm text-muted">Generated 2 hours ago</span>
             </div>
-            <h3 style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:6px">Trigger Milestone 2 Onboarding Checklist for Apex Logistics</h3>
-            <p style="font-size:13px;color:var(--text-muted);margin-top:4px">Engine 3 installation verified. Send client portal welcome package and schedule strategy review sprint.</p>
+            <h3 class="mt-6" style="font-size:16px;font-weight:700;color:var(--text-main)">Trigger Milestone 2 Onboarding Checklist for Apex Logistics</h3>
+            <p class="mt-4" style="font-size:13px;color:var(--text-muted)">Engine 3 installation verified. Send client portal welcome package and schedule strategy review sprint.</p>
           </div>
-          <div style="display:flex;gap:8px">
+          <div class="flex-row gap-8">
             <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')">✓ Approve & Execute</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Approve & Execute</button>
           </div>
         </div>
       </div>
@@ -1062,7 +1024,7 @@ async function renderAttention() {
       </div>
       <div class="pg-actions" style="align-items:center">
         <span class="sb-badge green" style="font-weight:600;font-size:11.5px;cursor:pointer;padding:6px 12px" onclick="go('foundation')">
-          ⚡ Foundation Context Active
+          <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Foundation Context Active
         </span>
         <button class="btn btn-primary" onclick="openCreateContentModal()">
           <span class="material-symbols-outlined" style="font-size:18px">add</span> + Create Content
@@ -1071,7 +1033,7 @@ async function renderAttention() {
     </div>
 
     <!-- 6 Sub-Tab Navigation Bar -->
-    <div class="engine-tab-bar" style="margin-bottom:14px; display:flex; flex-wrap:wrap; gap:4px">
+    <div class="engine-tab-bar mb-14" style="display:flex;flex-wrap:wrap;gap:4px">
       <div class="engine-tab ${ATTENTION_SUB_TAB === 'overview' ? 'active' : ''}" onclick="switchAttentionSubTab('overview')">
         📊 Overview
       </div>
@@ -1133,30 +1095,30 @@ function renderAttentionOverviewSubTab() {
   const recentPublished = (CONTENT_ITEMS || []).filter(c => (c.stage || c.status) === 'PUBLISHED').slice(0, 3);
 
   return `
-    <div style="display:flex; flex-direction:column; gap:16px;">
+    <div class="flex-col gap-16">
       
       <!-- NEXT BEST CONTENT ACTION -->
       <div class="dash-card" style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF;border:none">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="flex-between align-start">
           <div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="sb-badge green" style="font-size:10px;font-weight:700">⚡ NEXT BEST CONTENT ACTION</span>
+            <div class="flex-row gap-8">
+              <span class="sb-badge green" style="font-size:10px;font-weight:700"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> NEXT BEST CONTENT ACTION</span>
               <span style="font-size:11px;color:#94A3B8">AI Opportunity Directive</span>
             </div>
             ${topIdea ? `
-              <div style="font-size:18px;font-weight:800;color:#F8FAFC;margin-top:8px;line-height:1.3">
+              <div class="mt-8" style="font-size:18px;font-weight:800;color:#F8FAFC;;line-height:1.3">
                 "${topIdea.title}"
               </div>
-              <div style="font-size:12.5px;color:#CBD5E1;margin-top:6px">
+              <div class="txt-body-sm text-muted mt-6">
                 <b>Purpose:</b> ${topIdea.objective || 'Belief Shift & ICP Qualification'} &nbsp;·&nbsp;
                 <b>Format:</b> ${(topIdea.content_format || 'Post').replace(/_/g, ' ')} &nbsp;·&nbsp;
                 <b>Funnel Stage:</b> <span style="color:#34D399;font-weight:700">${topIdea.funnel_stage || 'TRUST'}</span>
               </div>
-              <div style="font-size:12px;color:#94A3B8;margin-top:6px;font-style:italic">
+              <div class="txt-body-sm text-muted mt-6" style="font-style:italic">
                 Reason: Audience engagement signal shows high demand for mechanism breakdowns over generic tips.
               </div>
             ` : `
-              <div style="font-size:15px;font-weight:700;color:#94A3B8;margin-top:8px">
+              <div class="txt-heading-sm mt-8">
                 Not enough content data yet to rank recommendations.
               </div>
             `}
@@ -1167,7 +1129,7 @@ function renderAttentionOverviewSubTab() {
                 📝 Write Script Now
               </button>
             ` : `
-              <button class="btn btn-secondary btn-sm" onclick="openIdeaGeneratorModal()">⚡ Generate Ideas</button>
+              <button class="btn btn-secondary btn-sm" onclick="openIdeaGeneratorModal()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generate Ideas</button>
             `}
           </div>
         </div>
@@ -1175,30 +1137,30 @@ function renderAttentionOverviewSubTab() {
 
       <!-- CONTENT PIPELINE TRACKER -->
       <div class="dash-card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:13px;font-weight:800;color:#0F172A">Content Pipeline Flow</div>
+        <div class="flex-between">
+          <div class="txt-heading-sm">Content Pipeline Flow</div>
           <span style="font-size:11px;color:#64748B">${stageIdeaCount + stageScriptCount + stageProdCount + stageSchedCount + stagePubCount} total assets tracked</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-top:10px">
+        <div class="mt-12" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px">
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('ideas')">
             <div style="font-size:11px;font-weight:700;color:#64748B">IDEAS</div>
-            <div style="font-size:22px;font-weight:800;color:#0F172A;margin-top:2px">${stageIdeaCount}</div>
+            <div class="mt-2" style="font-size:22px;font-weight:800;color:#0F172A">${stageIdeaCount}</div>
           </div>
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('scripts')">
             <div style="font-size:11px;font-weight:700;color:#64748B">SCRIPTS</div>
-            <div style="font-size:22px;font-weight:800;color:#2563EB;margin-top:2px">${stageScriptCount}</div>
+            <div class="mt-2" style="font-size:22px;font-weight:800;color:#2563EB">${stageScriptCount}</div>
           </div>
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('production')">
             <div style="font-size:11px;font-weight:700;color:#64748B">PRODUCTION</div>
-            <div style="font-size:22px;font-weight:800;color:#D97706;margin-top:2px">${stageProdCount}</div>
+            <div class="mt-2" style="font-size:22px;font-weight:800;color:#D97706">${stageProdCount}</div>
           </div>
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('production')">
             <div style="font-size:11px;font-weight:700;color:#64748B">SCHEDULED</div>
-            <div style="font-size:22px;font-weight:800;color:#059669;margin-top:2px">${stageSchedCount}</div>
+            <div class="mt-2" style="font-size:22px;font-weight:800;color:#059669">${stageSchedCount}</div>
           </div>
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center;cursor:pointer" onclick="switchAttentionSubTab('published')">
             <div style="font-size:11px;font-weight:700;color:#64748B">PUBLISHED</div>
-            <div style="font-size:22px;font-weight:800;color:#7C3AED;margin-top:2px">${stagePubCount}</div>
+            <div class="mt-2" style="font-size:22px;font-weight:800;color:#7C3AED">${stagePubCount}</div>
           </div>
         </div>
       </div>
@@ -1208,7 +1170,7 @@ function renderAttentionOverviewSubTab() {
         
         <!-- TOP CONTENT OPPORTUNITIES -->
         <div class="dash-card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="flex-between">
             <div>
               <div class="dash-card-title">Top Content Opportunities</div>
               <div class="dash-card-sub">Prioritized ideas ready to move to script</div>
@@ -1216,18 +1178,18 @@ function renderAttentionOverviewSubTab() {
             <button class="btn btn-secondary btn-sm" onclick="switchAttentionSubTab('ideas')">View All Ideas (${ideas.length})</button>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+          <div class="flex-col gap-12 mt-12">
             ${topOpportunities.length === 0 ? `
               <div style="text-align:center;padding:24px;color:#94A3B8">No content opportunities queued. Click "+ Create Content" to add your first idea.</div>
             ` : topOpportunities.map(op => `
-              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:flex-start">
+              <div class="flex-between align-start" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px">
                 <div style="flex:1;padding-right:12px">
-                  <div style="display:flex;gap:6px;align-items:center">
+                  <div class="flex-row gap-6">
                     <span class="sb-badge blue" style="font-size:9.5px">${op.funnel_stage || 'TRUST'}</span>
                     <span class="sb-badge" style="font-size:9.5px">${(op.content_format || 'POST').replace(/_/g,' ')}</span>
                   </div>
-                  <div style="font-weight:700;color:#0F172A;font-size:13px;margin-top:4px">${op.title}</div>
-                  <div style="font-size:11.5px;color:#64748B;margin-top:2px">${(op.premise || '').substring(0, 110)}...</div>
+                  <div class="mt-4" style="font-weight:700;color:#0F172A;font-size:13px">${op.title}</div>
+                  <div class="mt-2" style="font-size:11.5px;color:#64748B">${(op.premise || '').substring(0, 110)}...</div>
                 </div>
                 <button class="btn btn-primary btn-sm" onclick="handleWriteScriptFromIdea('${op.id}')">📝 Write Script</button>
               </div>
@@ -1236,19 +1198,19 @@ function renderAttentionOverviewSubTab() {
         </div>
 
         <!-- RECENT PERFORMANCE & LEARNING -->
-        <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="flex-col gap-16">
           
           <div class="dash-card">
             <div class="dash-card-title">Recent Performance</div>
             <div class="dash-card-sub">Top published work this week</div>
             
-            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <div class="flex-col gap-8 mt-8">
               ${recentPublished.length === 0 ? `
-                <div style="font-size:12px;color:#94A3B8;padding:12px;text-align:center">No published assets recorded yet.</div>
+                <div class="txt-body-sm text-muted" style="padding:12px;text-align:center">No published assets recorded yet.</div>
               ` : recentPublished.map(rp => `
                 <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
-                  <div style="font-weight:700;font-size:12px;color:#0F172A">${rp.title}</div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:11px;color:#64748B">
+                  <div class="txt-body-sm text-muted" style="font-weight:700">${rp.title}</div>
+                  <div class="flex-between mt-4" style="font-size:11px;color:#64748B">
                     <span>👁 ${(rp.views || 4200).toLocaleString()} views</span>
                     <span style="color:#059669;font-weight:700">💬 ${(rp.dms || 12)} SQL DMs</span>
                   </div>
@@ -1260,10 +1222,10 @@ function renderAttentionOverviewSubTab() {
           <!-- LEARNING OBSERVATION -->
           <div class="dash-card" style="background:#F0FDF4;border:1px solid #BBF7D0">
             <div style="font-weight:800;color:#065F46;font-size:13px">🧠 Audience Learning Insight</div>
-            <div style="font-size:12px;color:#047857;margin-top:4px;line-height:1.4">
+            <div class="txt-body-sm text-muted mt-4" style="line-height:1.4">
               Mechanism breakdowns generate 3.4x more qualified DMs than general tips posts.
             </div>
-            <button class="btn btn-secondary btn-sm" style="margin-top:8px;background:#FFF;color:#047857;border-color:#A7F3D0" onclick="switchAttentionSubTab('learn')">
+            <button class="btn btn-secondary btn-sm mt-8" style="background:#FFF;color:#047857;border-color:#A7F3D0" onclick="switchAttentionSubTab('learn')">
               View Insights →
             </button>
           </div>
@@ -1289,25 +1251,25 @@ function renderAttentionIdeasSubTab() {
   if (f.priority) ideas = ideas.filter(i => i.priority === f.priority);
 
   return `
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="flex-col gap-12">
       <!-- Automation Status & Header -->
       <div class="dash-card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="flex-between">
           <div>
-            <div style="display:flex;align-items:center;gap:8px">
+            <div class="flex-row gap-8">
               <span class="dash-card-title">Content Ideas Vault</span>
-              <span style="font-size:12px;color:#10B981;font-weight:700">● Content Intelligence Connected</span>
+              <span class="txt-body-sm text-muted" style="font-weight:700">● Content Intelligence Connected</span>
             </div>
             <div class="dash-card-sub">Filtered content opportunities scored against Business DNA</div>
           </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-secondary btn-sm" onclick="openIdeaGeneratorModal()">⚡ AI Generate Ideas</button>
+          <div class="flex-row gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="openIdeaGeneratorModal()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Generate Ideas</button>
             <button class="btn btn-primary btn-sm" onclick="openIdeaModal()">+ New Idea</button>
           </div>
         </div>
 
         <!-- Filter Bar -->
-        <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <div class="flex-row gap-12 mt-12" style="flex-wrap:wrap">
           <input id="idea-search-input" class="stitch-input" value="${f.q || ''}" placeholder="🔍 Search ideas, premises, pains..." style="flex:1;min-width:200px" oninput="setIdeaFilter('q', this.value)" />
           
           <select class="stitch-select" onchange="setIdeaFilter('status', this.value)">
@@ -1324,21 +1286,21 @@ function renderAttentionIdeasSubTab() {
 
       <!-- Ideas Grid -->
       <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:14px">
-        ${ideas.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No content ideas found. Click "+ New Idea" or "⚡ AI Generate Ideas" to add items.</div>` : ''}
+        ${ideas.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No content ideas found. Click "+ New Idea" or "<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Generate Ideas" to add items.</div>` : ''}
         ${ideas.map(i => `
           <div class="dash-card" style="border-left:4px solid ${i.priority === 'HIGH' ? '#10B981' : i.priority === 'MEDIUM' ? '#F97316' : '#94A3B8'}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-              <div style="font-size:14px;font-weight:800;color:#0F172A;line-height:1.35">${i.title}</div>
+            <div class="flex-between align-start" style="gap:8px">
+              <div class="txt-heading-sm" style="line-height:1.35">${i.title}</div>
               <div style="width:34px;height:34px;border-radius:50%;background:${i.score >= 80 ? '#10B981' : '#F97316'};color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">${i.score || 85}</div>
             </div>
-            <div style="font-size:12px;color:#475569;margin-top:6px;line-height:1.45">${(i.premise || '').substring(0, 140)}...</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+            <div class="txt-body-sm text-muted mt-6" style="line-height:1.45">${(i.premise || '').substring(0, 140)}...</div>
+            <div class="mt-12" style="display:flex;flex-wrap:wrap;gap:6px">
               <span class="sb-badge blue" style="font-size:9.5px">${i.funnel_stage || 'TRUST'}</span>
               <span class="sb-badge" style="font-size:9.5px">${(i.content_format || 'POST').replace(/_/g,' ')}</span>
               <span class="sb-badge green" style="font-size:9.5px">${i.source || 'AI_GENERATED'}</span>
             </div>
-            <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:8px;border-top:1px solid #F1F5F9">
-              <button class="btn btn-secondary btn-sm" onclick="openIdeaModal('${i.id}')">✏️ Edit</button>
+            <div class="mt-12" style="display:flex;justify-content:flex-end;gap:6px;;padding-top:8px;border-top:1px solid #F1F5F9">
+              <button class="btn btn-secondary btn-sm" onclick="openIdeaModal('${i.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">edit</span>️ Edit</button>
               <button class="btn btn-primary btn-sm" onclick="handleWriteScriptFromIdea('${i.id}')">📝 Write Script</button>
             </div>
           </div>
@@ -1355,11 +1317,11 @@ function renderAttentionScriptsSubTab() {
   const mechanism = pos.mechanism || 'ASENZO 5-Engine Growth OS';
 
   return `
-    <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="flex-col gap-16">
       <!-- Silent Foundation Context Banner -->
-      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 16px;font-size:12.5px;color:#047857;display:flex;align-items:center;justify-content:space-between">
+      <div class="txt-body-sm text-muted" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 16px;;display:flex;align-items:center;justify-content:space-between">
         <div>
-          ⚡ <b>Foundation Context Active:</b> Target ICP: <b>${icp}</b> &nbsp;·&nbsp; Mechanism: <b>${mechanism}</b>
+          <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> <b>Foundation Context Active:</b> Target ICP: <b>${icp}</b> &nbsp;·&nbsp; Mechanism: <b>${mechanism}</b>
         </div>
         <button class="btn btn-secondary btn-sm" style="background:#FFF;color:#047857;border-color:#A7F3D0" onclick="go('foundation')">
           View Foundation →
@@ -1369,24 +1331,24 @@ function renderAttentionScriptsSubTab() {
       <div style="display:grid;grid-template-columns:1fr 340px;gap:16px">
         <!-- Main Script Generator & Writer Workspace -->
         <div class="dash-card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="flex-between">
             <div>
               <div class="dash-card-title">Structured Script Workspace</div>
               <div class="dash-card-sub">7-Stage Script Framework tailored to founder authority</div>
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="openScriptGeneratorModal()">⚡ Generator Wizard</button>
+            <button class="btn btn-secondary btn-sm" onclick="openScriptGeneratorModal()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generator Wizard</button>
           </div>
 
-          <form onsubmit="event.preventDefault(); handleSaveGeneratedScriptToKanban();" style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+          <form onsubmit="event.preventDefault(); handleSaveGeneratedScriptToKanban();" class="flex-col gap-12 mt-12">
             <div>
-              <label style="font-weight:700;font-size:12px;color:#0F172A">Topic / Core Premise</label>
-              <input id="script-tab-topic" class="stitch-input" placeholder="e.g. Why $10k/mo agency retainers keep founders trapped in sales bottleneck" style="width:100%;margin-top:4px" />
+              <label class="txt-body-sm text-muted" style="font-weight:700">Topic / Core Premise</label>
+              <input id="script-tab-topic" class="stitch-input" placeholder="e.g. Why $10k/mo agency retainers keep founders trapped in sales bottleneck" class="mt-4" style="width:100%" />
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               <div>
-                <label style="font-weight:700;font-size:12px;color:#0F172A">Format</label>
-                <select id="script-tab-format" class="stitch-select" style="width:100%;margin-top:4px">
+                <label class="txt-body-sm text-muted" style="font-weight:700">Format</label>
+                <select id="script-tab-format" class="stitch-select mt-4" style="width:100%">
                   <option value="SHORT_VIDEO">Short-Form Video (TikTok/Reels/Shorts)</option>
                   <option value="CAROUSEL">LinkedIn Carousel</option>
                   <option value="POST">Written Post / Thread</option>
@@ -1394,8 +1356,8 @@ function renderAttentionScriptsSubTab() {
                 </select>
               </div>
               <div>
-                <label style="font-weight:700;font-size:12px;color:#0F172A">Funnel Objective</label>
-                <select id="script-tab-stage" class="stitch-select" style="width:100%;margin-top:4px">
+                <label class="txt-body-sm text-muted" style="font-weight:700">Funnel Objective</label>
+                <select id="script-tab-stage" class="stitch-select mt-4" style="width:100%">
                   <option value="TRUST">TRUST (MOF - Belief Shift)</option>
                   <option value="DISCOVER">DISCOVER (TOF - Pattern Interrupt)</option>
                   <option value="DECIDE">DECIDE (BOF - Case Study / Offer)</option>
@@ -1404,55 +1366,55 @@ function renderAttentionScriptsSubTab() {
             </div>
 
             <div>
-              <label style="font-weight:700;font-size:12px;color:#0F172A">🪝 Hook (Pattern Interrupt)</label>
-              <input id="script-tab-hook" class="stitch-input" placeholder="If you're still relying on retainer agencies to scale your B2B business, stop." style="width:100%;margin-top:4px" />
+              <label class="txt-body-sm text-muted" style="font-weight:700">🪝 Hook (Pattern Interrupt)</label>
+              <input id="script-tab-hook" class="stitch-input" placeholder="If you're still relying on retainer agencies to scale your B2B business, stop." class="mt-4" style="width:100%" />
             </div>
 
             <div>
-              <label style="font-weight:700;font-size:12px;color:#0F172A">📜 Full Script Body</label>
-              <textarea id="script-tab-body" class="stitch-input" rows="8" style="width:100%;margin-top:4px" placeholder="Hook → Problem → Insight → Mechanism → Proof → Payoff → CTA..."></textarea>
+              <label class="txt-body-sm text-muted" style="font-weight:700">📜 Full Script Body</label>
+              <textarea id="script-tab-body" class="stitch-input" rows="8" class="mt-4" style="width:100%" placeholder="Hook → Problem → Insight → Mechanism → Proof → Payoff → CTA..."></textarea>
             </div>
 
             <div>
-              <label style="font-weight:700;font-size:12px;color:#0F172A">🎯 Call-To-Action (CTA)</label>
-              <input id="script-tab-cta" class="stitch-input" placeholder="Comment 'OS' below and I'll send you our 5-Engine architecture map." style="width:100%;margin-top:4px" />
+              <label class="txt-body-sm text-muted" style="font-weight:700">🎯 Call-To-Action (CTA)</label>
+              <input id="script-tab-cta" class="stitch-input" placeholder="Comment 'OS' below and I'll send you our 5-Engine architecture map." class="mt-4" style="width:100%" />
             </div>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid #E2E8F0">
-              <button type="button" class="btn btn-secondary" onclick="handleImproveScriptWithAI()">⚡ Auto-Improve Script with AI</button>
+            <div class="flex-between mt-12" style="padding-top:10px;border-top:1px solid #E2E8F0">
+              <button type="button" class="btn btn-secondary" onclick="handleImproveScriptWithAI()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Auto-Improve Script with AI</button>
               <button type="submit" class="btn btn-primary">🚀 Approve & Send to Production</button>
             </div>
           </form>
         </div>
 
         <!-- Script Quality Checklist Sidebar -->
-        <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="flex-col gap-12">
           <div class="dash-card" style="background:#F8FAFC">
             <div class="dash-card-title">Script Quality Check</div>
             <div class="dash-card-sub">Foundation alignment score</div>
 
-            <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;font-size:12px">
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+            <div class="flex-col gap-8 mt-12" style="font-size:12px">
+              <div class="flex-between" style="padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
                 <span>🪝 Hook Strength</span>
                 <span class="sb-badge green" style="font-size:10px">Strong</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+              <div class="flex-between" style="padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
                 <span>🎯 ICP Bottleneck Clarity</span>
                 <span class="sb-badge green" style="font-size:10px">Strong</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+              <div class="flex-between" style="padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
                 <span>💡 Belief Shift Focus</span>
                 <span class="sb-badge green" style="font-size:10px">Strong</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+              <div class="flex-between" style="padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
                 <span>⚙️ Mechanism Included</span>
                 <span class="sb-badge green" style="font-size:10px">Verified</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+              <div class="flex-between" style="padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
                 <span>🛡️ Proof Anchor</span>
                 <span class="sb-badge orange" style="font-size:10px">Needs Proof</span>
               </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
+              <div class="flex-between" style="padding:8px;background:#FFF;border-radius:6px;border:1px solid #E2E8F0">
                 <span>📣 Clear CTA</span>
                 <span class="sb-badge green" style="font-size:10px">Strong</span>
               </div>
@@ -1470,9 +1432,9 @@ function renderAttentionProductionSubTab() {
   const items = (CONTENT_ITEMS || []).filter(c => ['SCRIPT', 'REVIEW', 'APPROVED', 'PRODUCTION', 'SCHEDULED'].includes(c.stage || c.status));
 
   return `
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="flex-col gap-12">
       <div class="dash-card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="flex-between">
           <div>
             <div class="dash-card-title">Production & Scheduling Queue</div>
             <div class="dash-card-sub">Content in production (Approved → Filming / Editing → Scheduled)</div>
@@ -1488,16 +1450,16 @@ function renderAttentionProductionSubTab() {
           </div>
         ` : items.map(c => `
           <div class="dash-card">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="flex-between align-start">
               <div>
                 <span class="sb-badge blue" style="font-size:9.5px">${(c.primary_platform || c.target_platform || 'POST').replace(/_/g,' ')}</span>
                 <span class="sb-badge green" style="font-size:9.5px">${c.stage || c.status || 'PRODUCTION'}</span>
-                <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:6px">${c.title}</div>
+                <div class="txt-heading-sm mt-6">${c.title}</div>
               </div>
             </div>
-            <div style="font-size:12px;color:#64748B;margin-top:6px">Owner: ${c.owner || 'Alex Morgan'} &nbsp;·&nbsp; Due: ${c.deadline || 'This week'}</div>
-            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;padding-top:8px;border-top:1px solid #F1F5F9">
-              <button class="btn btn-secondary btn-sm" onclick="openProductionWorkspaceModal('${c.id}')">✏️ Workspace</button>
+            <div class="txt-body-sm text-muted mt-6">Owner: ${c.owner || 'Alex Morgan'} &nbsp;·&nbsp; Due: ${c.deadline || 'This week'}</div>
+            <div class="mt-12" style="display:flex;justify-content:flex-end;gap:8px;;padding-top:8px;border-top:1px solid #F1F5F9">
+              <button class="btn btn-secondary btn-sm" onclick="openProductionWorkspaceModal('${c.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">edit</span>️ Workspace</button>
               <button class="btn btn-primary btn-sm" onclick="handleMoveToPublished('${c.id}')">🚀 Mark Published</button>
             </div>
           </div>
@@ -1635,11 +1597,11 @@ function renderAttentionDashboard() {
 
     <!-- BOTTLENECK ALERT BANNER -->
     <div class="cmd-bottleneck-card">
-      <div style="display:flex;align-items:center;gap:14px">
+      <div class="flex-row gap-12">
         <div style="width:40px;height:40px;border-radius:10px;background:#EA580C;color:#FFF;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800">!</div>
         <div>
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#9A3412">Detected Attention Bottleneck</div>
-          <div style="font-size:14px;font-weight:800;color:#7C2D12;margin-top:2px">${q4}</div>
+          <div class="txt-heading-sm mt-2">${q4}</div>
         </div>
       </div>
       <button class="btn btn-primary" onclick="openScriptGeneratorModal()">Resolve Bottleneck</button>
@@ -1677,7 +1639,7 @@ function renderAttentionDashboard() {
     <div class="cmd-section">
       <div class="cmd-section-header">
         <div class="cmd-section-title">
-          <span>❤️</span> Attention Health & Funnel Metrics
+          <span><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">favorite</span>️</span> Attention Health & Funnel Metrics
         </div>
         <span class="cmd-trend-badge cmd-trend-up">Compounding Score: ${trajectoryScore}</span>
       </div>
@@ -1716,7 +1678,7 @@ function renderAttentionDashboard() {
         <div class="cmd-section-title">
           <span>📋</span> Content Pipeline Velocity
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="flex-row gap-8">
           <button class="btn btn-secondary btn-sm" onclick="switchAttentionTab('pipeline')">View Full Pipeline Matrix</button>
           <button class="btn btn-primary btn-sm" onclick="openScriptGeneratorModal()">+ Create New Script Asset</button>
         </div>
@@ -1751,7 +1713,7 @@ function renderAttentionDashboard() {
     </div>
 
     <!-- SECTION 4 & 5 GRID: CONTENT PERFORMANCE & AUTHORITY -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+    <div class="mb-24" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <!-- SECTION 4: CONTENT PERFORMANCE -->
       <div class="dash-card" style="margin:0">
         <div class="cmd-section-header">
@@ -1827,7 +1789,7 @@ function renderAttentionDashboard() {
           </div>
           <button class="btn btn-secondary btn-sm" onclick="switchAttentionTab('authority')">Manage Proof Library</button>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:14px">
+        <div class="mb-14" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px">
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase">Testimonials</div>
             <div style="font-size:22px;font-weight:800;color:#0F172A">${testimonials.length || 3}</div>
@@ -1841,29 +1803,29 @@ function renderAttentionDashboard() {
             <div style="font-size:22px;font-weight:800;color:#0F172A">${proofAssets.length || 4}</div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="flex-col gap-12">
           ${(AUTHORITY_ASSET_ITEMS && AUTHORITY_ASSET_ITEMS.length > 0 ? AUTHORITY_ASSET_ITEMS.slice(0, 2) : []).map(a => `
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="font-size:13px;font-weight:700;color:#0F172A">${a.title || a.client_name || 'Client Case Study'}</div>
+              <div class="flex-between">
+                <div class="txt-heading-sm">${a.title || a.client_name || 'Client Case Study'}</div>
                 <span class="badge badge-stage-approved">${a.permission_status || a.permissionStatus || 'VERIFIED'}</span>
               </div>
-              <div style="font-size:12px;color:#475569;margin-top:4px;font-style:italic">"${a.summary || a.claim || 'Achieved 85+ FIS Score while scaling revenue to $100k/mo'}"</div>
+              <div class="txt-body-sm text-muted mt-4" style="font-style:italic">"${a.summary || a.claim || 'Achieved 85+ FIS Score while scaling revenue to $100k/mo'}"</div>
             </div>
           `).join('') || `
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="font-size:13px;font-weight:700;color:#0F172A">SaaSify Inc — Founder Mark</div>
+              <div class="flex-between">
+                <div class="txt-heading-sm">SaaSify Inc — Founder Mark</div>
                 <span class="badge badge-stage-approved">CLIENT_VERIFIED</span>
               </div>
-              <div style="font-size:12px;color:#475569;margin-top:4px;font-style:italic">"Cut founder marketing workload from 60 hrs to 15 hrs/wk while scaling qualified pipeline 2.4x."</div>
+              <div class="txt-body-sm text-muted mt-4" style="font-style:italic">"Cut founder marketing workload from 60 hrs to 15 hrs/wk while scaling qualified pipeline 2.4x."</div>
             </div>
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="font-size:13px;font-weight:700;color:#0F172A">Lumina Tech — $100k/mo Case Study</div>
+              <div class="flex-between">
+                <div class="txt-heading-sm">Lumina Tech — $100k/mo Case Study</div>
                 <span class="badge badge-stage-approved">CLIENT_VERIFIED</span>
               </div>
-              <div style="font-size:12px;color:#475569;margin-top:4px;font-style:italic">"Replaced 3 agency retainers with Growth OS; doubled inbound DM conversion in 30 days."</div>
+              <div class="txt-body-sm text-muted mt-4" style="font-style:italic">"Replaced 3 agency retainers with Growth OS; doubled inbound DM conversion in 30 days."</div>
             </div>
           `}
         </div>
@@ -1881,33 +1843,33 @@ function renderAttentionDashboard() {
       <div class="dash-card">
         <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px">
           <div>
-            <div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:10px">Active Lead Magnets</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center">
+            <div class="txt-heading-sm mb-10">Active Lead Magnets</div>
+            <div class="flex-col gap-8">
+              <div class="flex-between" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
                 <div>
                   <div style="font-size:12.5px;font-weight:700;color:#0F172A">FIS Score Calculator Tool</div>
                   <div style="font-size:11px;color:#64748B">Primary Diagnostic Opt-in</div>
                 </div>
-                <div style="font-size:13px;font-weight:800;color:#059669">42% Opt-in</div>
+                <div class="txt-heading-sm">42% Opt-in</div>
               </div>
-              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center">
+              <div class="flex-between" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
                 <div>
                   <div style="font-size:12.5px;font-weight:700;color:#0F172A">5-Engine Growth OS Blueprint</div>
                   <div style="font-size:11px;color:#64748B">Architecture Teardown PDF</div>
                 </div>
-                <div style="font-size:13px;font-weight:800;color:#059669">31% Opt-in</div>
+                <div class="txt-heading-sm">31% Opt-in</div>
               </div>
-              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center">
+              <div class="flex-between" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
                 <div>
                   <div style="font-size:12.5px;font-weight:700;color:#0F172A">Agency Retainer Audit SOP</div>
                   <div style="font-size:11px;color:#64748B">Objection buster asset</div>
                 </div>
-                <div style="font-size:13px;font-weight:800;color:#059669">27% Opt-in</div>
+                <div class="txt-heading-sm">27% Opt-in</div>
               </div>
             </div>
           </div>
           <div>
-            <div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:10px">Source Attribution Breakdown</div>
+            <div class="txt-heading-sm mb-10">Source Attribution Breakdown</div>
             <table class="cmd-table">
               <thead>
                 <tr>
@@ -1951,7 +1913,7 @@ function renderAttentionDashboard() {
     <div class="cmd-section">
       <div class="cmd-section-header">
         <div class="cmd-section-title">
-          <span>⚡</span> AI Attention Directive (Prioritized Founder Action Queue)
+          <span><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span></span> AI Attention Directive (Prioritized Founder Action Queue)
         </div>
         <button class="btn btn-secondary btn-sm" onclick="switchAttentionTab('recommendations')">View Full Directive History</button>
       </div>
@@ -1963,7 +1925,7 @@ function renderAttentionDashboard() {
           const confClass = r.confidence === 'HIGH' ? 'conf-high' : (r.confidence === 'MEDIUM' ? 'conf-medium' : (isInsufficient ? 'conf-insufficient' : 'conf-low'));
           const recTitle = r.headline || r.recommendation || `Directive #${rank}`;
           const reasoning = r.reasoning || r.reason || 'Strategic directive generated from live intelligence feedback loop.';
-          const actionText = r.suggestedAction || (r.action === 'DOUBLE_DOWN' ? '⚡ Generate Case Study Script' : (r.action === 'REDUCE' ? '🔄 Re-angle Generic Posts' : '🧪 Launch CTA Test'));
+          const actionText = r.suggestedAction || (r.action === 'DOUBLE_DOWN' ? '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generate Case Study Script' : (r.action === 'REDUCE' ? '🔄 Re-angle Generic Posts' : '🧪 Launch CTA Test'));
 
           return `
             <div class="cmd-directive-item priority-${rank} ${isInsufficient ? 'insufficient' : ''}">
@@ -1973,7 +1935,7 @@ function renderAttentionDashboard() {
                   <div>${recTitle}</div>
                 </div>
                 <div class="cmd-directive-conf ${confClass}">
-                  ${isInsufficient ? '⚠️ Insufficient Data' : `${r.confidence || 'HIGH'} Confidence`}
+                  ${isInsufficient ? '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ Insufficient Data' : `${r.confidence || 'HIGH'} Confidence`}
                 </div>
               </div>
 
@@ -2018,57 +1980,57 @@ function renderContentStrategyTab() {
 
   return `
     <div class="dash-card" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFF">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Content Strategy Engine</div>
-          <div style="font-size:16px;font-weight:800;color:#F8FAFC;margin-top:2px">${active.length} Active Pillars • ${totalPct}% Target Mix Allocated</div>
+          <div class="txt-body-xs text-faint" style="letter-spacing:0.5px">Content Strategy Engine</div>
+          <div class="txt-heading-md mt-2">${active.length} Active Pillars • ${totalPct}% Target Mix Allocated</div>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="flex-row gap-8">
           <button class="btn btn-primary btn-sm" onclick="openPillarModal()">+ New Pillar</button>
           <button class="btn btn-secondary btn-sm" style="background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.2)" onclick="go('ideas', document.getElementById('nav-attention'))">💡 Open Idea Engine</button>
         </div>
       </div>
-      <p style="font-size:12px;color:#CBD5E1;margin-top:6px">Each pillar is a strategic lane with its own audience, pain, objective and proof of success. Ideas inherit these pillars as their strategic home.</p>
+      <p class="txt-body-sm text-muted mt-6">Each pillar is a strategic lane with its own audience, pain, objective and proof of success. Ideas inherit these pillars as their strategic home.</p>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px">
+    <div class="mt-12" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
       ${active.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No content pillars yet. Click "+ New Pillar" to define your first strategic lane.</div>` : ''}
       ${active.map((p, i) => `
         <div class="dash-card" style="border-top:3px solid ${['#8B5CF6','#10B981','#F97316','#06B6D4'][i % 4]}">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="font-size:15px;font-weight:800;color:#0F172A">${p.name}</div>
-            <div style="display:flex;gap:6px">
+          <div class="flex-between align-start">
+            <div class="txt-heading-sm">${p.name}</div>
+            <div class="flex-row gap-6">
               <span class="sb-badge green" style="font-size:9px">${p.pillar_type || 'CUSTOM'}</span>
               <span class="sb-badge" style="background:#E2E8F0;color:#334155;font-size:9px">${p.target_percentage || 0}% Mix</span>
             </div>
           </div>
-          <div style="font-size:12px;color:#64748B;margin-top:6px;line-height:1.45">${p.description || 'No description set.'}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div class="txt-body-sm text-muted mt-6" style="line-height:1.45">${p.description || 'No description set.'}</div>
+          <div class="mt-12" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
               <div style="font-size:10px;font-weight:700;color:#64748B">TARGET AUDIENCE</div>
-              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.target_audience || '—'}</div>
+              <div class="mt-2" style="font-size:11.5px;font-weight:600;color:#0F172A">${p.target_audience || '—'}</div>
             </div>
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
               <div style="font-size:10px;font-weight:700;color:#64748B">ASSOCIATED PAIN</div>
-              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.pain || '—'}</div>
+              <div class="mt-2" style="font-size:11.5px;font-weight:600;color:#0F172A">${p.pain || '—'}</div>
             </div>
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
               <div style="font-size:10px;font-weight:700;color:#64748B">OBJECTIVE</div>
-              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.objective || '—'}</div>
+              <div class="mt-2" style="font-size:11.5px;font-weight:600;color:#0F172A">${p.objective || '—'}</div>
             </div>
             <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px">
               <div style="font-size:10px;font-weight:700;color:#64748B">DESIRED RESULT</div>
-              <div style="font-size:11.5px;font-weight:600;color:#0F172A;margin-top:2px">${p.desired_result || '—'}</div>
+              <div class="mt-2" style="font-size:11.5px;font-weight:600;color:#0F172A">${p.desired_result || '—'}</div>
             </div>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+          <div class="mt-12" style="display:flex;flex-wrap:wrap;gap:6px">
             ${(p.contentFormats || []).map(f => `<span style="font-size:10px;font-weight:600;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:10px">${f}</span>`).join('')}
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <div class="mt-6" style="display:flex;flex-wrap:wrap;gap:6px">
             ${(p.supportedPlatforms || []).map(pl => `<span style="font-size:10px;font-weight:600;background:#F0FDF4;color:#047857;padding:2px 8px;border-radius:10px">${pl.replace(/_/g,' ')}</span>`).join('')}
           </div>
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid #F1F5F9">
-            <button class="btn btn-secondary btn-sm" onclick="openPillarModal('${p.id}')">✏️ Edit</button>
+          <div class="mt-12" style="display:flex;justify-content:flex-end;gap:8px;;padding-top:8px;border-top:1px solid #F1F5F9">
+            <button class="btn btn-secondary btn-sm" onclick="openPillarModal('${p.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">edit</span>️ Edit</button>
             <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleArchivePillar('${p.id}')">🗑 Archive</button>
           </div>
         </div>
@@ -2097,21 +2059,21 @@ function renderContentIdeasTab() {
   return `
     <!-- Idea Engine Header Card -->
     <div class="dash-card" style="background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);color:#FFF">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Content Idea Engine</div>
-          <div style="font-size:16px;font-weight:800;color:#F8FAFC;margin-top:2px">${ideas.length} Ideas • ${high} High Priority • ${med} Medium Priority</div>
+          <div class="txt-body-xs text-faint" style="letter-spacing:0.5px">Content Idea Engine</div>
+          <div class="txt-heading-md mt-2">${ideas.length} Ideas • ${high} High Priority • ${med} Medium Priority</div>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" style="background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.2)" onclick="openIdeaGeneratorModal()">⚡ AI Generate</button>
+        <div class="flex-row gap-8">
+          <button class="btn btn-secondary btn-sm" style="background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.2)" onclick="openIdeaGeneratorModal()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Generate</button>
           <button class="btn btn-primary btn-sm" onclick="openIdeaModal()">+ New Idea</button>
         </div>
       </div>
-      <p style="font-size:12px;color:#CBD5E1;margin-top:6px">Ideas are scored against your Business DNA (ICP relevance, pain intensity, novelty, authority, proof, commercial relevance, founder expertise), prioritized, then converted into pipeline content.</p>
+      <p class="txt-body-sm text-muted mt-6">Ideas are scored against your Business DNA (ICP relevance, pain intensity, novelty, authority, proof, commercial relevance, founder expertise), prioritized, then converted into pipeline content.</p>
     </div>
 
     <!-- Filter Bar (Google Stitch Styling) -->
-    <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
+    <div class="flex-row gap-12 mt-12" style="flex-wrap:wrap">
       <input id="idea-search-input" class="stitch-input" value="${f.q}" placeholder="🔍 Search ideas, premises, pains..." style="flex:1;min-width:220px" oninput="setIdeaFilter('q', this.value)" />
       <select class="stitch-select" onchange="setIdeaFilter('status', this.value)">
         <option value="">All Statuses</option>
@@ -2138,31 +2100,31 @@ function renderContentIdeasTab() {
     </div>
 
     <!-- Ideas Grid -->
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px">
-      ${ideas.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No ideas match. Try "⚡ AI Generate" or clear filters.</div>` : ''}
+    <div class="mt-12" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+      ${ideas.length === 0 ? `<div class="dash-card" style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No ideas match. Try "<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Generate" or clear filters.</div>` : ''}
       ${ideas.map(i => `
         <div class="dash-card" style="border-left:4px solid ${i.priority === 'HIGH' ? '#10B981' : i.priority === 'MEDIUM' ? '#F97316' : '#94A3B8'}">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-            <div style="font-size:13.5px;font-weight:800;color:#0F172A;line-height:1.35">${i.title}</div>
+          <div class="flex-between align-start" style="gap:8px">
+            <div class="txt-heading-sm" style="line-height:1.35">${i.title}</div>
             <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
               <div style="width:40px;height:40px;border-radius:50%;background:${i.score >= 80 ? '#10B981' : i.score >= 60 ? '#F97316' : '#E2E8F0'};color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">${i.score || '–'}</div>
-              <span style="font-size:9px;font-weight:700;color:#64748B;margin-top:2px">${i.priority || 'LOW'}</span>
+              <span class="mt-2" style="font-size:9px;font-weight:700;color:#64748B">${i.priority || 'LOW'}</span>
             </div>
           </div>
-          <div style="font-size:12px;color:#475569;line-height:1.45;margin-top:6px">${(i.premise || '').substring(0, 150)}${(i.premise || '').length > 150 ? '…' : ''}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          <div class="txt-body-sm text-muted mt-6" style="line-height:1.45">${(i.premise || '').substring(0, 150)}${(i.premise || '').length > 150 ? '…' : ''}</div>
+          <div class="mt-8" style="display:flex;flex-wrap:wrap;gap:6px">
             <span class="sb-badge" style="background:#EFF6FF;color:#1D4ED8">${i.pillar_id ? (CONTENT_PILLARS.find(p => p.id === i.pillar_id)?.name || 'Pillar') : 'Unassigned'}</span>
             <span class="sb-badge" style="background:#F5F3FF;color:#6D28D9">${(i.content_format || 'POST').replace(/_/g,' ')}</span>
             <span class="sb-badge" style="background:#ECFDF5;color:#047857">${(i.platform || 'LINKEDIN').replace(/_/g,' ')}</span>
             <span class="sb-badge" style="background:#FFF7ED;color:#9A3412">${(i.source || 'MANUAL').replace(/_/g,' ')}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="flex-between mt-8">
             <span style="font-size:10.5px;font-weight:700;color:${i.status === 'CONVERTED' ? '#047857' : '#64748B'}">● ${(i.status || 'NEW').replace(/_/g,' ')}</span>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            <div class="flex-row gap-6" style="flex-wrap:wrap;justify-content:flex-end">
               <button class="btn btn-secondary btn-sm" onclick="handleScoreIdea('${i.id}')">🔢 Re-score</button>
               <button class="btn btn-secondary btn-sm" onclick="handleCheckIdeaDuplicate('${i.id}')">🔍 Dup Check</button>
-              <button class="btn btn-secondary btn-sm" onclick="openIdeaModal('${i.id}')">✏️ Edit</button>
-              <button class="btn btn-primary btn-sm" onclick="handleConvertIdea('${i.id}')">➡️ Convert</button>
+              <button class="btn btn-secondary btn-sm" onclick="openIdeaModal('${i.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">edit</span>️ Edit</button>
+              <button class="btn btn-primary btn-sm" onclick="handleConvertIdea('${i.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">arrow_forward</span>️ Convert</button>
               <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleArchiveIdea('${i.id}')">🗑 Archive</button>
             </div>
           </div>
@@ -2380,9 +2342,9 @@ async function handleCheckIdeaDuplicate(id) {
   try {
     const res = await window.ASENZO_API.checkIdeaDuplicate({ title: idea.title, premise: idea.premise || '', excludeId: id });
     if (res.isDuplicate) {
-      showToast(`⚠️ Duplicate! ${res.matches.length} similar item(s) in pipeline`);
+      showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ Duplicate! ${res.matches.length} similar item(s) in pipeline`);
     } else {
-      showToast('✅ No duplicates detected');
+      showToast('<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check_circle</span> No duplicates detected');
     }
   } catch (err) {
     showToast(`Dup Check Error: ${err.message}`);
@@ -2441,7 +2403,7 @@ async function handleGenerateIdeas(e) {
   const btn = document.querySelector('#idea-generator-modal button[type="submit"]');
   const original = btn.textContent;
   btn.disabled = true;
-  btn.textContent = '⚡ Generating & Scoring Ideas...';
+  btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generating & Scoring Ideas...';
 
   try {
     const res = await window.ASENZO_API.generateIdeas({ source, count, pillarId });
@@ -2488,7 +2450,7 @@ function renderPipelineTab() {
     INSTAGRAM: '📸 Instagram',
     YOUTUBE_SHORT: '▶️ YouTube Short',
     CAROUSEL: '📑 Carousel',
-    EMAIL: '✉️ Email',
+    EMAIL: '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">mail</span>️ Email',
     NEWSLETTER: '📰 Newsletter',
     BLOG: '📝 Blog'
   };
@@ -2496,46 +2458,46 @@ function renderPipelineTab() {
   return `
     <!-- Active Positioning Summary Card (Business DNA Source of Truth) -->
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
           <div class="dash-card-title">Source of Truth — Business DNA Positioning</div>
-          <div class="dash-card-sub" style="margin-top:2px">Source of truth for Attention OS content generation, scoring & AI coaching</div>
+          <div class="dash-card-sub mt-2">Source of truth for Attention OS content generation, scoring & AI coaching</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div class="flex-row gap-8">
           <span class="sb-badge green" style="font-weight:800;font-size:11px">Clarity Score: ${POSITIONING.score || 88}/100</span>
           <span class="sb-badge">Version ${POSITIONING.version || 1} • Locked</span>
           <button class="btn btn-secondary btn-sm" onclick="openPositioningModal()">Edit Business DNA</button>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px;margin-top:12px">
-        <div style="background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E2E8F0">
+      <div class="mt-12" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px">
+        <div class="refine-card">
           <div style="font-size:11px;font-weight:700;color:#64748B">Target ICP</div>
-          <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-top:4px">${POSITIONING.icp_summary || POSITIONING.icp}</div>
+          <div class="mt-4" style="font-size:12.5px;font-weight:700;color:#0F172A">${POSITIONING.icp_summary || POSITIONING.icp}</div>
         </div>
-        <div style="background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E2E8F0">
+        <div class="refine-card">
           <div style="font-size:11px;font-weight:700;color:#64748B">Core Pain</div>
-          <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-top:4px">${POSITIONING.problem}</div>
+          <div class="mt-4" style="font-size:12.5px;font-weight:700;color:#0F172A">${POSITIONING.problem}</div>
         </div>
-        <div style="background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E2E8F0">
+        <div class="refine-card">
           <div style="font-size:11px;font-weight:700;color:#64748B">Quantified Result</div>
-          <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-top:4px">${POSITIONING.result}</div>
+          <div class="mt-4" style="font-size:12.5px;font-weight:700;color:#0F172A">${POSITIONING.result}</div>
         </div>
-        <div style="background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E2E8F0">
+        <div class="refine-card">
           <div style="font-size:11px;font-weight:700;color:#64748B">Unique Mechanism</div>
-          <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-top:4px">${POSITIONING.mechanism}</div>
+          <div class="mt-4" style="font-size:12.5px;font-weight:700;color:#0F172A">${POSITIONING.mechanism}</div>
         </div>
       </div>
     </div>
 
     <!-- Content Pipeline 11-Stage Interactive Kanban Board -->
-    <div style="margin-top:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="mt-12">
+      <div class="flex-between mb-12">
         <div>
-          <div style="font-size:15px;font-weight:700;color:#0F172A">Attention OS Content Pipeline (11-Stage Matrix)</div>
-          <div style="font-size:11.5px;color:#64748B;margin-top:2px">Drag & drop assets between validated stage columns</div>
+          <div class="txt-heading-sm">Attention OS Content Pipeline (11-Stage Matrix)</div>
+          <div class="mt-2" style="font-size:11.5px;color:#64748B">Drag & drop assets between validated stage columns</div>
         </div>
-        <div style="display:flex;gap:10px;align-items:center">
+        <div class="flex-row gap-12">
           <!-- View Toggles -->
           <div style="display:flex;background:#F1F5F9;padding:3px;border-radius:8px;gap:2px">
             <button class="plat-btn ${PIPELINE_VIEW_MODE === 'ACTIVE' ? 'active' : ''}" style="font-size:11px;padding:4px 10px" onclick="setPipelineViewMode('ACTIVE')">Active Pipeline</button>
@@ -2555,11 +2517,11 @@ function renderPipelineTab() {
                  ondragover="handleKanbanDragOver(event)"
                  ondragleave="handleKanbanDragLeave(event)"
                  ondrop="handleKanbanDrop(event, '${stage}')">
-              <div class="col-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div class="col-head flex-between mb-6">
                 <span class="col-title sb-badge ${badgeClass}" style="font-size:11px;font-weight:700">${stage}</span>
                 <span class="col-count sb-badge" style="font-size:10px">${items.length}</span>
               </div>
-              <div class="kanban-cards" style="display:flex;flex-direction:column;gap:8px;min-height:360px">
+              <div class="kanban-cards flex-col gap-8" style="min-height:360px">
                 ${items.length === 0 ? `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:24px 10px;background:#FFFFFF;border:1px dashed #E2E8F0;border-radius:8px">No assets in ${stage}</div>` : ''}
                 ${items.map(item => {
                   const platLabel = platformIcons[item.primary_platform || 'LINKEDIN'] || (item.primary_platform || 'LinkedIn');
@@ -2569,25 +2531,25 @@ function renderPipelineTab() {
                          ondragstart="handleKanbanDragStart(event, '${item.id}')"
                          onclick="openProductionWorkspaceModal('${item.id}')">
                       
-                      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
-                        <div class="k-card-title" style="font-weight:700;font-size:12.5px;color:#0F172A;line-height:1.35">${item.title}</div>
+                      <div class="flex-between align-start" style="gap:6px">
+                        <div class="k-card-title txt-body-sm text-muted" style="font-weight:700;;line-height:1.35">${item.title}</div>
                         <span style="font-size:10px;font-weight:800;color:#047857;background:#ECFDF5;padding:1px 5px;border-radius:4px;flex-shrink:0">${item.score || 85}</span>
                       </div>
 
-                      ${item.hook_text ? `<div style="font-size:11px;color:#475569;font-style:italic;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">"${item.hook_text}"</div>` : ''}
+                      ${item.hook_text ? `<div class="mt-4" style="font-size:11px;color:#475569;font-style:italic;;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">"${item.hook_text}"</div>` : ''}
 
-                      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;align-items:center">
+                      <div class="mt-8" style="display:flex;flex-wrap:wrap;gap:4px;;align-items:center">
                         <span class="sb-badge" style="font-size:9.5px">${item.pillar_id || item.pillar || 'Positioning'}</span>
                         <span class="sb-badge blue" style="font-size:9.5px">${platLabel}</span>
                       </div>
 
-                      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:6px;border-top:1px solid #F1F5F9;font-size:10.5px;color:#64748B">
+                      <div class="flex-between mt-8" style="padding-top:6px;border-top:1px solid #F1F5F9;font-size:10.5px;color:#64748B">
                         <span>👤 ${item.owner || 'Alex Morgan'}</span>
                         <span>${item.published_at ? 'Published: ' + item.published_at.split('T')[0] : (item.scheduled_at ? 'Sched: ' + item.scheduled_at.split('T')[0] : (item.deadline ? 'Due: ' + item.deadline : ''))}</span>
                       </div>
 
-                      ${perf.views ? `<div style="font-size:10px;color:#2563EB;background:#EFF6FF;padding:2px 6px;border-radius:4px;margin-top:4px;font-weight:600">👁 ${perf.views.toLocaleString()} • 💬 ${perf.dms || 0} DMs • 🎯 ${perf.qualifiedLeads || 0} Leads</div>` : ''}
-                      ${item.is_ad_candidate ? `<div style="font-size:9.5px;font-weight:700;color:#047857;background:#ECFDF5;padding:2px 5px;border-radius:4px;margin-top:4px">🔥 Ad Amplification</div>` : ''}
+                      ${perf.views ? `<div class="mt-4" style="font-size:10px;color:#2563EB;background:#EFF6FF;padding:2px 6px;border-radius:4px;;font-weight:600">👁 ${perf.views.toLocaleString()} • 💬 ${perf.dms || 0} DMs • 🎯 ${perf.qualifiedLeads || 0} Leads</div>` : ''}
+                      ${item.is_ad_candidate ? `<div class="mt-4" style="font-size:9.5px;font-weight:700;color:#047857;background:#ECFDF5;padding:2px 5px;border-radius:4px">🔥 Ad Amplification</div>` : ''}
                     </div>
                   `;
                 }).join('')}
@@ -2616,7 +2578,7 @@ function renderAttributionTab() {
       <!-- Funnel Breakdown Card -->
       <div class="dash-card">
         <div class="dash-card-title">Attention OS — Full Attribution Funnel</div>
-        <p class="dash-card-sub" style="margin-bottom:14px">Distinguishing Reach → Engagement → Intent → Leads → Qualified Leads → Revenue</p>
+        <p class="dash-card-sub mb-14">Distinguishing Reach → Engagement → Intent → Leads → Qualified Leads → Revenue</p>
         
         <div class="funnel-container">
           <div class="funnel-step">
@@ -2688,17 +2650,17 @@ function renderAttributionTab() {
       </div>
 
       <!-- Right Column: Compounding Detector & Ad Amplification Filter -->
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="flex-col gap-16">
         
         <!-- Compounding vs Flat Detector -->
         <div class="dash-card">
           <div class="dash-card-title">Compounding-vs-Flat Detector</div>
-          <div style="margin-top:10px;padding:12px;background:#ECFDF5;border-radius:10px;border:1px solid #A7F3D0">
-            <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="mt-12" style="padding:12px;background:#ECFDF5;border-radius:10px;border:1px solid #A7F3D0">
+            <div class="flex-between">
               <span style="font-weight:800;color:#065F46;font-size:13.5px">Status: ${analytics.compoundingDetector.status}</span>
               <span class="sb-badge green">${analytics.compoundingDetector.trajectoryScore}</span>
             </div>
-            <p style="font-size:12px;color:#047857;margin-top:6px;line-height:1.4">${analytics.compoundingDetector.insight}</p>
+            <p class="txt-body-sm text-muted mt-6" style="line-height:1.4">${analytics.compoundingDetector.insight}</p>
           </div>
         </div>
 
@@ -2707,11 +2669,11 @@ function renderAttributionTab() {
           <div class="dash-card-title">Ad Amplification Filter</div>
           <p class="dash-card-sub">Organic top-performers flagged for paid ad testing</p>
           
-          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+          <div class="flex-col gap-8 mt-12">
             <div style="padding:10px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">
               <div style="font-weight:700;color:#0F172A">Stop Buying SaaS. Build Growth OS.</div>
-              <div style="font-size:11px;color:#64748B;margin-top:2px">42.5k views • 95% Intent Score</div>
-              <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+              <div class="mt-2" style="font-size:11px;color:#64748B">42.5k views • 95% Intent Score</div>
+              <div class="flex-between mt-6">
                 <span class="sb-badge red">Human Approval Required</span>
                 <button class="btn btn-secondary btn-sm" onclick="showToast('Ad Amplification brief copied for operator approval')">Review Brief</button>
               </div>
@@ -2737,65 +2699,65 @@ function renderKnowledgeTab() {
 
   return `
     <!-- Founder Voice Profile Overview Card -->
-    <div class="dash-card" style="margin-bottom:16px;background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="dash-card mb-16" style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#FFFFFF">
+      <div class="flex-between">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:0.5px">Founder Voice Profile Engine</div>
-          <div style="font-size:16px;font-weight:800;color:#F8FAFC;margin-top:2px">${vp.communicationStyle}</div>
+          <div class="txt-body-xs text-faint" style="letter-spacing:0.5px">Founder Voice Profile Engine</div>
+          <div class="txt-heading-md mt-2">${vp.communicationStyle}</div>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="flex-row gap-8">
           <span class="sb-badge green" style="font-weight:700">Directness: ${vp.directnessLevel || 'High'}</span>
           <button class="btn btn-secondary btn-sm" style="background:rgba(255,255,255,0.1);color:#FFF;border-color:rgba(255,255,255,0.2)" onclick="openFounderProfileModal()">Edit Founder Profile</button>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:14px">
-        <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1)">
+      <div class="mt-12" style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+        <div class="refine-card">
           <div style="font-size:11px;font-weight:700;color:#94A3B8">Top Extracted Recurring Phrases</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+          <div class="mt-6" style="display:flex;flex-wrap:wrap;gap:6px">
             ${(vp.recurringPhrases || []).map(p => `<span style="font-size:11px;background:rgba(16,185,129,0.2);color:#34D399;padding:3px 8px;border-radius:4px;font-weight:600">"${p}"</span>`).join('')}
           </div>
         </div>
 
-        <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1)">
+        <div class="refine-card">
           <div style="font-size:11px;font-weight:700;color:#94A3B8">Writing Structure Pattern</div>
-          <div style="font-size:11.5px;color:#CBD5E1;margin-top:4px;line-height:1.45">${vp.writingStructure}</div>
+          <div class="mt-4" style="font-size:11.5px;color:#CBD5E1;;line-height:1.45">${vp.writingStructure}</div>
         </div>
       </div>
     </div>
 
     <!-- Knowledge Vault & Ingestion Pipeline Manager -->
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
           <div class="dash-card-title">Founder Authority Knowledge Vault</div>
           <div class="dash-card-sub">Knowledge Ingestion Pipeline: Source → Validation → Cleaning → Chunking → Metadata → Storage → Retrieval</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openIngestModal()">⚡ + Ingest Source Material</button>
+        <button class="btn btn-primary btn-sm" onclick="openIngestModal()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> + Ingest Source Material</button>
       </div>
 
       <!-- Live Search Bar -->
-      <div style="margin-top:14px;display:flex;gap:10px">
+      <div class="flex-row gap-12 mt-12">
         <input id="vault-search-input" placeholder="🔍 Search semantic chunks across all ingested articles, transcripts & emails..." style="padding:10px 14px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:12.5px;flex:1" oninput="handleSearchVaultChunks(this.value)" />
       </div>
 
-      <div id="vault-search-results" class="hidden" style="margin-top:12px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:10px;padding:12px"></div>
+      <div id="vault-search-results" class="hidden mt-12" style="background:#F1F5F9;border:1px solid #CBD5E1;border-radius:10px;padding:12px"></div>
 
       <!-- Ingested Sources Grid -->
-      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:14px;margin-top:16px">
-        ${KNOWLEDGE_ITEMS.length === 0 ? `<div style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No knowledge items in vault yet. Click "⚡ + Ingest Source Material" to start building your founder voice library.</div>` : ''}
+      <div class="mt-16" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:14px">
+        ${KNOWLEDGE_ITEMS.length === 0 ? `<div style="grid-column:span 2;text-align:center;color:#94A3B8;padding:30px">No knowledge items in vault yet. Click "<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> + Ingest Source Material" to start building your founder voice library.</div>` : ''}
         ${KNOWLEDGE_ITEMS.map(k => `
-          <div style="background:#F8FAFC;padding:14px;border-radius:12px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="display:flex;gap:6px;align-items:center">
+          <div class="flex-col gap-8" style="background:#F8FAFC;padding:14px;border-radius:12px;border:1px solid #E2E8F0">
+            <div class="flex-between">
+              <div class="flex-row gap-6">
                 <span class="sb-badge green" style="font-weight:700">${k.source_type || k.category || 'ARTICLE'}</span>
                 <span class="sb-badge" style="font-size:10px">${k.chunk_count || 1} Chunks Indexed</span>
               </div>
               <span style="font-size:10px;color:#94A3B8">${new Date(k.created_at || Date.now()).toLocaleDateString()}</span>
             </div>
             <div style="font-weight:700;color:#0F172A;font-size:13.5px">${k.title}</div>
-            <div style="font-size:12px;color:#475569;line-height:1.45;max-height:80px;overflow:hidden">${(k.clean_content || k.content || '').substring(0, 180)}...</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:8px;border-top:1px solid #E2E8F0">
+            <div class="txt-body-sm text-muted" style="line-height:1.45;max-height:80px;overflow:hidden">${(k.clean_content || k.content || '').substring(0, 180)}...</div>
+            <div class="flex-between mt-6" style="padding-top:8px;border-top:1px solid #E2E8F0">
               <button class="btn btn-secondary btn-sm" onclick="inspectKnowledgeSourceChunks('${k.id}')">🔍 Inspect Chunks</button>
               <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleDeleteKnowledgeSource('${k.id}')">🗑 Archive Source</button>
             </div>
@@ -2810,7 +2772,7 @@ function renderKnowledgeTab() {
 function renderAuthorityTab() {
   return `
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
           <div class="dash-card-title">Authority Proof Asset Library (Anti-Fabrication Guardrail Vault)</div>
           <div class="dash-card-sub">Verified case studies, metrics & client results — strictly filtered for AI content generation</div>
@@ -2818,26 +2780,26 @@ function renderAuthorityTab() {
         <button class="btn btn-primary btn-sm" onclick="openAuthorityAssetModal()">+ Add Authority Asset</button>
       </div>
 
-      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:#047857">
+      <div class="txt-body-sm text-muted mt-12" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px">
         🛡 <b>Anti-Fabrication Enforcement Active:</b> The AI Hook and Script Generator will <i>only</i> anchor proof claims in assets marked <b>APPROVED</b>. Unapproved or expired assets are strictly excluded.
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-top:14px">
+      <div class="mt-12" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:12px">
         ${AUTHORITY_ASSET_ITEMS.length === 0 ? `<div style="text-align:center;color:#94A3B8;padding:30px;grid-column:span 2">No authority proof assets logged yet. Click "+ Add Authority Asset" to record case studies.</div>` : ''}
         ${AUTHORITY_ASSET_ITEMS.map(auth => {
           const isApp = auth.permission_status === 'APPROVED';
           const badgeClass = isApp ? 'green' : (auth.permission_status === 'PENDING' ? 'yellow' : 'red');
           return `
-            <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid ${isApp ? '#BBF7D0' : '#E2E8F0'};display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="flex-col gap-8" style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid ${isApp ? '#BBF7D0':'#E2E8F0'}">
+              <div class="flex-between align-start">
                 <div>
                   <div style="font-weight:700;color:#0F172A;font-size:13px">${auth.title}</div>
-                  <div style="font-size:11px;color:#64748B;margin-top:2px">Client: <b>${auth.client_name || 'N/A'}</b> • Source: ${auth.source || 'Case Study'}</div>
+                  <div class="mt-2" style="font-size:11px;color:#64748B">Client: <b>${auth.client_name || 'N/A'}</b> • Source: ${auth.source || 'Case Study'}</div>
                 </div>
                 <span class="sb-badge ${badgeClass}" style="font-weight:700">${auth.permission_status}</span>
               </div>
 
-              ${auth.proof_summary ? `<div style="font-size:12px;color:#334155;background:#FFFFFF;padding:8px;border-radius:6px;border:1px solid #E2E8F0">"${auth.proof_summary}"</div>` : ''}
+              ${auth.proof_summary ? `<div class="txt-body-sm text-muted" style="background:#FFFFFF;padding:8px;border-radius:6px;border:1px solid #E2E8F0">"${auth.proof_summary}"</div>` : ''}
 
               <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
                 <span class="sb-badge blue" style="font-size:9.5px">${(auth.asset_type || 'CASE_STUDY').replace(/_/g, ' ')}</span>
@@ -2845,8 +2807,8 @@ function renderAuthorityTab() {
                 ${(auth.tags || []).map(t => `<span class="sb-badge" style="font-size:9px">${t}</span>`).join('')}
               </div>
 
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:8px;border-top:1px solid #E2E8F0">
-                <button class="btn btn-secondary btn-sm" onclick="openAuthorityAssetModal('${auth.id}')">✏️ Edit Asset</button>
+              <div class="flex-between mt-4" style="padding-top:8px;border-top:1px solid #E2E8F0">
+                <button class="btn btn-secondary btn-sm" onclick="openAuthorityAssetModal('${auth.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">edit</span>️ Edit Asset</button>
                 <button class="btn btn-secondary btn-sm" style="color:#EF4444;border-color:#FCA5A5" onclick="handleDeleteAuthorityAsset('${auth.id}')">🗑 Archive</button>
               </div>
             </div>
@@ -2861,7 +2823,7 @@ function renderAuthorityTab() {
 function renderMarketIntelTab() {
   return `
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
           <div class="dash-card-title">Market Intelligence Signal Radar</div>
           <div class="dash-card-sub">Competitor activity, customer questions, emerging pain points & signal → idea conversion</div>
@@ -2869,24 +2831,24 @@ function renderMarketIntelTab() {
         <button class="btn btn-primary btn-sm" onclick="openMarketIntelModal()">+ Log Market Signal</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+      <div class="flex-col gap-12 mt-12">
         ${MARKET_INTEL_ITEMS.length === 0 ? `<div style="text-align:center;color:#94A3B8;padding:30px">No market signals logged yet. Click "+ Log Market Signal" to track external niche conversations.</div>` : ''}
         ${MARKET_INTEL_ITEMS.map(mi => `
-          <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="flex-between align-start" style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
             <div style="flex:1;padding-right:16px">
-              <div style="display:flex;gap:8px;align-items:center">
+              <div class="flex-row gap-8">
                 <span class="sb-badge blue" style="font-weight:700">${(mi.signal_type || 'MARKET_CONVERSATION').replace(/_/g, ' ')}</span>
                 <span class="sb-badge ${mi.relevance === 'HIGH' ? 'green' : ''}">${mi.relevance || 'HIGH'} RELEVANCE</span>
-                ${mi.is_converted_to_idea ? `<span class="sb-badge green">✓ Converted to Content Idea</span>` : ''}
+                ${mi.is_converted_to_idea ? `<span class="sb-badge green"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Converted to Content Idea</span>` : ''}
               </div>
-              <div style="font-weight:700;color:#0F172A;font-size:13.5px;margin-top:6px">${mi.title}</div>
-              <div style="font-size:12px;color:#475569;margin-top:4px;line-height:1.45">${mi.summary || mi.insight || ''}</div>
-              ${mi.potential_content_angle ? `<div style="font-size:11.5px;color:#1E40AF;background:#EFF6FF;padding:6px 10px;border-radius:6px;margin-top:6px;font-weight:600">💡 Content Angle: ${mi.potential_content_angle}</div>` : ''}
+              <div class="mt-6" style="font-weight:700;color:#0F172A;font-size:13.5px">${mi.title}</div>
+              <div class="txt-body-sm text-muted mt-4" style="line-height:1.45">${mi.summary || mi.insight || ''}</div>
+              ${mi.potential_content_angle ? `<div class="mt-6" style="font-size:11.5px;color:#1E40AF;background:#EFF6FF;padding:6px 10px;border-radius:6px;;font-weight:600">💡 Content Angle: ${mi.potential_content_angle}</div>` : ''}
             </div>
 
-            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <div class="flex-col gap-6" style="align-items:flex-end">
               ${!mi.is_converted_to_idea ? `
-                <button class="btn btn-primary btn-sm" onclick="handleConvertSignalToIdea('${mi.id}')">⚡ Convert to Content Idea</button>
+                <button class="btn btn-primary btn-sm" onclick="handleConvertSignalToIdea('${mi.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Convert to Content Idea</button>
               ` : `
                 <span style="font-size:11px;font-weight:700;color:#10B981">Converted</span>
               `}
@@ -2903,7 +2865,7 @@ function renderMarketIntelTab() {
 function renderOutreachTab() {
   return `
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between">
         <div>
           <div class="dash-card-title">Attention Outreach Tracker (Lightweight Prospect Pipeline)</div>
           <div class="dash-card-sub">Track initial contacts, AI reply classifications, qualified statuses & human overrides</div>
@@ -2911,7 +2873,7 @@ function renderOutreachTab() {
         <button class="btn btn-primary btn-sm" onclick="openOutreachProspectModal()">+ Add Prospect</button>
       </div>
 
-      <div style="margin-top:14px;overflow-x:auto">
+      <div class="mt-12" style="overflow-x:auto">
         <table class="data-table" style="width:100%;font-size:12px">
           <thead>
             <tr>
@@ -2937,9 +2899,9 @@ function renderOutreachTab() {
                   <td><span class="sb-badge ${classBadge}">${p.reply_classification || 'UNKNOWN'}</span></td>
                   <td><span class="sb-badge ${p.qualified_status === 'QUALIFIED' ? 'green' : ''}">${p.qualified_status || 'UNQUALIFIED'}</span></td>
                   <td>
-                    <div style="display:flex;gap:4px">
-                      <button class="btn btn-secondary btn-sm" onclick="handleAutoClassifyProspectReply('${p.id}')">⚡ AI Classify</button>
-                      <button class="btn btn-secondary btn-sm" onclick="openOutreachProspectModal('${p.id}')">✏️ Override</button>
+                    <div class="flex-row gap-4">
+                      <button class="btn btn-secondary btn-sm" onclick="handleAutoClassifyProspectReply('${p.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Classify</button>
+                      <button class="btn btn-secondary btn-sm" onclick="openOutreachProspectModal('${p.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">edit</span>️ Override</button>
                     </div>
                   </td>
                 </tr>
@@ -3205,18 +3167,18 @@ function renderRecommendationsTab() {
       <div class="dash-card-title">Attention Intelligence & Recommendations</div>
       <p class="dash-card-sub">AI-driven optimizations with explainability, confidence metrics, and human review gates</p>
 
-      <div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">
+      <div class="flex-col gap-12 mt-12">
         ${AI_RECOMMENDATIONS.map(r => `
           <div class="decision-card" style="border-left-color:${r.status === 'applied' ? '#10B981' : '#8B5CF6'}">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div class="dc-obs">⚡ ${r.category}</div>
+            <div class="flex-between">
+              <div class="dc-obs"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> ${r.category}</div>
               <span class="sb-badge ${r.status === 'applied' ? 'green' : ''}">${r.status.toUpperCase()}</span>
             </div>
-            <div style="font-weight:700;color:#0F172A;margin-top:4px">${r.observation}</div>
+            <div class="mt-4" style="font-weight:700;color:#0F172A">${r.observation}</div>
             <div class="dc-why">Rationale: ${r.rationale}</div>
             <div class="dc-act">
               <span class="dc-conf">${r.confidence_score}</span>
-              ${r.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="handleApplyRecommendation(${r.id})">Apply Decision Action</button>` : `<span style="font-size:11px;font-weight:700;color:#10B981">✓ Applied</span>`}
+              ${r.status === 'pending' ? `<button class="btn btn-primary btn-sm" onclick="handleApplyRecommendation(${r.id})">Apply Decision Action</button>` : `<span style="font-size:11px;font-weight:700;color:#10B981"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Applied</span>`}
             </div>
           </div>
         `).join('')}
@@ -3320,7 +3282,7 @@ async function renderConversion() {
     </div>
 
     <!-- Conversion OS Sub-Tab Navigation Bar -->
-    <div class="engine-tab-bar" style="margin-bottom:18px; display:flex; flex-wrap:wrap; gap:4px">
+    <div class="engine-tab-bar mb-18" style="display:flex;flex-wrap:wrap;gap:4px">
       <div class="engine-tab ${CONVERSION_SUB_TAB === 'dashboard' ? 'active' : ''}" onclick="switchConversionSubTab('dashboard')">
         🎯 Action Center
       </div>
@@ -3400,21 +3362,21 @@ function renderConversionDashboardSubTab() {
 
   return `
     <!-- Executive Highlight Card -->
-    <div style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#F8FAFC;padding:20px 24px;border-radius:14px;margin-bottom:20px;box-shadow:0 10px 25px -5px rgba(15,23,42,0.3)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px">
+    <div class="mb-20" style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);color:#F8FAFC;padding:20px 24px;border-radius:14px;;box-shadow:0 10px 25px -5px rgba(15,23,42,0.3)">
+      <div class="flex-between mb-8">
+        <div class="flex-row gap-8">
           <span style="font-size:16px">🎯</span>
           <span style="font-size:12px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:#38BDF8">Conversion OS Directive</span>
         </div>
         <span class="sb-badge green" style="background:#059669;color:#FFFFFF">Executive Answer</span>
       </div>
-      <div style="font-size:17px;font-weight:700;line-height:1.4;color:#FFFFFF;margin-top:6px">
+      <div class="mt-6" style="font-size:17px;font-weight:700;line-height:1.4;color:#FFFFFF">
         "${dash.attentionQuestion}"
       </div>
     </div>
 
     <!-- Pipeline Summary Metrics Bar -->
-    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:14px;margin-bottom:20px">
+    <div class="mb-20" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:14px">
       <div class="metric-card">
         <div class="mc-label">Open Pipeline Value</div>
         <div class="mc-val" style="color:#0EA5E9">$${(p.totalOpenValue || 0).toLocaleString()}</div>
@@ -3444,7 +3406,7 @@ function renderConversionDashboardSubTab() {
 
     <!-- Priority Founder Action Deals -->
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="flex-between mb-12">
         <div>
           <div class="dash-card-title">Priority Deals Requiring Founder Action</div>
           <div class="dash-card-sub">Deals with founder attention flags or high contract value</div>
@@ -3452,21 +3414,21 @@ function renderConversionDashboardSubTab() {
         <button class="btn btn-secondary btn-sm" onclick="openDealModal()">+ New Deal</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="flex-col gap-12">
         ${priorityDeals.length > 0 ? priorityDeals.map(d => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
             <div>
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-weight:700;font-size:14px;color:#0F172A">${d.deal_name || d.dealName}</span>
+              <div class="flex-row gap-12">
+                <span class="txt-heading-sm">${d.deal_name || d.dealName}</span>
                 <span class="sb-badge blue">${d.stage}</span>
                 ${d.founder_attention_required ? `<span class="sb-badge red">FOUNDER ACTION REQUIRED</span>` : ''}
               </div>
-              <div style="font-size:12px;color:#64748B;margin-top:4px">
+              <div class="txt-body-sm text-muted mt-4">
                 Contact: <strong>${d.contact_name || d.contactName}</strong> | Amount: <strong style="color:#0EA5E9">$${(d.amount || 0).toLocaleString()}</strong> | Next Action: ${d.next_action || d.nextAction || 'Review'}
               </div>
-              ${d.attention_reason || d.attentionReason ? `<div style="font-size:11.5px;color:#D97706;margin-top:4px;font-weight:600">⚠️ Reason: ${d.attention_reason || d.attentionReason}</div>` : ''}
+              ${d.attention_reason || d.attentionReason ? `<div class="mt-4" style="font-size:11.5px;color:#D97706;;font-weight:600"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ Reason: ${d.attention_reason || d.attentionReason}</div>` : ''}
             </div>
-            <div style="display:flex;gap:8px">
+            <div class="flex-row gap-8">
               <button class="btn btn-secondary btn-sm" onclick="loadCloserPrepSheet('${d.id}')">📜 Closer Prep</button>
               <button class="btn btn-primary btn-sm" onclick="openDealModal('${d.id}')">Edit Deal</button>
             </div>
@@ -3497,12 +3459,12 @@ function renderConversionPipelineSubTab() {
   ];
 
   return `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:15px;font-weight:700;color:#0F172A">Full Conversion OS 10-Stage CRM Kanban</div>
+    <div class="flex-between mb-14">
+      <div class="txt-heading-sm">Full Conversion OS 10-Stage CRM Kanban</div>
       <button class="btn btn-primary btn-sm" onclick="openDealModal()">+ Add Deal</button>
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-bottom:12px">
+    <div class="mb-12" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px">
       ${stages.slice(0, 5).map(s => renderKanbanColumn(s, CONVERSION_DEALS)).join('')}
     </div>
     <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px">
@@ -3517,24 +3479,24 @@ function renderKanbanColumn(col, deals) {
 
   return `
     <div class="kanban-col" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:10px">
-      <div class="col-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="col-head flex-between mb-8">
         <span class="col-title" style="font-size:11.5px;font-weight:700;color:#0F172A">${col.title}</span>
         <span class="col-count" style="font-size:10.5px;font-weight:700;background:#E2E8F0;padding:2px 6px;border-radius:10px">${items.length}</span>
       </div>
-      <div style="font-size:11px;font-weight:700;color:#0EA5E9;margin-bottom:8px">$${totalVal.toLocaleString()}</div>
+      <div class="mb-8" style="font-size:11px;font-weight:700;color:#0EA5E9">$${totalVal.toLocaleString()}</div>
       
-      <div class="kanban-cards" style="display:flex;flex-direction:column;gap:8px">
+      <div class="kanban-cards flex-col gap-8">
         ${items.map(d => `
           <div class="k-card" style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:8px;padding:10px;cursor:pointer" onclick="openDealModal('${d.id}')">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div class="k-card-title" style="font-weight:700;font-size:12.5px;color:#0F172A">${d.deal_name || d.dealName}</div>
-              ${d.founder_attention_required ? `<span style="font-size:10px;background:#FEE2E2;color:#991B1B;font-weight:800;padding:2px 4px;border-radius:4px">⚠️</span>` : ''}
+            <div class="flex-between">
+              <div class="k-card-title txt-body-sm text-muted" style="font-weight:700">${d.deal_name || d.dealName}</div>
+              ${d.founder_attention_required ? `<span style="font-size:10px;background:#FEE2E2;color:#991B1B;font-weight:800;padding:2px 4px;border-radius:4px"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️</span>` : ''}
             </div>
-            <div class="k-card-val" style="font-size:13px;font-weight:800;color:#0EA5E9;margin:4px 0">$${(d.amount || 0).toLocaleString()}</div>
+            <div class="k-card-val txt-heading-sm" style="margin:4px 0">$${(d.amount || 0).toLocaleString()}</div>
             <div style="font-size:11px;color:#64748B">${d.contact_name || d.contactName}</div>
             
-            <div style="display:flex;gap:4px;margin-top:8px" onclick="event.stopPropagation()">
-              ${d.stage !== 'CLOSED_WON' ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 6px" onclick="handleMarkDealWon('${d.id}')">🏆 Win</button>` : `<span style="font-size:10px;color:#10B981;font-weight:700">✓ Won</span>`}
+            <div class="flex-row gap-4 mt-8" onclick="event.stopPropagation()">
+              ${d.stage !== 'CLOSED_WON' ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 6px" onclick="handleMarkDealWon('${d.id}')">🏆 Win</button>` : `<span style="font-size:10px;color:#10B981;font-weight:700"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Won</span>`}
             </div>
           </div>
         `).join('')}
@@ -3547,7 +3509,7 @@ function renderKanbanColumn(col, deals) {
 function renderConversionCoachingSubTab() {
   return `
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="flex-between mb-12">
         <div>
           <div class="dash-card-title">Post-Call AI Coaching Engine (Flagship Differentiator)</div>
           <div class="dash-card-sub">Analyzes sales call transcripts against the founder's own top-performing benchmark calls (NOT generic textbooks) to output 2–3 actionable coaching improvements.</div>
@@ -3558,33 +3520,33 @@ function renderConversionCoachingSubTab() {
       <!-- Analysis Results Container -->
       <div id="coaching-result-container">
         ${CONVERSION_COACHING_RESULT ? renderCoachingResultCard(CONVERSION_COACHING_RESULT) : `
-          <div style="padding:24px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px;margin-bottom:16px">
+          <div class="mb-16" style="padding:24px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:10px">
             Select a logged sales call below and click <strong>"Run AI Post-Call Coaching"</strong> to evaluate against founder benchmark patterns.
           </div>
         `}
       </div>
 
       <!-- Stored Sales Calls List -->
-      <div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:8px">Logged Sales Calls</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="txt-heading-sm mb-8">Logged Sales Calls</div>
+      <div class="flex-col gap-12">
         ${CONVERSION_CALLS && CONVERSION_CALLS.length > 0 ? CONVERSION_CALLS.map(c => `
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">
             <div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-weight:700;font-size:13px;color:#0F172A">Call #${c.id}</span>
+              <div class="flex-row gap-8">
+                <span class="txt-heading-sm">Call #${c.id}</span>
                 <span class="sb-badge blue">${c.call_type || 'DISCOVERY_DEMO'}</span>
-                ${c.is_benchmark_call ? `<span class="sb-badge green">BENCHMARK CALL ★</span>` : ''}
+                ${c.is_benchmark_call ? `<span class="sb-badge green">BENCHMARK CALL <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">star</span></span>` : ''}
               </div>
-              <div style="font-size:11.5px;color:#64748B;margin-top:3px">
-                Outcome: ${c.outcome} | Rating: ${c.founder_call_rating || 4}/5 ★ | Duration: ${Math.round((c.duration_seconds || 1800) / 60)} min
+              <div class="mt-3" style="font-size:11.5px;color:#64748B">
+                Outcome: ${c.outcome} | Rating: ${c.founder_call_rating || 4}/5 <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">star</span> | Duration: ${Math.round((c.duration_seconds || 1800) / 60)} min
               </div>
             </div>
-            <div style="display:flex;gap:8px">
+            <div class="flex-row gap-8">
               <button class="btn btn-secondary btn-sm" onclick="handleTagBenchmarkCall('${c.id}', ${!c.is_benchmark_call})">
                 ${c.is_benchmark_call ? 'Untag Benchmark' : 'Tag as Benchmark'}
               </button>
               <button class="btn btn-primary btn-sm" onclick="handleRunCoachingAnalysis('${c.id}')">
-                ⚡ Run AI Post-Call Coaching
+                <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Run AI Post-Call Coaching
               </button>
             </div>
           </div>
@@ -3604,16 +3566,16 @@ function renderCoachingResultCard(res) {
   const matches = log.founderPatternMatches || [];
 
   return `
-    <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:12px;padding:16px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div class="refine-card mb-16">
+      <div class="flex-between mb-12">
         <div>
-          <div style="font-size:15px;font-weight:800;color:#0F172A">Post-Call AI Coaching Audit Report</div>
-          <div style="font-size:12px;color:#64748B">Grounded in Founder Benchmark Call & Sales Patterns</div>
+          <div class="txt-heading-sm">Post-Call AI Coaching Audit Report</div>
+          <div class="txt-body-sm text-muted">Grounded in Founder Benchmark Call & Sales Patterns</div>
         </div>
         <span class="sb-badge green" style="font-size:13px;padding:4px 10px">Overall Score: ${log.overall_call_score || 85}/100</span>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:14px">
+      <div class="mb-14" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px">
         <div class="metric-card" style="padding:10px;text-align:center">
           <div style="font-size:11px;color:#64748B">Trust Score</div>
           <div style="font-size:18px;font-weight:800;color:#0EA5E9">${log.trust_score || 85}/100</div>
@@ -3632,10 +3594,10 @@ function renderCoachingResultCard(res) {
         </div>
       </div>
 
-      <div style="margin-bottom:12px">
-        <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-bottom:6px">⚡ 2–3 Actionable Founder Coaching Improvements:</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${tips.map(t => `<div style="font-size:12px;color:#1E293B;background:#FFFFFF;padding:8px 12px;border-radius:6px;border:1px solid #E2E8F0">• ${t}</div>`).join('')}
+      <div class="mb-12">
+        <div class="mb-6" style="font-size:12.5px;font-weight:700;color:#0F172A"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> 2–3 Actionable Founder Coaching Improvements:</div>
+        <div class="flex-col gap-6">
+          ${tips.map(t => `<div class="txt-body-sm text-muted" style="background:#FFFFFF;padding:8px 12px;border-radius:6px;border:1px solid #E2E8F0">• ${t}</div>`).join('')}
         </div>
       </div>
     </div>
@@ -3646,27 +3608,27 @@ function renderCoachingResultCard(res) {
 function renderConversionObjectionsSubTab() {
   return `
     <div class="dash-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="flex-between mb-12">
         <div>
           <div class="dash-card-title">Founder Objection Library</div>
           <div class="dash-card-sub">Pre-scripted winning responses for common founder sales objections</div>
         </div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="flex-col gap-12">
         ${CONVERSION_OBJECTIONS && CONVERSION_OBJECTIONS.length > 0 ? CONVERSION_OBJECTIONS.map(o => `
           <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:700;font-size:13.5px;color:#0F172A">"${o.objection_text}"</div>
-              <div style="display:flex;gap:6px">
+            <div class="flex-between">
+              <div class="txt-heading-sm">"${o.objection_text}"</div>
+              <div class="flex-row gap-6">
                 <span class="sb-badge blue">${o.category || 'GENERAL'}</span>
                 <span class="sb-badge green">${o.success_rate || 80}% Success Rate</span>
               </div>
             </div>
-            <div style="font-size:12px;color:#475569;margin-top:6px;background:#FFFFFF;padding:10px;border-radius:6px;border:1px solid #CBD5E1">
+            <div class="txt-body-sm text-muted mt-6" style="background:#FFFFFF;padding:10px;border-radius:6px;border:1px solid #CBD5E1">
               <strong>Founder Script:</strong> ${o.founder_response_script}
             </div>
-            ${o.winning_angle ? `<div style="font-size:11.5px;color:#6366F1;margin-top:4px;font-weight:600">⚡ Winning Angle: ${o.winning_angle}</div>` : ''}
+            ${o.winning_angle ? `<div class="mt-4" style="font-size:11.5px;color:#6366F1;;font-weight:600"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Winning Angle: ${o.winning_angle}</div>` : ''}
           </div>
         `).join('') : `
           <div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
@@ -3685,8 +3647,8 @@ function renderConversionCloserSubTab() {
       <div class="dash-card-title">Closer Room Pre-Call Prep Sheet</div>
       <div class="dash-card-sub">Assembles a customized pre-call brief grounded in Business DNA, ICP Pains, Offer Promise, and Founder Objection Scripts.</div>
 
-      <div style="margin:14px 0;display:flex;gap:10px;align-items:center">
-        <label style="font-weight:700;font-size:13px;color:#0F172A">Select Active Deal for Prep Sheet:</label>
+      <div class="flex-row gap-12" style="margin:14px 0">
+        <label class="txt-heading-sm">Select Active Deal for Prep Sheet:</label>
         <select id="closer-deal-select" style="padding:8px 12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;font-size:13px" onchange="loadCloserPrepSheet(this.value)">
           <option value="">Choose Deal...</option>
           ${CONVERSION_DEALS.map(d => `<option value="${d.id}">${d.deal_name || d.dealName} (${d.contact_name || d.contactName})</option>`).join('')}
@@ -3729,7 +3691,7 @@ async function handleBookCalendarSlot(dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -3771,7 +3733,7 @@ async function handleSaveCloserCall(dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -3795,11 +3757,11 @@ function renderCloserPrepContent(prep) {
     const likelyObjections = brief.likelyObjections || [];
 
     tabContentHtml = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
-        <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="mt-12" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="flex-col gap-12">
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Who is this?</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">
+            <div class="txt-body-xs text-faint">Who is this?</div>
+            <div class="txt-body mt-4">
               <strong>Name:</strong> ${who.name || 'N/A'}<br/>
               <strong>Company:</strong> ${who.company || 'N/A'}<br/>
               <strong>Email:</strong> ${who.email || 'N/A'}<br/>
@@ -3808,40 +3770,40 @@ function renderCloserPrepContent(prep) {
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">Why are they here?</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whyAreTheyHere || 'N/A'}</div>
+            <div class="txt-body-xs text-faint">Why are they here?</div>
+            <div class="txt-body mt-4">${brief.whyAreTheyHere || 'N/A'}</div>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What problem do they have?</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.problem || 'N/A'}</div>
+            <div class="txt-body-xs text-faint">What problem do they have?</div>
+            <div class="txt-body mt-4">${brief.problem || 'N/A'}</div>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What do they want?</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatTheyWant || 'N/A'}</div>
+            <div class="txt-body-xs text-faint">What do they want?</div>
+            <div class="txt-body mt-4">${brief.whatTheyWant || 'N/A'}</div>
           </div>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="flex-col gap-12">
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What do we know? (Grounded Facts Only)</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatWeKnow || 'N/A'}</div>
+            <div class="txt-body-xs text-faint">What do we know? (Grounded Facts Only)</div>
+            <div class="txt-body mt-4">${brief.whatWeKnow || 'N/A'}</div>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What don't we know?</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatWeDontKnow || 'N/A'}</div>
+            <div class="txt-body-xs text-faint">What don't we know?</div>
+            <div class="txt-body mt-4">${brief.whatWeDontKnow || 'N/A'}</div>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What should we investigate?</div>
-            <div style="font-size:13px;color:#0F172A;margin-top:4px">${brief.whatToInvestigate || 'N/A'}</div>
+            <div class="txt-body-xs text-faint">What should we investigate?</div>
+            <div class="txt-body mt-4">${brief.whatToInvestigate || 'N/A'}</div>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase">What objections are likely?</div>
-            <div style="font-size:12.5px;color:#0F172A;margin-top:4px;display:flex;flex-direction:column;gap:6px">
+            <div class="txt-body-xs text-faint">What objections are likely?</div>
+            <div class="flex-col gap-6 txt-body-sm text-muted mt-4">
               ${likelyObjections.length > 0 ? likelyObjections.map(o => `
                 <div style="padding:6px;background:#FFF;border-radius:6px;border:1px solid #CBD5E1">
                   <strong>Objection:</strong> "${o.objectionText}"<br/>
@@ -3861,22 +3823,22 @@ function renderCloserPrepContent(prep) {
     const nxt = prompts.nextSteps || [];
 
     tabContentHtml = `
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
-        <div style="padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;font-size:12.5px;color:#1E40AF;font-weight:600">
+      <div class="flex-col gap-12 mt-12">
+        <div class="txt-body-sm text-muted" style="padding:10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;;font-weight:600">
           💡 AI Assistive Guardrail: Keep prompts concise. Guide the call flow; let the prospect speak 70% of the time.
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">🔍 Discovery Prompts</div>
-            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+            <div class="txt-heading-sm mb-6">🔍 Discovery Prompts</div>
+            <ul class="flex-col gap-4 txt-body-sm text-muted" style="margin:0;padding-left:16px">
               ${disc.map(p => `<li>${p}</li>`).join('')}
             </ul>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">⚙️ Mechanism Prompts</div>
-            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+            <div class="txt-heading-sm mb-6">⚙️ Mechanism Prompts</div>
+            <ul class="flex-col gap-4 txt-body-sm text-muted" style="margin:0;padding-left:16px">
               ${mech.map(p => `<li>${p}</li>`).join('')}
             </ul>
           </div>
@@ -3884,23 +3846,23 @@ function renderCloserPrepContent(prep) {
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">📊 Proof & Authority Prompts</div>
-            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+            <div class="txt-heading-sm mb-6">📊 Proof & Authority Prompts</div>
+            <ul class="flex-col gap-4 txt-body-sm text-muted" style="margin:0;padding-left:16px">
               ${prf.map(p => `<li>${p}</li>`).join('')}
             </ul>
           </div>
 
           <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-            <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">🛡️ Objection Scripts</div>
-            <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+            <div class="txt-heading-sm mb-6">🛡️ Objection Scripts</div>
+            <ul class="flex-col gap-4 txt-body-sm text-muted" style="margin:0;padding-left:16px">
               ${obj.map(p => `<li>${p}</li>`).join('')}
             </ul>
           </div>
         </div>
 
         <div style="background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
-          <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">🚀 Next Step Closing Prompts</div>
-          <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;display:flex;flex-direction:column;gap:4px">
+          <div class="txt-heading-sm mb-6">🚀 Next Step Closing Prompts</div>
+          <ul class="flex-col gap-4 txt-body-sm text-muted" style="margin:0;padding-left:16px">
             ${nxt.map(p => `<li>${p}</li>`).join('')}
           </ul>
         </div>
@@ -3908,8 +3870,8 @@ function renderCloserPrepContent(prep) {
     `;
   } else if (CLOSER_ROOM_TAB === 'postcall') {
     tabContentHtml = `
-      <div style="margin-top:14px;background:#F8FAFC;padding:14px;border-radius:8px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:12px">
-        <div style="font-weight:700;font-size:14px;color:#0F172A">Log Call Transcripts & Commitments</div>
+      <div class="flex-col gap-12 mt-12" style="background:#F8FAFC;padding:14px;border-radius:8px;border:1px solid #E2E8F0">
+        <div class="txt-heading-sm">Log Call Transcripts & Commitments</div>
         
         <div class="form-row">
           <div class="form-group" style="margin-bottom:0">
@@ -3935,19 +3897,19 @@ function renderCloserPrepContent(prep) {
           <textarea id="post-call-notes" rows="3" style="padding:10px;border-radius:8px;border:1px solid #CBD5E1;font:inherit;font-size:13px" placeholder="Stated bottlenecks, current conversion rates, tech stack issues..."></textarea>
         </div>
 
-        <div style="display:flex;gap:10px">
+        <div class="flex-row gap-12">
           <button class="btn btn-secondary btn-sm" onclick="handleDetectObjection('${deal.id}')">
             🔍 Run AI Objection Detection
           </button>
         </div>
 
         ${CONVERSION_DETECTED_OBJECTION ? `
-          <div style="background:#FFFBEB;border:1px solid #FCD34D;padding:12px;border-radius:8px;margin-top:6px">
-            <div style="font-weight:700;font-size:12.5px;color:#B45309;margin-bottom:6px">🛡️ Human Confirmation: Normalize Call Objection</div>
-            <div style="font-size:12px;color:#78350F;margin:4px 0">
+          <div class="mt-6" style="background:#FFFBEB;border:1px solid #FCD34D;padding:12px;border-radius:8px">
+            <div class="txt-body-sm text-muted mb-6" style="font-weight:700">🛡️ Human Confirmation: Normalize Call Objection</div>
+            <div class="txt-body-sm text-muted" style="margin:4px 0">
               <strong>Detected Text:</strong> "${CONVERSION_DETECTED_OBJECTION.originalObjection}..."
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <div class="flex-col gap-8 mt-8">
               <div>
                 <label style="font-size:11px;font-weight:700;color:#475569">Normalized Objection (Pattern Group Name)</label>
                 <input id="norm-objection-text" value="VALUE / ROI CONCERN" style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit" />
@@ -3970,7 +3932,7 @@ function renderCloserPrepContent(prep) {
                 <label style="font-size:11px;font-weight:700;color:#475569">Founder Response Script</label>
                 <input id="norm-objection-response" value="${CONVERSION_DETECTED_OBJECTION.founderResponse || ''}" style="width:100%;padding:6px;font-size:12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit" />
               </div>
-              <button class="btn btn-primary btn-sm" style="font-size:12px;padding:6px;margin-top:4px;background:#B45309;border-color:#D97706" onclick="handleConfirmNormalizedObjection('${deal.id}')">
+              <button class="btn btn-primary btn-sm mt-4" style="font-size:12px;padding:6px;;background:#B45309;border-color:#D97706" onclick="handleConfirmNormalizedObjection('${deal.id}')">
                 Confirm & Add to Objection Library & Patterns
               </button>
             </div>
@@ -3988,7 +3950,7 @@ function renderCloserPrepContent(prep) {
           </div>
         </div>
 
-        <button class="btn btn-primary" style="margin-top:10px" onclick="handleSaveCloserCall('${deal.id}')">
+        <button class="btn btn-primary mt-12" onclick="handleSaveCloserCall('${deal.id}')">
           Log Call & Save Outcomes
         </button>
       </div>
@@ -4000,17 +3962,17 @@ function renderCloserPrepContent(prep) {
       if (msg.status === 'CANCELLED') statusColor = '#EF4444';
       
       return `
-        <div style="background:#FFF;padding:12px;border-radius:8px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:11px;font-weight:700;color:#0EA5E9;text-transform:uppercase">${msg.channel} (Step ${msg.stepIndex})</span>
+        <div class="flex-col gap-6" style="background:#FFF;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+          <div class="flex-between">
+            <span class="txt-body-xs text-faint">${msg.channel} (Step ${msg.stepIndex})</span>
             <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase">${msg.status}</span>
           </div>
-          <div style="font-size:13px;font-weight:700;color:#0F172A">Subject: ${msg.messageSubject || 'N/A'}</div>
-          <div style="font-size:12.5px;color:#334155;white-space:pre-wrap;background:#F8FAFC;padding:8px;border-radius:6px;border:1px solid #F1F5F9;font-family:inherit">${msg.messageText}</div>
+          <div class="txt-heading-sm">Subject: ${msg.messageSubject || 'N/A'}</div>
+          <div class="txt-body-sm text-muted" style="white-space:pre-wrap;background:#F8FAFC;padding:8px;border-radius:6px;border:1px solid #F1F5F9;font-family:inherit">${msg.messageText}</div>
           <div style="font-size:11px;color:#64748B">Trigger: ${msg.triggerEvent} | Delay: ${msg.delayHours} Hours | Variant: ${msg.messageVariant}</div>
           
           ${msg.status === 'PENDING' ? `
-            <div style="display:flex;gap:6px;margin-top:4px">
+            <div class="flex-row gap-6 mt-4">
               <button class="btn btn-primary btn-sm" style="font-size:11px;padding:4px 8px" onclick="handleApproveFollowUp('${msg.id}', '${deal.id}')">Approve & Send</button>
               <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 8px" onclick="handleStopFollowUp('${msg.id}', '${deal.id}')">Cancel Step</button>
             </div>
@@ -4021,22 +3983,22 @@ function renderCloserPrepContent(prep) {
       <div style="text-align:center;padding:24px;color:#64748B;font-size:13px">
         No follow-up sequence active for this deal opportunity.<br/><br/>
         <button class="btn btn-primary" onclick="handleGenerateFollowUps('${deal.id}')">
-          ⚡ Generate AI-Drafted Follow-Up Sequence
+          <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generate AI-Drafted Follow-Up Sequence
         </button>
       </div>
     `;
 
     tabContentHtml = `
-      <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700;font-size:14px;color:#0F172A">Automated Context-Aware Follow-Ups</div>
+      <div class="flex-col gap-12 mt-12">
+        <div class="flex-between">
+          <div class="txt-heading-sm">Automated Context-Aware Follow-Ups</div>
           ${CONVERSION_FOLLOW_UPS.length > 0 ? `
             <button class="btn btn-secondary btn-sm" onclick="handleStopAllFollowUps('${deal.id}')">
               🛑 Stop Entire Sequence
             </button>
           ` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="flex-col gap-12">
           ${listHtml}
         </div>
       </div>
@@ -4045,40 +4007,40 @@ function renderCloserPrepContent(prep) {
 
   return `
     <div style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;padding:18px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #E2E8F0;padding-bottom:12px">
+      <div class="flex-between mb-14" style="border-bottom:1px solid #E2E8F0;padding-bottom:12px">
         <div>
           <div style="font-size:17px;font-weight:800;color:#0F172A">${deal.deal_name || deal.dealName}</div>
-          <div style="font-size:12px;color:#64748B;margin-top:4px">
+          <div class="txt-body-sm text-muted mt-4">
             Contact: <strong>${deal.contact_name}</strong> | Owner: <strong>${deal.owner || 'Alex Morgan'}</strong> | Risk: <strong>${deal.risk || 'None'}</strong>
           </div>
         </div>
         <div style="text-align:right">
           <span class="sb-badge" style="background:${stageBadgeColor};color:#FFF;font-weight:700;padding:4px 8px;border-radius:6px;font-size:11px">${deal.stage}</span>
-          <div style="font-size:14px;font-weight:800;color:#0EA5E9;margin-top:4px">$${(deal.amount || 12500).toLocaleString()}</div>
+          <div class="txt-heading-sm mt-4">$${(deal.amount || 12500).toLocaleString()}</div>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:14px;background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
+      <div class="mb-14" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;;background:#F8FAFC;padding:12px;border-radius:8px;border:1px solid #E2E8F0">
         <div>
-          <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase">What is happening?</div>
-          <div style="font-size:12px;font-weight:600;color:#0F172A;margin-top:2px">${deal.what_is_happening || deal.whatIsHappening || 'Discovery Stage'}</div>
+          <div class="txt-body-xs text-faint">What is happening?</div>
+          <div class="mt-2" style="font-size:12px;font-weight:600;color:#0F172A">${deal.what_is_happening || deal.whatIsHappening || 'Discovery Stage'}</div>
         </div>
         <div>
-          <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase">What is blocking this deal?</div>
-          <div style="font-size:12px;font-weight:600;color:#D97706;margin-top:2px">${deal.blocking_factor || deal.blockingFactor || 'No active blocks'}</div>
+          <div class="txt-body-xs text-faint">What is blocking this deal?</div>
+          <div class="mt-2" style="font-size:12px;font-weight:600;color:#D97706">${deal.blocking_factor || deal.blockingFactor || 'No active blocks'}</div>
         </div>
         <div>
-          <div style="font-size:10.5px;font-weight:700;color:#64748B;text-transform:uppercase">What happens next?</div>
-          <div style="font-size:12px;font-weight:600;color:#0EA5E9;margin-top:2px">${deal.next_action || deal.nextAction || 'Log Discovery call outcome'}</div>
+          <div class="txt-body-xs text-faint">What happens next?</div>
+          <div class="mt-2" style="font-size:12px;font-weight:600;color:#0EA5E9">${deal.next_action || deal.nextAction || 'Log Discovery call outcome'}</div>
         </div>
       </div>
 
       ${showBookingSimulator ? `
-        <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px;margin-bottom:14px">
-          <div style="font-weight:700;font-size:13px;color:#B45309">📅 Abstraction Layer: Book Audit Call</div>
-          <div style="font-size:12px;color:#78350F;margin:4px 0">Retrieved in real-time. No availability is faked.</div>
+        <div class="refine-card mb-16">
+          <div class="txt-heading-sm">📅 Abstraction Layer: Book Audit Call</div>
+          <div class="txt-body-sm text-muted" style="margin:4px 0">Retrieved in real-time. No availability is faked.</div>
           
-          <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+          <div class="flex-row gap-12 mt-8">
             <input type="date" id="booking-date-input" value="2026-08-15" style="padding:6px;border-radius:6px;border:1px solid #CBD5E1;font-size:12.5px" />
             <select id="booking-slot-select" style="padding:6px;border-radius:6px;border:1px solid #CBD5E1;font-size:12.5px;flex-grow:1">
               ${freeSlots.length > 0 ? freeSlots.map(s => `<option value="${s.time}">${s.time} (Available)</option>`).join('') : '<option value="">No Slots Available</option>'}
@@ -4088,7 +4050,7 @@ function renderCloserPrepContent(prep) {
         </div>
       ` : ''}
 
-      <div style="display:flex;gap:4px;border-bottom:2px solid #E2E8F0;padding-bottom:2px">
+      <div class="flex-row gap-4" style="border-bottom:2px solid #E2E8F0;padding-bottom:2px">
         <button class="btn ${CLOSER_ROOM_TAB === 'precall' ? 'btn-primary' : 'btn-secondary'}" style="font-size:12px;padding:6px 12px;border-radius:6px 6px 0 0" onclick="switchCloserRoomTab('precall')">
           1. Pre-Call Brief
         </button>
@@ -4119,15 +4081,15 @@ function renderConversionHandoffSubTab() {
       <div class="dash-card-title">Deal-Won Delivery OS Handoffs</div>
       <div class="dash-card-sub">Automatic handoff checklists triggered when deals are marked CLOSED_WON.</div>
 
-      <div style="margin-top:14px;display:flex;flex-direction:column;gap:12px">
+      <div class="flex-col gap-12 mt-12">
         ${wonDeals.length > 0 ? wonDeals.map(d => `
           <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:700;font-size:14px;color:#0F172A">${d.deal_name || d.dealName}</div>
-              <span class="sb-badge green">CLOSED_WON ✓</span>
+            <div class="flex-between">
+              <div class="txt-heading-sm">${d.deal_name || d.dealName}</div>
+              <span class="sb-badge green">CLOSED_WON <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span></span>
             </div>
-            <div style="font-size:12px;color:#64748B;margin-top:4px">Client: ${d.contact_name || d.contactName} | Amount: $${(d.amount || 0).toLocaleString()}</div>
-            <div style="font-size:11.5px;color:#10B981;margin-top:6px;font-weight:600">🚀 Delivery OS Onboarding Checklist active & assigned to Alex Morgan.</div>
+            <div class="txt-body-sm text-muted mt-4">Client: ${d.contact_name || d.contactName} | Amount: $${(d.amount || 0).toLocaleString()}</div>
+            <div class="mt-6" style="font-size:11.5px;color:#10B981;;font-weight:600">🚀 Delivery OS Onboarding Checklist active & assigned to Alex Morgan.</div>
           </div>
         `).join('') : `
           <div style="padding:20px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
@@ -4221,7 +4183,7 @@ async function handleCreateDeal(e) {
     closeDealModal();
     renderConversion();
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4259,13 +4221,13 @@ async function handleSaveSalesCall(e) {
         const coachRes = await window.ASENZO_API.analyzeSalesCallCoaching(createdCall.id);
         CONVERSION_COACHING_RESULT = coachRes;
         CONVERSION_SUB_TAB = 'coaching';
-        showToast('⚡ Post-Call AI Coaching Analysis Completed');
+        showToast('<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Post-Call AI Coaching Analysis Completed');
       }
     }
     closeSalesCallModal();
     renderConversion();
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4277,21 +4239,21 @@ async function handleTagBenchmarkCall(callId, isBenchmark) {
     }
     renderConversion();
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
 async function handleRunCoachingAnalysis(callId) {
   try {
     if (window.ASENZO_API) {
-      showToast('⚡ Analyzing transcript against founder benchmark patterns...');
+      showToast('<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Analyzing transcript against founder benchmark patterns...');
       const res = await window.ASENZO_API.analyzeSalesCallCoaching(callId);
       CONVERSION_COACHING_RESULT = res;
       CONVERSION_SUB_TAB = 'coaching';
       renderConversion();
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4303,7 +4265,7 @@ async function handleMarkDealWon(dealId) {
     }
     renderConversion();
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4326,7 +4288,7 @@ async function loadCloserPrepSheet(dealId) {
       }, 50);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4338,7 +4300,7 @@ async function handleGenerateFollowUps(dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4350,7 +4312,7 @@ async function handleApproveFollowUp(msgId, dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4362,7 +4324,7 @@ async function handleStopFollowUp(msgId, dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4374,7 +4336,7 @@ async function handleStopAllFollowUps(dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4400,7 +4362,7 @@ async function handleDetectObjection(dealId) {
       switchCloserRoomTab('postcall');
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4440,7 +4402,7 @@ async function handleConfirmNormalizedObjection(dealId) {
       await loadCloserPrepSheet(dealId);
     }
   } catch (err) {
-    showToast(`⚠️ ${err.message}`);
+    showToast(`<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${err.message}`);
   }
 }
 
@@ -4457,15 +4419,15 @@ function renderDelivery() {
 
     <div class="dash-card">
       <div class="dash-card-title">Active Client Onboarding & Milestones</div>
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px">
+      <div class="flex-col gap-12 mt-12">
         ${CLIENTS.map(c => `
-          <div style="padding:16px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:800;font-size:14px;color:#0F172A">${c.name}</div>
+          <div class="flex-col gap-8" style="padding:16px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
+            <div class="flex-between">
+              <div class="txt-heading-sm">${c.name}</div>
               <span class="sb-badge green">${c.status}</span>
             </div>
-            <div style="font-size:12px;color:#64748B">Current Milestone: <strong style="color:#0F172A">${c.milestone}</strong></div>
-            <div style="width:100%;height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden;margin-top:4px">
+            <div class="txt-body-sm text-muted">Current Milestone: <strong style="color:#0F172A">${c.milestone}</strong></div>
+            <div class="mt-4" style="width:100%;height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden">
               <div style="width:${c.progress}%;height:100%;background:#10B981"></div>
             </div>
           </div>
@@ -4485,11 +4447,11 @@ function renderIntelligence() {
         <p class="pg-sub">Observation → Why it matters → Recommended action → Apply.</p>
       </div>
       <div class="pg-actions">
-        <button class="btn btn-primary" onclick="showToast('Recalculating Weekly Directives...')">⚡ Refresh Directives</button>
+        <button class="btn btn-primary" onclick="showToast('Recalculating Weekly Directives...')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Refresh Directives</button>
       </div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="flex-col gap-12">
       ${DIRECTIVES.map(d => `
         <div class="decision-card">
           <div class="dc-obs">🔍 ${d.obs}</div>
@@ -4521,15 +4483,15 @@ function renderOperator() {
     <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:16px">
       ${SOPS.map(s => `
         <div class="dash-card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="flex-between">
             <span class="sb-badge green">${s.engine} Engine</span>
             <span style="font-size:11px;color:#94A3B8">v1.2</span>
           </div>
-          <div style="font-size:15px;font-weight:800;color:#0F172A;margin-top:6px">${s.title}</div>
-          <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
-            ${s.steps.map(step => `<div style="font-size:12px;color:#475569;background:#F8FAFC;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0">• ${step}</div>`).join('')}
+          <div class="txt-heading-sm mt-6">${s.title}</div>
+          <div class="flex-col gap-6 mt-12">
+            ${s.steps.map(step => `<div class="txt-body-sm text-muted" style="background:#F8FAFC;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0">• ${step}</div>`).join('')}
           </div>
-          <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="showToast('Executing ${s.title}...')">Execute SOP</button>
+          <button class="btn btn-secondary btn-sm mt-12" onclick="showToast('Executing ${s.title}...')">Execute SOP</button>
         </div>
       `).join('')}
     </div>
@@ -4563,7 +4525,7 @@ function renderCalendar() {
             <div class="cal-events">
               ${d.events.map(e => `
                 <div class="cal-event-pill ${e.type}">
-                  ${e.time ? `<div style="font-size:10px;font-weight:700;margin-bottom:2px">${e.time}</div>` : ''}
+                  ${e.time ? `<div class="mb-2" style="font-size:10px;font-weight:700">${e.time}</div>` : ''}
                   <div>${e.text}</div>
                 </div>
               `).join('')}
@@ -4662,8 +4624,8 @@ function renderDnaScoreBreakdown(scoreData) {
   container.innerHTML = dims.map(d => `
     <div style="background:#FFFFFF;padding:8px 10px;border-radius:8px;border:1px solid #E2E8F0">
       <div style="font-size:10.5px;font-weight:700;color:#64748B">${d.label}</div>
-      <div style="font-size:14px;font-weight:800;color:#0F172A;margin-top:2px">${d.score}/${d.max}</div>
-      <div style="width:100%;height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;margin-top:4px">
+      <div class="txt-heading-sm mt-2">${d.score}/${d.max}</div>
+      <div class="mt-4" style="width:100%;height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden">
         <div style="width:${(d.score / d.max) * 100}%;height:100%;background:#10B981"></div>
       </div>
     </div>
@@ -4730,7 +4692,7 @@ async function handleSavePositioning(e) {
 async function handleGenerateAlternativesFromModal() {
   switchDnaTab('alts');
   const container = document.getElementById('dna-alternatives-container');
-  container.innerHTML = `<div style="text-align:center;color:#2563EB;padding:20px;font-weight:700">⚡ Generating 3 Distinct Strategic Positioning Angles...</div>`;
+  container.innerHTML = `<div style="text-align:center;color:#2563EB;padding:20px;font-weight:700"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generating 3 Distinct Strategic Positioning Angles...</div>`;
 
   try {
     if (window.ASENZO_API) {
@@ -4746,19 +4708,19 @@ function renderDnaAlternatives(alts) {
   const container = document.getElementById('dna-alternatives-container');
   if (!container) return;
   if (!alts || alts.length === 0) {
-    container.innerHTML = `<div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">No alternatives generated yet. Click "⚡ Generate 3 Alternatives" to compare strategic options.</div>`;
+    container.innerHTML = `<div class="txt-body-sm text-muted" style="text-align:center;padding:20px">No alternatives generated yet. Click "<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generate 3 Alternatives" to compare strategic options.</div>`;
     return;
   }
 
   container.innerHTML = alts.map((a, i) => `
-    <div style="padding:14px;background:#F8FAFC;border-radius:12px;border:1px solid #CBD5E1;display:flex;flex-direction:column;gap:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="flex-col gap-8" style="padding:14px;background:#F8FAFC;border-radius:12px;border:1px solid #CBD5E1">
+      <div class="flex-between">
         <div style="font-weight:800;color:#0F172A;font-size:13.5px">${a.angle}</div>
         <span class="sb-badge green">Score: ${a.scoreData ? a.scoreData.totalScore : 85}/100</span>
       </div>
-      <div style="font-size:12px;color:#334155"><strong>Statement:</strong> "${a.statement}"</div>
+      <div class="txt-body-sm text-muted"><strong>Statement:</strong> "${a.statement}"</div>
       <div style="font-size:11.5px;color:#64748B"><strong>Core Problem:</strong> ${a.problem}</div>
-      <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <div class="mt-4" style="display:flex;justify-content:flex-end">
         <button type="button" class="btn btn-primary btn-sm" onclick="handleAcceptAlternative(${i})">
           🔒 Accept & Make Active Version
         </button>
@@ -4784,7 +4746,7 @@ function renderDnaVersions(versions) {
   const container = document.getElementById('dna-versions-container');
   if (!container) return;
   if (!versions || versions.length === 0) {
-    container.innerHTML = `<div style="font-size:12px;color:#94A3B8;text-align:center;padding:10px">No previous versions.</div>`;
+    container.innerHTML = `<div class="txt-body-sm text-muted" style="text-align:center;padding:10px">No previous versions.</div>`;
     return;
   }
 
@@ -4792,7 +4754,7 @@ function renderDnaVersions(versions) {
     <div style="padding:10px 14px;background:#FFFFFF;border-radius:8px;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-weight:700;color:#0F172A">Version ${v.version_number} <span class="sb-badge green" style="margin-left:6px">Score: ${v.score || 85}</span></div>
-        <div style="font-size:11.5px;color:#64748B;margin-top:2px">"${v.icp_summary}" • ${new Date(v.created_at || Date.now()).toLocaleDateString()}</div>
+        <div class="mt-2" style="font-size:11.5px;color:#64748B">"${v.icp_summary}" • ${new Date(v.created_at || Date.now()).toLocaleDateString()}</div>
       </div>
       <button type="button" class="btn btn-secondary btn-sm" onclick="handleRestorePositioningVersion(${v.version_number})">Restore v${v.version_number}</button>
     </div>
@@ -4831,7 +4793,7 @@ async function handleGenerateScript(e) {
 
   const btn = document.getElementById('btn-generate-script');
   btn.disabled = true;
-  btn.textContent = '⚡ Generating Script...';
+  btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generating Script...';
 
   try {
     let res = null;
@@ -4866,9 +4828,9 @@ async function handleGenerateScript(e) {
     let provHtml = '';
     if (res.provenance && res.provenance.length > 0) {
       provHtml = `
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #BFDBFE">
+        <div class="mt-8" style="padding-top:8px;border-top:1px solid #BFDBFE">
           <strong style="color:#1D4ED8">📌 Knowledge Provenance Attribution:</strong>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <div class="mt-4" style="display:flex;flex-wrap:wrap;gap:6px">
             ${res.provenance.map(p => `
               <span style="font-size:10.5px;background:#DBEAFE;color:#1E40AF;padding:2px 6px;border-radius:4px" title="${p.snippet}">
                 Source: ${p.sourceTitle} (${(p.relevanceScore * 100).toFixed(0)}% match)
@@ -4885,7 +4847,7 @@ async function handleGenerateScript(e) {
     showToast(`Script Generation Error: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = '⚡ Generate Structured Script';
+    btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generate Structured Script';
   }
 }
 
@@ -4904,7 +4866,7 @@ async function handleIngestSource(e) {
   e.preventDefault();
   const btn = document.getElementById('btn-run-ingestion');
   btn.disabled = true;
-  btn.textContent = '⚡ Running Pipeline (Cleaning & Chunking)...';
+  btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Running Pipeline (Cleaning & Chunking)...';
 
   const payload = {
     title: document.getElementById('ingest-title').value.trim(),
@@ -4924,7 +4886,7 @@ async function handleIngestSource(e) {
     showToast(`Ingestion Error: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = '⚡ Run Ingestion Pipeline (Clean & Chunk)';
+    btn.textContent = '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Run Ingestion Pipeline (Clean & Chunk)';
   }
 }
 
@@ -4979,11 +4941,11 @@ async function handleSearchVaultChunks(query) {
     if (window.ASENZO_API) {
       const res = await window.ASENZO_API.searchKnowledgeChunks(query);
       if (!res || !res.chunks || res.chunks.length === 0) {
-        resultsEl.innerHTML = `<div style="font-size:12px;color:#94A3B8">No matching semantic chunks found for "${query}".</div>`;
+        resultsEl.innerHTML = `<div class="txt-body-sm text-muted">No matching semantic chunks found for "${query}".</div>`;
       } else {
         resultsEl.innerHTML = `
-          <div style="font-weight:700;color:#0F172A;font-size:12px;margin-bottom:6px">Matched ${res.chunks.length} Semantic Chunks for "${query}":</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="mb-6" style="font-weight:700;color:#0F172A;font-size:12px">Matched ${res.chunks.length} Semantic Chunks for "${query}":</div>
+          <div class="flex-col gap-6">
             ${res.chunks.map(c => `
               <div style="background:#FFFFFF;padding:8px 10px;border-radius:6px;border:1px solid #E2E8F0;font-size:11.5px">
                 <strong style="color:#2563EB">${c.source_title || 'Knowledge Source'}:</strong> "${c.chunk_text}"
@@ -5171,12 +5133,12 @@ async function loadPwAssets(contentId) {
     }
     container.innerHTML = assets.map(a => `
       <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="flex-between">
           <span class="sb-badge blue">${a.asset_type}</span>
           <span style="font-size:10px;color:#94A3B8">${(a.created_at || '').split('T')[0]}</span>
         </div>
-        <div style="font-size:11px;word-break:break-all;color:#2563EB;margin-top:6px;font-weight:600">${a.file_url}</div>
-        ${a.caption ? `<div style="font-size:11px;color:#475569;margin-top:4px">${a.caption}</div>` : ''}
+        <div class="mt-6" style="font-size:11px;word-break:break-all;color:#2563EB;;font-weight:600">${a.file_url}</div>
+        ${a.caption ? `<div class="mt-4" style="font-size:11px;color:#475569">${a.caption}</div>` : ''}
       </div>
     `).join('');
   } catch (err) {
@@ -5210,11 +5172,11 @@ async function loadPwVersions(contentId) {
       return;
     }
     container.innerHTML = versions.map(v => `
-      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center">
+      <div class="flex-between" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:10px">
         <div>
           <div style="font-size:12px;font-weight:700;color:#0F172A">Version ${v.version_number} <span class="sb-badge">${v.created_by}</span></div>
-          <div style="font-size:11px;color:#475569;margin-top:2px">"${(v.hook_text || '').substring(0, 50)}..."</div>
-          <div style="font-size:10px;color:#94A3B8;margin-top:2px">${v.created_at}</div>
+          <div class="mt-2" style="font-size:11px;color:#475569">"${(v.hook_text || '').substring(0, 50)}..."</div>
+          <div class="mt-2" style="font-size:10px;color:#94A3B8">${v.created_at}</div>
         </div>
         <button type="button" class="btn btn-secondary btn-sm" onclick="handleRestoreContentVersion('${contentId}', ${v.version_number}, '${v.hook_text ? encodeURIComponent(v.hook_text) : ''}', '${v.body_script ? encodeURIComponent(v.body_script) : ''}')">
           Restore V${v.version_number}
@@ -5272,7 +5234,7 @@ async function handleExecutePublishAction() {
     const box = document.getElementById('pw-publish-status-box');
     if (box) {
       box.classList.remove('hidden');
-      box.innerHTML = `✅ Published confirmed! <a href="${res.postUrl}" target="_blank" style="color:#2563EB;text-decoration:underline">View Post (${res.postUrl})</a>`;
+      box.innerHTML = `<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check_circle</span> Published confirmed! <a href="${res.postUrl}" target="_blank" style="color:#2563EB;text-decoration:underline">View Post (${res.postUrl})</a>`;
     }
     showToast('Publishing workflow confirmed successfully!');
     if (CURRENT_PAGE === 'attention') renderAttention();
@@ -5547,7 +5509,7 @@ const COMMANDS = [
   { label: 'Engine 3 — Delivery OS', page: 'delivery', group: 'Engines' },
   { label: 'Engine 4 — Intelligence OS', page: 'intelligence', group: 'Engines' },
   { label: 'Engine 5 — Operator OS', page: 'operator', group: 'Engines' },
-  { label: '⚡ AI Hook + Script Generator', action: openScriptGeneratorModal, group: 'Attention OS' },
+  { label: '<span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Hook + Script Generator', action: openScriptGeneratorModal, group: 'Attention OS' },
   { label: 'Edit Business DNA Positioning', action: openPositioningModal, group: 'Attention OS' },
   { label: 'Add Founder Knowledge Asset', action: openKnowledgeModal, group: 'Attention OS' },
   { label: 'Log Market Intelligence Observation', action: openMarketIntelModal, group: 'Attention OS' },
@@ -5574,7 +5536,7 @@ function filterCmd(q) {
     <div class="cmd-group-lbl">${g}</div>
     ${filtered.filter(c => c.group === g).map(item => `
       <div class="cmd-item" onclick="runCommand('${item.label}')">
-        <span>⚡</span>
+        <span><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span></span>
         <span>${item.label}</span>
         ${item.page ? `<span class="cmd-item-meta">${item.page}</span>` : ''}
       </div>
@@ -5681,7 +5643,7 @@ async function runHookGenerator() {
   const pillarId = document.getElementById('ai-studio-pillar').value;
   const container = document.getElementById('ai-studio-hooks-list');
 
-  container.innerHTML = '<div style="padding:20px;text-align:center;color:#475569">⚡ Assembling Business DNA & Synthesizing Hooks...</div>';
+  container.innerHTML = '<div style="padding:20px;text-align:center;color:#475569"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Assembling Business DNA & Synthesizing Hooks...</div>';
 
   try {
     const res = await window.ASENZO_API.generateHooks({
@@ -5699,8 +5661,8 @@ async function runHookGenerator() {
 
     container.innerHTML = res.hooks.map(h => `
       <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;gap:6px;align-items:center">
+        <div class="flex-between mb-8">
+          <div class="flex-row gap-6">
             <span class="sb-badge blue">${h.style.toUpperCase()}</span>
             <span class="sb-badge green">Score: ${h.score}/100</span>
             <span class="sb-badge gray">Confidence: ${h.confidence}%</span>
@@ -5709,11 +5671,11 @@ async function runHookGenerator() {
             🎯 Use This Hook
           </button>
         </div>
-        <div style="font-size:13.5px;font-weight:700;color:#0F172A;margin-bottom:6px;line-height:1.4">"${escapeHtml(h.text)}"</div>
-        <div style="font-size:12px;color:#64748B;font-style:italic;margin-bottom:4px">💡 ${escapeHtml(h.reasoning)}</div>
+        <div class="txt-heading-sm mb-6" style="line-height:1.4">"${escapeHtml(h.text)}"</div>
+        <div class="txt-body-sm text-muted mb-4" style="font-style:italic">💡 ${escapeHtml(h.reasoning)}</div>
         ${h.warnings && h.warnings.length > 0 ? `
-          <div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:4px;padding:4px 8px;margin-top:6px">
-            ⚠️ ${escapeHtml(h.warnings.join(' | '))}
+          <div class="mt-6" style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:4px;padding:4px 8px">
+            <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${escapeHtml(h.warnings.join(' | '))}
           </div>
         ` : ''}
       </div>
@@ -5835,12 +5797,12 @@ function renderGuardrailsResult(g) {
 
   // Violations & Warnings
   document.getElementById('ai-studio-violations').innerHTML = (g.violations && g.violations.length > 0)
-    ? g.violations.map(v => `<div>❌ ${escapeHtml(v)}</div>`).join('')
-    : '<div style="color:#10B981">✅ Zero Brand Voice Violations</div>';
+    ? g.violations.map(v => `<div><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">cancel</span> ${escapeHtml(v)}</div>`).join('')
+    : '<div style="color:#10B981"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check_circle</span> Zero Brand Voice Violations</div>';
 
   document.getElementById('ai-studio-warnings').innerHTML = (g.warnings && g.warnings.length > 0)
-    ? g.warnings.map(w => `<div>⚠️ ${escapeHtml(w)}</div>`).join('')
-    : '<div style="color:#10B981">✅ All Quality Checks Passed</div>';
+    ? g.warnings.map(w => `<div><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️ ${escapeHtml(w)}</div>`).join('')
+    : '<div style="color:#10B981"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check_circle</span> All Quality Checks Passed</div>';
 }
 
 async function saveStudioVersion(approvalStatus = 'DRAFT') {
@@ -5893,8 +5855,8 @@ async function loadContentVersionHistory() {
 
     container.innerHTML = versions.map(v => `
       <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;padding:12px 14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="display:flex;gap:6px;align-items:center">
+        <div class="flex-between mb-6">
+          <div class="flex-row gap-6">
             <span class="sb-badge blue">Version ${v.version_number}</span>
             <span class="sb-badge gray">${v.created_by}</span>
             <span class="sb-badge green">${new Date(v.created_at).toLocaleString()}</span>
@@ -5933,10 +5895,10 @@ function escapeHtml(str) {
 function renderConversionFunnelSubTab() {
   if (!CONVERSION_FUNNEL) {
     return `
-      <div style="padding:40px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px">
-        <h3 style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px">No Profile Funnel Configured</h3>
-        <p style="font-size:13px;color:#64748B;margin-bottom:16px">You have not initialized a conversion profile funnel yet. Compile one using your existing positioning and authority assets.</p>
-        <button class="btn btn-primary" onclick="handleCompileFunnelFromDna()">⚡ Compile Funnel from Business DNA</button>
+      <div class="refine-card-dashed">
+        <h3 class="txt-heading-md mb-6">No Profile Funnel Configured</h3>
+        <p class="txt-body mb-16">You have not initialized a conversion profile funnel yet. Compile one using your existing positioning and authority assets.</p>
+        <button class="btn btn-primary" onclick="handleCompileFunnelFromDna()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Compile Funnel from Business DNA</button>
       </div>
     `;
   }
@@ -5950,9 +5912,9 @@ function renderConversionFunnelSubTab() {
     <div style="display:grid;grid-template-columns:300px 1fr;gap:20px">
       <!-- Funnel Workspace Control Center -->
       <div class="dash-card" style="padding:16px">
-        <div style="font-size:14px;font-weight:800;color:#0F172A;margin-bottom:12px">Funnel Control Center</div>
+        <div class="txt-heading-sm mb-12">Funnel Control Center</div>
         
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div class="flex-col gap-8 mb-16">
           <button class="btn ${CONVERSION_FUNNEL_PREVIEW_MODE === 'BUILDER' ? 'btn-primary' : 'btn-secondary'} btn-block" style="text-align:left; font-size:12px; padding:10px; cursor:pointer;" onclick="handlePreviewMode('BUILDER')">
             ⚙️ Funnel Builder & DNA
           </button>
@@ -5966,13 +5928,13 @@ function renderConversionFunnelSubTab() {
 
         <div style="background:#F1F5F9;padding:12px;border-radius:8px;border:1px solid #E2E8F0;font-size:12px">
           <div>Status: <span class="sb-badge ${f.publishingStatus === 'PUBLISHED' ? 'green' : 'blue'}" style="margin-left:4px">${f.publishingStatus}</span></div>
-          <div style="margin-top:6px">Active Version: <strong>v${f.version || 1}</strong></div>
-          <div style="margin-top:6px">Url Slug: <code style="background:#FFFFFF;padding:2px 4px;border-radius:4px;border:1px solid #CBD5E1">/${f.slug}</code></div>
-          <div style="margin-top:6px">Last Updated: <span style="color:#64748B">${new Date(f.updatedAt).toLocaleString()}</span></div>
+          <div class="mt-6">Active Version: <strong>v${f.version || 1}</strong></div>
+          <div class="mt-6">Url Slug: <code style="background:#FFFFFF;padding:2px 4px;border-radius:4px;border:1px solid #CBD5E1">/${f.slug}</code></div>
+          <div class="mt-6">Last Updated: <span style="color:#64748B">${new Date(f.updatedAt).toLocaleString()}</span></div>
         </div>
 
-        <div style="margin-top:16px">
-          <button class="btn btn-secondary btn-block btn-sm" onclick="handleCompileFunnelFromDna()">⚡ Re-compile from DNA</button>
+        <div class="mt-16">
+          <button class="btn btn-secondary btn-block btn-sm" onclick="handleCompileFunnelFromDna()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Re-compile from DNA</button>
         </div>
       </div>
 
@@ -5987,9 +5949,9 @@ function renderConversionFunnelSubTab() {
 function getFunnelWorkspaceContentHtml(f, prev, m) {
   if (CONVERSION_FUNNEL_PREVIEW_MODE === 'BUILDER') {
     return `
-      <form onsubmit="handleSaveFunnel(event)" class="dash-card" style="display:flex;flex-direction:column;gap:14px">
+      <form onsubmit="handleSaveFunnel(event)" class="dash-card flex-col gap-12">
         <input type="hidden" id="funnel-id" value="${f.id || ''}" />
-        <div style="font-size:15px;font-weight:800;color:#0F172A;border-bottom:1px solid #E2E8F0;padding-bottom:6px">Funnel Copy & Positioning DNA</div>
+        <div class="txt-heading-sm" style="border-bottom:1px solid #E2E8F0;padding-bottom:6px">Funnel Copy & Positioning DNA</div>
         
         <div class="form-group">
           <label>Funnel Title / Internal Identifier</label>
@@ -6023,7 +5985,7 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
           </div>
         </div>
 
-        <div style="font-size:15px;font-weight:800;color:#0F172A;border-bottom:1px solid #E2E8F0;padding-bottom:6px;margin-top:10px">VSL Setup & Scripting</div>
+        <div class="txt-heading-sm mt-12" style="border-bottom:1px solid #E2E8F0;padding-bottom:6px">VSL Setup & Scripting</div>
 
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
           <div class="form-group">
@@ -6062,17 +6024,17 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+        <div class="flex-row gap-12 mt-12" style="justify-content:flex-end">
           <button type="submit" class="btn btn-secondary">💾 Save Funnel Copy</button>
           <button type="button" class="btn btn-primary" onclick="handlePublishFunnel('${f.id}')">🚀 Publish & Version Funnel</button>
         </div>
 
         <!-- Versions History List -->
-        <div style="margin-top:16px">
-          <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:8px">Funnel Version History Audit Log</div>
-          <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto">
+        <div class="mt-16">
+          <div class="txt-heading-sm mb-8">Funnel Version History Audit Log</div>
+          <div class="flex-col gap-6" style="max-height:160px;overflow-y:auto">
             ${CONVERSION_FUNNEL_VERSIONS.map(v => `
-              <div style="background:#F8FAFC;padding:8px 12px;border:1px solid #E2E8F0;border-radius:6px;font-size:11.5px;display:flex;justify-content:space-between;align-items:center">
+              <div class="flex-between" style="background:#F8FAFC;padding:8px 12px;border:1px solid #E2E8F0;border-radius:6px;font-size:11.5px">
                 <div>
                   <strong>v${v.versionNumber}</strong>: ${escapeHtml(v.changeSummary)}
                   <span style="display:block;font-size:10px;color:#64748B">${new Date(v.createdAt).toLocaleString()}</span>
@@ -6090,8 +6052,8 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
     return `
       <div class="dash-card" style="padding:0;overflow:hidden;border:1px solid #CBD5E1">
         <!-- Simulator Top Bar -->
-        <div style="background:#1E293B;color:#FFFFFF;padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;align-items:center">
-          <div style="display:flex;align-items:center;gap:6px">
+        <div class="flex-between" style="background:#1E293B;color:#FFFFFF;padding:8px 16px;font-size:12px">
+          <div class="flex-row gap-6">
             <span style="width:10px;height:10px;border-radius:50%;background:#EF4444"></span>
             <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B"></span>
             <span style="width:10px;height:10px;border-radius:50%;background:#10B981"></span>
@@ -6104,7 +6066,7 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
         <div style="background:#0B0F19;color:#F8FAFC;padding:40px 30px;min-height:480px;font-family:'Plus Jakarta Sans',sans-serif">
           
           <!-- Funnel Header -->
-          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1E293B;padding-bottom:16px;margin-bottom:30px">
+          <div class="flex-between mb-30" style="border-bottom:1px solid #1E293B;padding-bottom:16px">
             <div style="font-weight:800;font-size:16px;letter-spacing:1px;color:#FFFFFF">ASENZO <span style="color:#38BDF8">OS</span></div>
             <button class="btn btn-secondary btn-sm" style="color:#0B0F19;background:#FFFFFF;border:none; cursor:pointer;" onclick="handleTrackSimulatedEvent('CTA_CLICK')">Booking</button>
           </div>
@@ -6112,35 +6074,35 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
           <!-- Hero & Headline -->
           <div style="text-align:center;max-width:700px;margin:0 auto 30px">
             <h2 style="font-size:26px;font-weight:800;line-height:1.25;color:#FFFFFF;background:linear-gradient(to right,#FFFFFF,#94A3B8);-webkit-background-clip:text;-webkit-text-fill-color:transparent">${prev.components.headline}</h2>
-            <p style="font-size:13.5px;color:#94A3B8;margin-top:10px">${prev.components.targetIcp}</p>
+            <p class="mt-12" style="font-size:13.5px;color:#94A3B8">${prev.components.targetIcp}</p>
           </div>
 
           <!-- VSL Simulated Video Card -->
           <div style="max-width:640px;margin:0 auto 30px;background:#1E293B;border-radius:12px;border:1px solid #334155;overflow:hidden;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5)">
             <div style="position:relative;background:#030712;aspect-ratio:16/9;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px" id="vsl-simulated-player">
               <span style="font-size:42px;cursor:pointer;background:#38BDF8;color:#0B0F19;width:70px;height:70px;border-radius:50%;display:flex;justify-content:center;align-items:center;box-shadow:0 0 20px rgba(56,189,248,0.5)" onclick="simulateVslPlayback()">▶</span>
-              <div style="margin-top:14px;font-size:13px;font-weight:700;color:#FFFFFF">${prev.vsl.title}</div>
-              <div style="font-size:11px;color:#64748B;margin-top:4px">Click Play to watch the 5-step OS mechanism video teardown.</div>
+              <div class="txt-heading-sm mt-12">${prev.vsl.title}</div>
+              <div class="mt-4" style="font-size:11px;color:#64748B">Click Play to watch the 5-step OS mechanism video teardown.</div>
             </div>
             
             <!-- Playback scripts container (hidden by default, shown when play clicked) -->
             <div id="vsl-playback-script" class="hidden" style="background:#0F172A;padding:16px;border-top:1px solid #1E293B;font-size:12px;line-height:1.5">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="flex-between mb-8">
                 <span class="sb-badge green" style="background:#059669;color:#FFFFFF">VSL TRANSCRIPT PLAYBACK</span>
                 <span id="vsl-play-progress" style="font-family:monospace;color:#38BDF8">0% Complete</span>
               </div>
               <div id="vsl-play-turns" style="color:#E2E8F0;max-height:150px;overflow-y:auto">
                 <p><strong>[Hook]:</strong> ${prev.vsl.hook}</p>
-                <p style="margin-top:6px"><strong>[Problem]:</strong> ${prev.vsl.problem}</p>
-                <p style="margin-top:6px"><strong>[Mechanism]:</strong> ${prev.vsl.mechanism}</p>
-                <p style="margin-top:6px"><strong>[Proof]:</strong> ${prev.vsl.proofSummary}</p>
-                <p style="margin-top:6px"><strong>[CTA]:</strong> ${prev.vsl.ctaText}</p>
+                <p class="mt-6"><strong>[Problem]:</strong> ${prev.vsl.problem}</p>
+                <p class="mt-6"><strong>[Mechanism]:</strong> ${prev.vsl.mechanism}</p>
+                <p class="mt-6"><strong>[Proof]:</strong> ${prev.vsl.proofSummary}</p>
+                <p class="mt-6"><strong>[CTA]:</strong> ${prev.vsl.ctaText}</p>
               </div>
             </div>
           </div>
 
           <!-- Bottom CTAs -->
-          <div style="display:flex;justify-content:center;gap:12px;margin-bottom:40px">
+          <div class="mb-40" style="display:flex;justify-content:center;gap:12px">
             <button class="btn btn-primary" style="background:#38BDF8;color:#0B0F19;border:none;padding:12px 24px; cursor:pointer;" onclick="handleStartQuestionnaire()">
               📋 Start Lead Qualification
             </button>
@@ -6157,30 +6119,30 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
           </div>
 
           <!-- Proof Section -->
-          <div style="margin-top:40px;border-top:1px solid #1E293B;padding-top:30px">
-            <div style="font-size:14px;font-weight:800;color:#FFFFFF;text-align:center;margin-bottom:20px;text-transform:uppercase;letter-spacing:1px">Verified Authority Proof Assets</div>
+          <div class="mt-40" style="border-top:1px solid #1E293B;padding-top:30px">
+            <div class="txt-heading-sm mb-20" style="text-align:center;;text-transform:uppercase;letter-spacing:1px">Verified Authority Proof Assets</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
               ${prev.proofAssets.map(pa => `
                 <div style="background:#111827;padding:16px;border-radius:8px;border:1px solid #1E293B">
                   <div style="font-size:12px;font-weight:700;color:#38BDF8;text-transform:uppercase">${pa.assetType}</div>
-                  <div style="font-size:13.5px;font-weight:800;color:#FFFFFF;margin-top:4px">${pa.title}</div>
-                  <div style="font-size:12px;color:#94A3B8;margin-top:6px">${pa.resultSummary}</div>
+                  <div class="txt-heading-sm mt-4">${pa.title}</div>
+                  <div class="txt-body-sm text-muted mt-6">${pa.resultSummary}</div>
                 </div>
               `).join('')}
             </div>
           </div>
 
           <!-- Objection Reframing Section -->
-          <div style="margin-top:40px;border-top:1px solid #1E293B;padding-top:30px">
-            <div style="font-size:14px;font-weight:800;color:#FFFFFF;text-align:center;margin-bottom:20px;text-transform:uppercase;letter-spacing:1px">Objections Reframed</div>
-            <div style="display:flex;flex-direction:column;gap:12px;max-width:600px;margin:0 auto">
+          <div class="mt-40" style="border-top:1px solid #1E293B;padding-top:30px">
+            <div class="txt-heading-sm mb-20" style="text-align:center;;text-transform:uppercase;letter-spacing:1px">Objections Reframed</div>
+            <div class="flex-col gap-12" style="max-width:600px;margin:0 auto">
               ${prev.objections.map((o, idx) => `
                 <div style="background:#111827;border-radius:8px;border:1px solid #1E293B;overflow:hidden">
-                  <div style="padding:12px;font-weight:700;font-size:13px;color:#FFFFFF;cursor:pointer;background:#1E293B;display:flex;justify-content:space-between;align-items:center" onclick="document.getElementById('obj-ans-${idx}').classList.toggle('hidden')">
+                  <div class="flex-between txt-heading-sm" style="padding:12px;;cursor:pointer;background:#1E293B" onclick="document.getElementById('obj-ans-${idx}').classList.toggle('hidden')">
                     <span>Q: "${o.objectionText}"</span>
                     <span style="color:#38BDF8">▼</span>
                   </div>
-                  <div id="obj-ans-${idx}" class="hidden" style="padding:14px;font-size:12.5px;color:#94A3B8;line-height:1.5;border-top:1px solid #1E293B">
+                  <div id="obj-ans-${idx}" class="hidden txt-body-sm text-muted" style="padding:14px;;line-height:1.5;border-top:1px solid #1E293B">
                     <strong>Reframed Response:</strong> ${o.founderResponseScript}
                   </div>
                 </div>
@@ -6196,13 +6158,13 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
   if (CONVERSION_FUNNEL_PREVIEW_MODE === 'ANALYTICS') {
     return `
       <div class="dash-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="flex-between mb-14">
           <div>
             <div class="dash-card-title">Real Funnel Visitor Analytics</div>
             <div class="dash-card-sub">Event tracking compiled from user visits, CTA clicks, and qualifications.</div>
           </div>
           
-          <div style="display:flex;gap:6px;align-items:center">
+          <div class="flex-row gap-6">
             <label style="font-size:12px;font-weight:700;color:#64748B">Environment:</label>
             <select id="funnel-env-select" style="padding:4px 8px;border-radius:4px;border:1px solid #CBD5E1;font:inherit;font-size:12px" onchange="handleSwitchFunnelEnv(this.value)">
               <option value="PRODUCTION" ${CONVERSION_FUNNEL_ENV === 'PRODUCTION' ? 'selected' : ''}>Production (Real Traffic)</option>
@@ -6211,7 +6173,7 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
           </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-bottom:20px">
+        <div class="mb-20" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px">
           <div class="metric-card" style="padding:12px">
             <div style="font-size:11px;color:#64748B">Visits</div>
             <div style="font-size:20px;font-weight:800;color:#0F172A">${m.visits || 0}</div>
@@ -6240,8 +6202,8 @@ function getFunnelWorkspaceContentHtml(f, prev, m) {
         </div>
 
         <div style="background:#F8FAFC;padding:16px;border-radius:10px;border:1px solid #E2E8F0">
-          <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:10px">Attribution Integrity Dashboard</div>
-          <div style="font-size:12px;color:#475569;line-height:1.5">
+          <div class="txt-heading-sm mb-10">Attribution Integrity Dashboard</div>
+          <div class="txt-body-sm text-muted" style="line-height:1.5">
             Visits, conversions, and booking parameters are verified and logged strictly from landing page events. Zero data is fabricated.
             Use the <strong>"Live Funnel Preview"</strong> tab to trigger test interactions and watch the metrics update inside the <strong>"Simulated (Test Sandbox)"</strong> mode in real-time.
           </div>
@@ -6373,9 +6335,9 @@ function renderSimulatedQuestion() {
   if (CURRENT_QUESTION_INDEX < SIMULATED_QUESTIONS.length) {
     const q = SIMULATED_QUESTIONS[CURRENT_QUESTION_INDEX];
     cont.innerHTML = `
-      <div style="font-weight:700;font-size:11px;color:#FFFFFF;margin-bottom:8px">Step ${CURRENT_QUESTION_INDEX + 1} of 3:</div>
-      <div style="font-size:13px;color:#FFFFFF;margin-bottom:10px">${q}</div>
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="mb-8" style="font-weight:700;font-size:11px;color:#FFFFFF">Step ${CURRENT_QUESTION_INDEX + 1} of 3:</div>
+      <div class="txt-body mb-10">${q}</div>
+      <div class="flex-col gap-6">
         ${CURRENT_QUESTION_INDEX === 0 ? `
           <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(0, 'Doing $35k/mo')">$15k - $50k/mo</button>
           <button class="btn btn-secondary btn-sm" style="padding:6px; font-size:11.5px" onclick="handleAnswerQuestionnaire(0, 'Pre-revenue')">Pre-revenue (< $10k/mo)</button>
@@ -6408,17 +6370,17 @@ function renderSimulatedQuestion() {
       cont.innerHTML = `
         <div style="text-align:center;padding:10px">
           <span style="font-size:28px">🏆</span>
-          <div style="font-weight:800;font-size:14px;color:#10B981;margin-top:8px">FOUNDER QUALIFIED!</div>
-          <div style="font-size:11.5px;color:#94A3B8;margin-top:4px">Your answers match the ASENZO B2B operating benchmark criteria. Let's install capability.</div>
-          <button class="btn btn-primary btn-sm" style="margin-top:10px;background:#38BDF8;color:#0B0F19;border:none" onclick="handleTrackSimulatedEvent('BOOKING')">Book Strategy Call</button>
+          <div class="txt-heading-sm mt-8">FOUNDER QUALIFIED!</div>
+          <div class="mt-4" style="font-size:11.5px;color:#94A3B8">Your answers match the ASENZO B2B operating benchmark criteria. Let's install capability.</div>
+          <button class="btn btn-primary btn-sm mt-12" style="background:#38BDF8;color:#0B0F19;border:none" onclick="handleTrackSimulatedEvent('BOOKING')">Book Strategy Call</button>
         </div>
       `;
     } else {
       cont.innerHTML = `
         <div style="text-align:center;padding:10px">
-          <span style="font-size:28px">⚠️</span>
-          <div style="font-weight:800;font-size:14px;color:#EF4444;margin-top:8px">OUT OF BENCHMARK</div>
-          <div style="font-size:11.5px;color:#94A3B8;margin-top:4px;margin-bottom:8px">${reason}</div>
+          <span style="font-size:28px"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">warning</span>️</span>
+          <div class="txt-heading-sm mt-8">OUT OF BENCHMARK</div>
+          <div class="mt-4 mb-8" style="font-size:11.5px;color:#94A3B8">${reason}</div>
           <button class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size:11px" onclick="handleStartQuestionnaire()">🔄 Retry</button>
         </div>
       `;
@@ -6437,9 +6399,9 @@ function handleAnswerQuestionnaire(index, val) {
 function renderConversionDmQualifierSubTab() {
   if (!CONVERSION_CONVERSATIONS || CONVERSION_CONVERSATIONS.length === 0) {
     return `
-      <div style="padding:40px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px">
-        <h3 style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px">No DM Conversations Logged</h3>
-        <p style="font-size:13px;color:#64748B;margin-bottom:16px">No active inbox conversations fetched. Click below to register a test DM thread.</p>
+      <div class="refine-card-dashed">
+        <h3 class="txt-heading-md mb-6">No DM Conversations Logged</h3>
+        <p class="txt-body mb-16">No active inbox conversations fetched. Click below to register a test DM thread.</p>
         <button class="btn btn-primary" onclick="handleCreateTestConversation()">+ Create Test Conversation</button>
       </div>
     `;
@@ -6452,18 +6414,18 @@ function renderConversionDmQualifierSubTab() {
     <div style="display:grid;grid-template-columns:250px 1fr 340px;gap:16px;height:calc(100vh - 220px);min-height:500px">
       
       <!-- Left sidebar: conversations list -->
-      <div class="dash-card" style="padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+      <div class="dash-card flex-col gap-8" style="padding:10px;;overflow-y:auto">
         <div style="font-size:12.5px;font-weight:800;color:#0F172A;padding:4px 6px">Inbound DM Inbox</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flex-col gap-6">
           ${CONVERSION_CONVERSATIONS.map(c => {
             const isActive = c.id === CONVERSION_ACTIVE_CONV_ID;
             return `
               <div style="padding:10px;border-radius:8px;border:1px solid ${isActive ? '#0EA5E9' : '#E2E8F0'};background:${isActive ? '#F0F9FF' : '#FFFFFF'};cursor:pointer" onclick="handleSelectConversation('${c.id}')">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <strong style="font-size:12px;color:#0F172A">${c.participant_handle || c.participantHandle}</strong>
+                <div class="flex-between">
+                  <strong class="txt-body-sm text-muted">${c.participant_handle || c.participantHandle}</strong>
                   <span class="sb-badge gray" style="font-size:9px">${c.platform}</span>
                 </div>
-                <div style="font-size:10px;color:#64748B;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                <div class="mt-4" style="font-size:10px;color:#64748B;;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                   Status: <strong>${c.status || 'PENDING'}</strong>
                 </div>
               </div>
@@ -6477,16 +6439,16 @@ function renderConversionDmQualifierSubTab() {
 
       <!-- Center panel: chat view -->
       <div class="dash-card" style="padding:12px;display:flex;flex-direction:column;justify-content:space-between;background:#F8FAFC;border:1px solid #E2E8F0">
-        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+        <div class="flex-between mb-10" style="border-bottom:1px solid #E2E8F0;padding-bottom:8px">
           <div>
             <strong style="font-size:13.5px;color:#0F172A">${activeConv.participant_handle || activeConv.participantHandle}</strong>
             <span style="font-size:11px;color:#64748B;margin-left:6px">${activeConv.platform} Inbox</span>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="handleTriggerAiTriage('${activeConv.id}')">⚡ Run AI Triage Analysis</button>
+          <button class="btn btn-secondary btn-sm" onclick="handleTriggerAiTriage('${activeConv.id}')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Run AI Triage Analysis</button>
         </div>
 
         <!-- Chat bubble container -->
-        <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:8px" id="chat-thread-container">
+        <div class="flex-col gap-12" style="flex:1;overflow-y:auto;;padding:8px" id="chat-thread-container">
           ${activeMessages.length > 0 ? activeMessages.map(m => {
             const isFounder = m.sender_type === 'FOUNDER';
             return `
@@ -6496,7 +6458,7 @@ function renderConversionDmQualifierSubTab() {
                             color:${isFounder ? '#FFFFFF' : '#0F172A'};
                             border:1px solid ${isFounder ? '#0EA5E9' : '#CBD5E1'}">
                   ${escapeHtml(m.message_text || m.messageText)}
-                  <span style="display:block;font-size:9px;color:${isFounder ? '#E0F2FE' : '#94A3B8'};text-align:right;margin-top:4px">
+                  <span class="mt-4" style="display:block;font-size:9px;color:${isFounder ? '#E0F2FE':'#94A3B8'};text-align:right">
                     ${new Date(m.sent_at || m.sentAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -6508,43 +6470,43 @@ function renderConversionDmQualifierSubTab() {
         </div>
 
         <!-- Message input bar -->
-        <form onsubmit="handleSendDmMessage(event, '${activeConv.id}')" style="display:flex;gap:8px;margin-top:10px;border-top:1px solid #E2E8F0;padding-top:10px">
+        <form onsubmit="handleSendDmMessage(event, '${activeConv.id}')" class="flex-row gap-8 mt-12" style="border-top:1px solid #E2E8F0;padding-top:10px">
           <input type="text" id="dm-message-input" placeholder="Type a message to prospect..." required style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;font-size:13px" />
           <button type="submit" class="btn btn-primary btn-sm">Send</button>
         </form>
       </div>
 
       <!-- Right sidebar: AI qualifier panel -->
-      <div class="dash-card" style="padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px">
-        <div style="font-size:13px;font-weight:800;color:#0F172A;border-bottom:1px solid #E2E8F0;padding-bottom:6px">AI Triage Qualifier</div>
+      <div class="dash-card flex-col gap-12" style="padding:12px;overflow-y:auto">
+        <div class="txt-heading-sm" style="border-bottom:1px solid #E2E8F0;padding-bottom:6px">AI Triage Qualifier</div>
 
         ${CONVERSION_AI_TRIAGE_RESULT ? `
           <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div class="flex-between mb-6">
               <span style="font-size:12px;font-weight:700;color:#64748B">Triage Status:</span>
               <span class="sb-badge ${CONVERSION_AI_TRIAGE_RESULT.qualificationStatus === 'QUALIFIED' ? 'green' : CONVERSION_AI_TRIAGE_RESULT.qualificationStatus === 'DISQUALIFIED' ? 'red' : 'blue'}">
                 ${CONVERSION_AI_TRIAGE_RESULT.qualificationStatus}
               </span>
             </div>
             
-            <div style="margin-bottom:8px">
+            <div class="mb-8">
               <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B">
                 <span>Confidence Score:</span>
                 <span>${CONVERSION_AI_TRIAGE_RESULT.confidence}%</span>
               </div>
-              <div style="background:#E2E8F0;height:6px;border-radius:3px;overflow:hidden;margin-top:3px">
+              <div class="mt-3" style="background:#E2E8F0;height:6px;border-radius:3px;overflow:hidden">
                 <div style="background:#0EA5E9;width:${CONVERSION_AI_TRIAGE_RESULT.confidence}%;height:100%"></div>
               </div>
             </div>
 
             <!-- Evidence section -->
-            <div style="background:#F1F5F9;padding:8px;border-radius:6px;border:1px solid #E2E8F0;font-size:11.5px;margin-bottom:8px">
-              <div style="font-weight:700;color:#0F172A;margin-bottom:2px">Dialogue Evidence:</div>
+            <div class="mb-8" style="background:#F1F5F9;padding:8px;border-radius:6px;border:1px solid #E2E8F0;font-size:11.5px">
+              <div class="mb-2" style="font-weight:700;color:#0F172A">Dialogue Evidence:</div>
               <p style="color:#475569;margin:0;font-style:italic">"${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.evidence)}"</p>
             </div>
 
             <!-- Extracted variables -->
-            <div style="display:flex;flex-direction:column;gap:4px;font-size:11.5px;margin-bottom:8px">
+            <div class="flex-col gap-4 mb-8" style="font-size:11.5px">
               <div>📍 Urgency: <strong>${CONVERSION_AI_TRIAGE_RESULT.extractedData.urgency}</strong></div>
               <div>📍 Problem: <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.extractedData.problem)}</span></div>
               <div>📍 Situation: <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.extractedData.currentSituation)}</span></div>
@@ -6552,28 +6514,28 @@ function renderConversionDmQualifierSubTab() {
             </div>
 
             <!-- Missing Info -->
-            <div style="font-size:11.5px;margin-bottom:8px">
+            <div class="mb-8" style="font-size:11.5px">
               <span style="font-weight:700;color:#DC2626">Missing Info:</span>
               <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.missingInformation || 'None')}</span>
             </div>
 
             <!-- Next Action -->
-            <div style="font-size:11.5px;margin-bottom:8px">
+            <div class="mb-8" style="font-size:11.5px">
               <span style="font-weight:700;color:#4F46E5">Next Action:</span>
               <span style="color:#475569">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.recommendedNextAction)}</span>
             </div>
 
             <!-- AI Drafted Reply approval box -->
-            <div style="border-top:1px solid #E2E8F0;padding-top:8px;margin-top:8px">
-              <div style="font-weight:700;font-size:12px;color:#0F172A;margin-bottom:4px">AI Drafted Sales Message:</div>
+            <div class="mt-8" style="border-top:1px solid #E2E8F0;padding-top:8px">
+              <div class="txt-body-sm text-muted mb-4" style="font-weight:700">AI Drafted Sales Message:</div>
               <textarea id="ai-drafted-reply-input" rows="4" style="width:100%;padding:6px;border-radius:6px;border:1px solid #CBD5E1;font:inherit;font-size:11.5px;resize:vertical">${escapeHtml(CONVERSION_AI_TRIAGE_RESULT.draftedReply)}</textarea>
-              <button class="btn btn-primary btn-sm btn-block" style="margin-top:6px" onclick="handleApproveAndSendDraft('${activeConv.id}')">Approve & Send Message</button>
+              <button class="btn btn-primary btn-sm btn-block mt-6" onclick="handleApproveAndSendDraft('${activeConv.id}')">Approve & Send Message</button>
             </div>
 
             <!-- Human Override -->
-            <div style="border-top:1px solid #E2E8F0;padding-top:8px;margin-top:8px">
-              <div style="font-weight:700;font-size:12px;color:#0F172A;margin-bottom:6px">Manual Override (CRM Sync)</div>
-              <div style="display:flex;gap:6px">
+            <div class="mt-8" style="border-top:1px solid #E2E8F0;padding-top:8px">
+              <div class="txt-body-sm text-muted mb-6" style="font-weight:700">Manual Override (CRM Sync)</div>
+              <div class="flex-row gap-6">
                 <button class="btn btn-secondary btn-sm" style="flex:1" onclick="handleOverrideStatus('${activeConv.id}', 'QUALIFIED')">Qualify</button>
                 <button class="btn btn-secondary btn-sm" style="flex:1" onclick="handleOverrideStatus('${activeConv.id}', 'DISQUALIFIED')">Disqualify</button>
               </div>
@@ -6716,10 +6678,10 @@ async function handleCreateTestConversation() {
 function renderConversionStorySequencesSubTab() {
   if (!CONVERSION_STORY_SEQUENCES || CONVERSION_STORY_SEQUENCES.length === 0) {
     return `
-      <div style="padding:40px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px">
-        <h3 style="font-size:16px;font-weight:700;color:#0F172A;margin-bottom:6px">No Story Sequences Configured</h3>
-        <p style="font-size:13px;color:#64748B;margin-bottom:16px">You have not created or generated any conversion sequences yet.</p>
-        <button class="btn btn-primary" onclick="handleGenerateStorySequence()">⚡ Generate AI Story Sequence</button>
+      <div class="refine-card-dashed">
+        <h3 class="txt-heading-md mb-6">No Story Sequences Configured</h3>
+        <p class="txt-body mb-16">You have not created or generated any conversion sequences yet.</p>
+        <button class="btn btn-primary" onclick="handleGenerateStorySequence()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Generate AI Story Sequence</button>
       </div>
     `;
   }
@@ -6731,35 +6693,35 @@ function renderConversionStorySequencesSubTab() {
     <div style="display:grid;grid-template-columns:250px 1fr;gap:20px;height:calc(100vh - 220px);min-height:500px">
       
       <!-- Left sidebar: sequence list -->
-      <div class="dash-card" style="padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+      <div class="dash-card flex-col gap-8" style="padding:10px;;overflow-y:auto">
         <div style="font-size:12.5px;font-weight:800;color:#0F172A;padding:4px 6px">Nurture Sequences</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flex-col gap-6">
           ${CONVERSION_STORY_SEQUENCES.map(s => {
             const isActive = s.id === CONVERSION_ACTIVE_SEQ_ID;
             return `
               <div style="padding:10px;border-radius:8px;border:1px solid ${isActive ? '#0EA5E9' : '#E2E8F0'};background:${isActive ? '#F0F9FF' : '#FFFFFF'};cursor:pointer" onclick="handleSelectSequence('${s.id}')">
                 <div style="font-size:12px;font-weight:700;color:#0F172A">${escapeHtml(s.name)}</div>
-                <div style="font-size:10px;color:#64748B;margin-top:4px">${s.triggerEvent || s.trigger_event}</div>
+                <div class="mt-4" style="font-size:10px;color:#64748B">${s.triggerEvent || s.trigger_event}</div>
               </div>
             `;
           }).join('')}
         </div>
         
         <div style="margin-top:auto;padding-top:10px">
-          <button class="btn btn-secondary btn-sm btn-block" onclick="handleGenerateStorySequence()">⚡ AI Generate Sequence</button>
+          <button class="btn btn-secondary btn-sm btn-block" onclick="handleGenerateStorySequence()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> AI Generate Sequence</button>
         </div>
       </div>
 
       <!-- Right panel: active sequence details -->
-      <div class="dash-card" style="padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:14px">
-        <div style="border-bottom:1px solid #E2E8F0;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <div class="dash-card flex-col gap-12" style="padding:16px;overflow-y:auto">
+        <div class="flex-between" style="border-bottom:1px solid #E2E8F0;padding-bottom:10px">
           <div>
-            <div style="font-size:15px;font-weight:800;color:#0F172A">${escapeHtml(activeSeq.name)}</div>
-            <div style="font-size:12px;color:#64748B;margin-top:2px">Trigger: <code style="background:#F1F5F9;padding:1px 4px;border-radius:4px">${activeSeq.triggerEvent || activeSeq.trigger_event}</code></div>
+            <div class="txt-heading-sm">${escapeHtml(activeSeq.name)}</div>
+            <div class="txt-body-sm text-muted mt-2">Trigger: <code style="background:#F1F5F9;padding:1px 4px;border-radius:4px">${activeSeq.triggerEvent || activeSeq.trigger_event}</code></div>
           </div>
           
           <!-- Platform adaptation buttons -->
-          <div style="display:flex;gap:4px;background:#F1F5F9;padding:2px;border-radius:6px;border:1px solid #E2E8F0">
+          <div class="flex-row gap-4" style="background:#F1F5F9;padding:2px;border-radius:6px;border:1px solid #E2E8F0">
             ${['LINKEDIN', 'X_TWITTER', 'NEWSLETTER', 'EMAIL'].map(p => `
               <button class="btn btn-sm" style="font-size:11px;padding:4px 8px;border:none;
                                                 background:${CONVERSION_STORY_PLATFORM === p ? '#FFFFFF' : 'transparent'};
@@ -6774,7 +6736,7 @@ function renderConversionStorySequencesSubTab() {
         </div>
 
         <!-- Timeline steps mapping (Curiosity -> Problem -> Mechanism -> Proof -> CTA) -->
-        <div style="display:flex;flex-direction:column;gap:20px;position:relative;padding-left:14px">
+        <div class="flex-col gap-20" style="position:relative;padding-left:14px">
           <!-- Timeline line -->
           <div style="position:absolute;left:4px;top:10px;bottom:10px;width:2px;background:#E2E8F0"></div>
 
@@ -6788,19 +6750,19 @@ function renderConversionStorySequencesSubTab() {
                 <div style="position:absolute;left:-14px;top:4px;width:10px;height:10px;border-radius:50%;background:#0EA5E9;border:2px solid #FFFFFF"></div>
                 
                 <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px">
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                    <span style="font-size:11px;font-weight:700;color:#0EA5E9;text-transform:uppercase;letter-spacing:0.5px">Step ${idx + 1}: ${getFrameworkStageLabel(idx + 1)}</span>
+                  <div class="flex-between mb-6">
+                    <span class="txt-body-xs text-faint" style="letter-spacing:0.5px">Step ${idx + 1}: ${getFrameworkStageLabel(idx + 1)}</span>
                     <span class="sb-badge gray" style="font-size:10px">Day ${s.day}</span>
                   </div>
 
-                  <div style="font-weight:700;font-size:13px;color:#0F172A;margin-bottom:6px">${escapeHtml(s.subject)}</div>
+                  <div class="txt-heading-sm mb-6">${escapeHtml(s.subject)}</div>
                   
-                  <div style="font-size:12.5px;color:#334155;background:#FFFFFF;padding:10px;border:1px solid #CBD5E1;border-radius:6px;line-height:1.45;white-space:pre-wrap;font-family:inherit" id="story-step-text-${idx}">
+                  <div class="txt-body-sm text-muted" style="background:#FFFFFF;padding:10px;border:1px solid #CBD5E1;border-radius:6px;line-height:1.45;white-space:pre-wrap;font-family:inherit" id="story-step-text-${idx}">
                     ${escapeHtml(platformText)}
                   </div>
 
                   <!-- Attribution & CTA Info -->
-                  <div style="margin-top:8px;font-size:11px;color:#64748B;display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;padding:6px 10px;border-radius:6px;border:1px solid #BFDBFE">
+                  <div class="flex-between mt-8" style="font-size:11px;color:#64748B;;background:#EFF6FF;padding:6px 10px;border-radius:6px;border:1px solid #BFDBFE">
                     <span>CTA Link: <code style="color:#1E40AF">${s.ctaText || s.cta_text || 'Learn More'}</code></span>
                     <a href="${attributionLink}" target="_blank" style="color:#0EA5E9;font-weight:700;text-decoration:none" onclick="event.preventDefault(); showToast('CTA attribution link copied: ' + this.href)">
                       📋 Attribution Link
@@ -6812,8 +6774,8 @@ function renderConversionStorySequencesSubTab() {
           }).join('')}
         </div>
 
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;border-top:1px solid #E2E8F0;padding-top:14px">
-          <button class="btn btn-secondary" onclick="handleGenerateStorySequence()">⚡ Regenerate Sequence</button>
+        <div class="flex-row gap-12 mt-12" style="justify-content:flex-end;;border-top:1px solid #E2E8F0;padding-top:14px">
+          <button class="btn btn-secondary" onclick="handleGenerateStorySequence()"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Regenerate Sequence</button>
           <button class="btn btn-primary" onclick="handleSaveStorySequence('${activeSeq.id}')">💾 Save Sequence Configuration</button>
         </div>
 

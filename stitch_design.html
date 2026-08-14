@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ASENZO Growth OS - Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-tint": "#095bbf",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#adc6ff",
+                        "primary": "#00418f",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#0058bc",
+                        "error": "#ba1a1a",
+                        "tertiary": "#424546",
+                        "secondary-container": "#e3e2e5",
+                        "primary-fixed-dim": "#adc6ff",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container-low": "#eff4ff",
+                        "on-tertiary-fixed-variant": "#454748",
+                        "primary-fixed": "#d8e2ff",
+                        "on-primary-fixed": "#001a41",
+                        "background": "#f8f9ff",
+                        "on-tertiary-fixed": "#191c1d",
+                        "on-secondary-fixed-variant": "#464749",
+                        "outline-variant": "#c2c6d5",
+                        "on-primary-container": "#c3d4ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#1b1c1e",
+                        "on-surface": "#0b1c30",
+                        "on-primary-fixed-variant": "#004494",
+                        "tertiary-fixed": "#e1e3e4",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-tertiary-container": "#d3d5d6",
+                        "inverse-on-surface": "#eaf1ff",
+                        "secondary": "#5e5e61",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#e5eeff",
+                        "on-secondary-container": "#646467",
+                        "on-surface-variant": "#424753",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#5a5c5d",
+                        "on-background": "#0b1c30",
+                        "tertiary-fixed-dim": "#c5c7c8",
+                        "outline": "#727784",
+                        "surface-dim": "#cbdbf5",
+                        "secondary-fixed": "#e3e2e5",
+                        "secondary-fixed-dim": "#c7c6c9",
+                        "inverse-surface": "#213145",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    },
+                    spacing: {
+                        xl: "32px",
+                        "2xl": "48px",
+                        lg: "24px",
+                        sm: "8px",
+                        base: "4px",
+                        gutter: "24px",
+                        xs: "4px",
+                        md: "16px",
+                        margin: "32px"
+                    },
+                    fontFamily: {
+                        "title-lg": ["Geist", "sans-serif"],
+                        "headline-lg": ["Geist", "sans-serif"],
+                        "display-lg": ["Geist", "sans-serif"],
+                        "body-md": ["Geist", "sans-serif"],
+                        "label-sm": ["Geist", "sans-serif"],
+                        "label-md": ["Geist", "sans-serif"],
+                        "body-lg": ["Geist", "sans-serif"],
+                        "headline-md": ["Geist", "sans-serif"],
+                        "headline-lg-mobile": ["Geist", "sans-serif"]
+                    },
+                    fontSize: {
+                        "title-lg": ["18px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "500" }],
+                        "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.03em", fontWeight: "600" }],
+                        "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.04em", fontWeight: "600" }],
+                        "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
+                        "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.01em", fontWeight: "500" }],
+                        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "600" }],
+                        "body-lg": ["16px", { lineHeight: "24px", letterSpacing: "0em", fontWeight: "400" }],
+                        "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" }],
+                        "headline-lg-mobile": ["28px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "600" }]
+                    }
+                }
+            }
+        };
+    </script>
+<style>
+        body { font-family: 'Geist', sans-serif; background-color: #f9fafb; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .bg-obsidian { background-color: #0b0c0e; }
+        .text-obsidian-muted { color: #8a8f98; }
+    </style>
+</head>
+<body class="text-on-surface flex min-h-screen">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-screen w-[280px] bg-[#0b0c0e] border-r border-outline-variant flex flex-col py-xl z-50">
+<!-- Header -->
+<div class="px-gutter mb-xl flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest/20 flex items-center justify-center border border-outline-variant/30 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A sleek, minimalist vector logo for an enterprise software company. The design should feature geometric shapes, primarily deep blues and silver, set against a dark background. It conveys precision, engineering, and high-performance business growth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGjMOED-iSY3jH1vEWCetyF9zvXy7roxbBDwcdwbrxTap8GsR3FpYrDviLdh-G-PoOkIL9Pr1AyLE9C0Tmhm2EuCnYbQmYW8sp7bJ4O-NT91HMi-UfOV7B6L5lgFCZ_8o273rk_KY-nDUlSi6opCk9MfhWm9Fyh6eRSe_oxU-P_m4DYuCW968jp_yT1462OZGgQes7fTmfLV935hDoxlnFJRhFE28PpCNhbmIcSKY0VVYw_WZRKKnycuqanJm3h1Wxu39XSo38ToJN"/>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-white">ASENZO Growth OS</h1>
+<p class="font-label-md text-label-md text-obsidian-muted">Enterprise Command Center</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<div class="flex-1 overflow-y-auto font-label-md text-label-md">
+<div class="px-md mb-sm">
+<span class="text-xs uppercase tracking-wider text-obsidian-muted pl-md font-bold">Foundation</span>
+</div>
+<ul class="space-y-sm px-sm">
+<li>
+<a class="flex items-center gap-md px-md py-sm text-primary-fixed-dim border-l-4 border-primary-container bg-surface-container-highest/10 hover:bg-surface-variant/10 hover:text-white transition-colors duration-200 scale-98" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                        Overview
+                    </a>
+</li>
+</ul>
+<div class="px-md mt-lg mb-sm">
+<span class="text-xs uppercase tracking-wider text-obsidian-muted pl-md font-bold">Growth Engines</span>
+</div>
+<ul class="space-y-sm px-sm">
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:bg-surface-variant/10 hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">ads_click</span>
+                        Acquire
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:bg-surface-variant/10 hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">sync_alt</span>
+                        Convert
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:bg-surface-variant/10 hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+                        Deliver
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:bg-surface-variant/10 hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">auto_graph</span>
+                        Retain
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:bg-surface-variant/10 hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+                        Optimize
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:bg-surface-variant/10 hover:text-white transition-colors duration-200 mt-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+                        Settings
+                    </a>
+</li>
+</ul>
+</div>
+<!-- Footer / CTA -->
+<div class="px-md mt-auto">
+<div class="bg-surface-container-highest/10 border border-outline-variant/20 rounded-xl p-md mb-md">
+<p class="font-label-sm text-label-sm text-obsidian-muted uppercase tracking-wider mb-xs">System Health</p>
+<div class="flex items-end justify-between">
+<span class="font-headline-md text-headline-md text-white font-bold">FIS: 84</span>
+<span class="font-label-md text-label-md text-emerald-400">Stable</span>
+</div>
+<button class="mt-md w-full py-sm bg-primary-container text-white rounded-lg font-label-md text-label-md hover:bg-primary-container/90 transition-colors flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined text-[16px]">smart_toy</span>
+                    FIS Score / AI Coach
+                </button>
+</div>
+<ul class="space-y-sm px-sm font-label-md text-label-md">
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+                        Support
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm text-secondary-fixed-dim hover:text-white transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">notifications</span>
+                        Notifications
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-[280px] flex-1 flex flex-col min-h-screen w-[calc(100%-280px)]">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-[280px] h-16 bg-surface dark:bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center px-gutter z-40">
+<div class="flex items-center gap-md">
+<span class="font-title-lg text-title-lg font-black text-on-surface">ASENZO</span>
+<div class="h-4 w-px bg-outline-variant mx-sm"></div>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">search</span>
+<input class="pl-10 pr-12 py-2 bg-surface-bright border border-outline-variant rounded-full font-body-md text-body-md focus:ring-2 focus:ring-primary-container focus:border-transparent outline-none w-64 transition-all" placeholder="Search operations..." type="text"/>
+<span class="absolute right-4 text-xs font-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant/50">⌘K</span>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant hover:ring-2 hover:ring-primary-container transition-all">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a confident tech executive in a modern office setting. The lighting is bright and even, highlighting sharp features and a modern aesthetic. The background is slightly blurred showing glass walls and subtle hints of blue light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1TdNY00R7fCCmunZWG8CxXMwH5wXSeDXP7AlW63HbeJxfWP9q6S4J2gKF3oqn-itq3AtN7wlkVES7bKNu4UcLBqJCUNVZeWz4pbrU-QscwmhY4ifD7ad-LJnI6fAEH1dTpBLxhts19MDxdrrtV_rVKid0EayByHcQzig6c1RBznv0h-trsIJ_9ZO7MQYjwhHgEs4Z2e05eYlp6CYGdp9-CuNOG_8iQ7qZTYP-6ziXV3KyZdZXwV2-Ikj1GyY1G1WCBRijIEZeqKOP"/>
+</button>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="pt-24 px-gutter pb-xl max-w-7xl mx-auto w-full flex-1">
+<!-- Page Header -->
+<div class="mb-lg">
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">Command Center</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-sm">Real-time overview of operational health and growth velocity.</p>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg mb-2xl">
+<!-- Hero KPI: FIS Score -->
+<div class="md:col-span-6 lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-2xl p-lg shadow-sm relative overflow-hidden flex flex-col justify-between">
+<!-- Subtle background decoration -->
+<div class="absolute -right-10 -top-10 w-48 h-48 bg-primary-container/5 rounded-full blur-3xl pointer-events-none"></div>
+<div>
+<div class="flex justify-between items-start mb-md">
+<h3 class="font-title-lg text-title-lg text-on-surface font-semibold flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary-container">format_image_left</span>
+                                FIS Score
+                            </h3>
+<span class="px-2.5 py-1 bg-surface-container-high text-primary-container text-xs font-bold rounded-full border border-primary-container/20">High Systemization</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-sm mb-lg">Founder Independence Score represents the degree to which your operations run autonomously without direct intervention.</p>
+</div>
+<div class="mt-auto flex items-end justify-between">
+<div>
+<span class="text-6xl font-black text-on-surface tracking-tighter">84</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant">/100</span>
+</div>
+<div class="flex items-center text-emerald-600 font-label-md text-label-md gap-1 bg-emerald-50 px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+                            +3 pts this month
+                        </div>
+</div>
+</div>
+<!-- Secondary Metrics Grid -->
+<div class="md:col-span-6 lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-md">
+<!-- Pipeline Value -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-md text-primary-container">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Pipeline Value</p>
+<div class="flex items-end gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">$101.5k</span>
+</div>
+</div>
+</div>
+<!-- Active CRM Leads -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-md text-primary-container">
+<span class="material-symbols-outlined">groups</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Active CRM Leads</p>
+<div class="flex items-end gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">24</span>
+<span class="text-xs text-emerald-600 font-semibold mb-1">+12%</span>
+</div>
+</div>
+</div>
+<!-- Pending Ops -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 rounded-lg bg-error-container/30 flex items-center justify-center mb-md text-error">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Pending Ops</p>
+<div class="flex items-end gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">3</span>
+<span class="text-xs text-error font-semibold mb-1">Needs action</span>
+</div>
+</div>
+</div>
+</div>
+</div> <!-- End Bento Grid -->
+<!-- Growth Loop Visualization -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-lg shadow-sm mb-2xl">
+<div class="flex justify-between items-center mb-lg">
+<h3 class="font-title-lg text-title-lg text-on-surface font-semibold">The 5 Growth Engines</h3>
+<button class="text-primary-container font-label-md text-label-md flex items-center gap-xs hover:underline">
+                        View Details <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="relative py-xl">
+<!-- Connecting Line -->
+<div class="absolute top-1/2 left-[10%] right-[10%] h-0.5 bg-outline-variant/30 -translate-y-1/2 z-0"></div>
+<!-- Active Progress Line -->
+<div class="absolute top-1/2 left-[10%] w-[40%] h-0.5 bg-primary-container -translate-y-1/2 z-0 shadow-[0_0_8px_rgba(0,88,188,0.5)]"></div>
+<div class="relative z-10 flex justify-between items-center px-md">
+<!-- Nodes -->
+<div class="flex flex-col items-center gap-sm group cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center shadow-md ring-4 ring-surface-container-lowest group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">ads_click</span>
+</div>
+<span class="font-label-md text-label-md font-bold text-on-surface">Acquire</span>
+</div>
+<div class="flex flex-col items-center gap-sm group cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-primary-container text-white flex items-center justify-center shadow-md ring-4 ring-surface-container-lowest group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sync_alt</span>
+</div>
+<span class="font-label-md text-label-md font-bold text-on-surface">Convert</span>
+</div>
+<div class="flex flex-col items-center gap-sm group cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-surface text-primary-container border-2 border-primary-container flex items-center justify-center shadow-sm ring-4 ring-surface-container-lowest group-hover:scale-110 transition-transform relative">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+<span class="absolute -top-1 -right-1 w-3 h-3 bg-error rounded-full border-2 border-white"></span>
+</div>
+<span class="font-label-md text-label-md font-bold text-primary-container">Deliver</span>
+</div>
+<div class="flex flex-col items-center gap-sm group cursor-pointer opacity-60">
+<div class="w-12 h-12 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant flex items-center justify-center ring-4 ring-surface-container-lowest group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">auto_graph</span>
+</div>
+<span class="font-label-md text-label-md font-medium text-on-surface-variant">Retain</span>
+</div>
+<div class="flex flex-col items-center gap-sm group cursor-pointer opacity-60">
+<div class="w-12 h-12 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant flex items-center justify-center ring-4 ring-surface-container-lowest group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<span class="font-label-md text-label-md font-medium text-on-surface-variant">Optimize</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Data Visuals Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+<!-- Growth Velocity Chart Placeholder -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-lg shadow-sm">
+<h3 class="font-title-lg text-title-lg text-on-surface font-semibold mb-md">Growth Velocity</h3>
+<div class="h-64 w-full bg-surface-container-low rounded-lg border border-outline-variant/50 flex flex-col justify-end p-sm relative overflow-hidden">
+<!-- Abstract Line Chart Representation using Tailwind -->
+<div class="absolute bottom-0 left-0 w-full h-full opacity-20" style="background-image: repeating-linear-gradient(0deg, transparent, transparent 19px, #c2c6d5 20px);"></div>
+<div class="absolute inset-0 flex items-end px-md pb-md gap-2 justify-between z-10">
+<div class="w-1/12 bg-outline-variant/30 rounded-t h-1/6 hover:bg-primary-container/40 transition-colors cursor-pointer"></div>
+<div class="w-1/12 bg-outline-variant/30 rounded-t h-2/6 hover:bg-primary-container/40 transition-colors cursor-pointer"></div>
+<div class="w-1/12 bg-outline-variant/30 rounded-t h-[40%] hover:bg-primary-container/40 transition-colors cursor-pointer"></div>
+<div class="w-1/12 bg-outline-variant/30 rounded-t h-1/2 hover:bg-primary-container/40 transition-colors cursor-pointer"></div>
+<div class="w-1/12 bg-primary-container/60 rounded-t h-[65%] hover:bg-primary-container transition-colors cursor-pointer shadow-[0_0_10px_rgba(0,88,188,0.3)]"></div>
+<div class="w-1/12 bg-primary-container rounded-t h-[85%] hover:bg-primary-container transition-colors cursor-pointer shadow-[0_0_15px_rgba(0,88,188,0.5)]"></div>
+</div>
+</div>
+</div>
+<!-- Resource Allocation Chart Placeholder -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-lg shadow-sm">
+<h3 class="font-title-lg text-title-lg text-on-surface font-semibold mb-md">Resource Allocation</h3>
+<div class="h-64 w-full flex items-center justify-center gap-xl">
+<!-- Abstract Donut Chart Representation -->
+<div class="relative w-48 h-48 rounded-full border-[16px] border-surface-container flex items-center justify-center">
+<!-- Fake segments using conic-gradient in style for demo purposes, representing the engineering aesthetic -->
+<div class="absolute inset-[-16px] rounded-full border-[16px] border-transparent border-t-primary-container border-r-primary-container/70 rotate-45"></div>
+<div class="absolute inset-[-16px] rounded-full border-[16px] border-transparent border-b-outline-variant border-l-outline-variant/50 -rotate-12"></div>
+<div class="text-center">
+<span class="block font-headline-md text-headline-md font-bold text-on-surface">5</span>
+<span class="block font-label-sm text-label-sm text-on-surface-variant uppercase">Engines</span>
+</div>
+</div>
+<!-- Legend -->
+<div class="space-y-md font-body-md text-body-md">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-primary-container"></div>
+<span class="text-on-surface">Acquire (45%)</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-primary-container/70"></div>
+<span class="text-on-surface">Convert (25%)</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+<span class="text-on-surface">Deliver (20%)</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-outline-variant/50"></div>
+<span class="text-on-surface">Retain (10%)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

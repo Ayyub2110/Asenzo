@@ -1,53 +1,54 @@
-/* ══════════════════════════════════════════════════════════════
-   ASENZO GROWTH OPERATING SYSTEM — ENTERPRISE STITCH AMBIENT OS UI
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ASENZO GROWTH OPERATING SYSTEM â€” ENTERPRISE STITCH AMBIENT OS UI
    Design System: Google Stitch Ambient OS Refinement
    Standard: Pixel-Perfect Enterprise Grade Aesthetic & Balance
-   ══════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 :root {
-  /* Ambient OS (Google Stitch) Design System Tokens */
-  --surface: #fcf8fb;
-  --surface-dim: #dcd9dc;
-  --surface-bright: #fcf8fb;
+  /* Ambient OS (Google Stitch) Design System Tokens - Executive Precision (Apple Logic Final) */
+  --surface: #fcf8f8;
+  --surface-dim: #ddd9d9;
+  --surface-bright: #fcf8f8;
   --surface-container-lowest: #ffffff;
-  --surface-container-low: #f6f3f5;
-  --surface-container: #f0edef;
-  --surface-container-high: #eae7ea;
-  --surface-container-highest: #e4e2e4;
+  --surface-container-low: #f7f3f3;
+  --surface-container: #f1eded;
+  --surface-container-high: #ebe7e7;
+  --surface-container-highest: #e5e2e2;
 
-  --on-surface: #1b1b1d;
-  --on-surface-variant: #414755;
-  --inverse-surface: #121214;
-  --inverse-on-surface: #f3f0f2;
-  --outline: #717786;
-  --outline-variant: #c1c6d7;
-  --surface-tint: #005bc1;
+  --on-surface: #1c1b1c;
+  --on-surface-variant: #46464b;
+  --inverse-surface: #101116; /* Apple logic floating sidebar color */
+  --inverse-on-surface: #f4f0f0;
+  --outline: #77767b;
+  --outline-variant: #c7c6cb;
+  --surface-tint: #5e5e64;
 
-  --primary: #0058bc;
+  --primary: #000000;
   --on-primary: #ffffff;
-  --primary-container: #0070eb;
-  --on-primary-container: #fefcff;
+  --primary-container: #1a1b20;
+  --on-primary-container: #83838a;
+  --inverse-primary: #c7c6cd;
 
-  --secondary: #5e5e63;
+  --secondary: #5d5f5f;
   --on-secondary: #ffffff;
-  --secondary-container: #e0dfe4;
-  --on-secondary-container: #626267;
+  --secondary-container: #dfe0e0;
+  --on-secondary-container: #616363;
 
-  --tertiary: #9e3d00;
-  --tertiary-container: #c64f00;
+  --tertiary: #000000;
+  --tertiary-container: #201b13;
   --error: #ba1a1a;
 
   /* Legacy Stitch Compat */
-  --bg-canvas: #f4f4f6;
+  --bg-canvas: #f4f5f7;
   --surface-white: #ffffff;
-  --surface-low: #f6f3f5;
-  --surface-high: #eae7ea;
+  --surface-low: #f7f3f3;
+  --surface-high: #ebe7e7;
 
-  --text-main: #1b1b1d;
-  --text-muted: #64748b;
-  --text-faint: #94a3b8;
+  --text-main: #1c1b1c;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
 
   /* Accent Colors */
   --purple-bg: #f3e8ff;  --purple-accent: #9333ea;
@@ -57,18 +58,18 @@
   --green-bg: #dcfce7;   --green-accent: #16a34a;
 
   /* Corner Radii Scale from DESIGN.md */
-  --r-sm: 0.5rem;    /* 8px */
-  --r-default: 1rem; /* 16px */
-  --r-md: 1.5rem;    /* 24px */
-  --r-lg: 2rem;      /* 32px */
-  --r-xl: 3rem;      /* 48px */
+  --r-sm: 0.25rem;    /* 4px */
+  --r-default: 0.5rem; /* 8px - buttons */
+  --r-md: 0.75rem;    /* 12px - cards */
+  --r-lg: 1.125rem;   /* 18px - sidebar */
+  --r-xl: 1.5rem;     /* 24px */
   --r-full: 9999px;
 
-  --sidebar-w: 250px;
+  --sidebar-w: 260px;
   --topbar-h: 60px;
 
   /* Component Shadows & Glass Elevation from DESIGN.md */
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04), inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
   --shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.08);
   --shadow-sidebar: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
@@ -91,8 +92,8 @@ html, body {
   font-size: 14px;
   line-height: 20px;
   letter-spacing: -0.011em;
-  color: var(--text-muted);
-  background-color: var(--bg-canvas);
+  color: #111114;
+  background-color: #F4F5F7;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -121,22 +122,23 @@ input, select, textarea {
   border-radius: var(--r-full);
 }
 
-/* ══════════════ FULLSCREEN APP CONTAINER ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• FULLSCREEN APP CONTAINER â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .app-shell {
   display: flex;
   width: 100vw;
   height: 100vh;
-  padding: 14px;
-  gap: 16px;
   overflow: hidden;
   background-color: var(--bg-canvas);
 }
 
-/* ══════════════ FLOATING DARK SIDEBAR ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• FLOATING DARK SIDEBAR â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .sidebar {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
-  background-color: var(--inverse-surface);
+  background: linear-gradient(180deg, #0B0C0E 0%, #1D1D1F 100%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--r-lg);
   display: flex;
   flex-direction: column;
@@ -222,40 +224,60 @@ input, select, textarea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   overflow-y: auto;
   overflow-x: hidden;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.sb-nav::-webkit-scrollbar {
+  width: 3px;
+}
+.sb-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.sb-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 .sb-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 16px;
-  border-radius: var(--r-full);
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 13.5px;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #A1A1AA;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .sb-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+  color: #FAFAFA;
 }
 
 .sb-item.active {
-  background: #ffffff !important;
-  color: #121214 !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: #FFFFFF !important;
+  color: #111114 !important;
+  font-weight: 600 !important;
 }
 
 .sb-item.active .material-symbols-outlined {
-  color: #121214 !important;
-  font-variation-settings: 'FILL' 1;
+  color: #111114 !important;
+  font-variation-settings: 'FILL' 1 !important;
 }
 
 .sb-label {
@@ -335,7 +357,8 @@ input, select, textarea {
   background: rgba(255, 255, 255, 0.07);
   border-radius: 18px;
   padding: 16px 14px;
-  margin-top: 12px;
+  margin-top: auto;
+  flex-shrink: 0; 
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -379,7 +402,7 @@ input, select, textarea {
   transform: translateY(-1px);
 }
 
-/* ══════════════ MAIN CONTENT CANVAS ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT CANVAS â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .main-wrapper {
   flex: 1;
   display: flex;
@@ -391,7 +414,7 @@ input, select, textarea {
   height: 100%;
 }
 
-/* ══════════════ TOPBAR NAVIGATION ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• TOPBAR NAVIGATION â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .topbar {
   height: var(--topbar-h);
   padding: 0 12px 0 16px;
@@ -491,7 +514,7 @@ input, select, textarea {
   cursor: pointer;
 }
 
-/* ══════════════ CONTENT SCROLL AREA ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• CONTENT SCROLL AREA â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .content-area, .content-body {
   flex: 1;
   min-height: 0;
@@ -530,7 +553,7 @@ input, select, textarea {
   gap: 10px;
 }
 
-/* ══════════════ STITCH PILL BUTTONS ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• STITCH PILL BUTTONS â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -584,7 +607,7 @@ input, select, textarea {
   color: var(--text-muted);
 }
 
-/* ══════════════ 4 ZONE LAUNCHER GRID (ATTENTION OS) ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• 4 ZONE LAUNCHER GRID (ATTENTION OS) â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .attention-zone-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -730,7 +753,7 @@ input, select, textarea {
   border-radius: var(--r-full);
 }
 
-/* ══════════════ 4 STAT CARDS GRID ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• 4 STAT CARDS GRID â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -741,7 +764,7 @@ input, select, textarea {
 .stat-card {
   background: var(--surface-white);
   border-radius: var(--r-md);
-  padding: 20px;
+  padding: 24px;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
@@ -807,7 +830,7 @@ input, select, textarea {
   color: var(--text-muted);
 }
 
-/* ══════════════ DASHBOARD DUAL GRID ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• DASHBOARD DUAL GRID â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -818,7 +841,7 @@ input, select, textarea {
 .dash-card {
   background: var(--surface-white);
   border-radius: var(--r-md);
-  padding: 22px;
+  padding: 24px;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
@@ -868,11 +891,11 @@ input, select, textarea {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* ══════════════ STRIPE-STYLE ANALYTICS GRAPH SYSTEM ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• STRIPE-STYLE ANALYTICS GRAPH SYSTEM â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .stripe-chart-card {
   background: var(--surface-white);
   border-radius: var(--r-md);
-  padding: 22px;
+  padding: 24px;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
@@ -1043,7 +1066,7 @@ input, select, textarea {
   font-size: 11.5px;
 }
 
-/* ══════════════ ASENZO LOOP STRIP (BLACK PILL BUTTONS) ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• ASENZO LOOP STRIP (BLACK PILL BUTTONS) â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .loop-strip {
   display: flex;
   align-items: center;
@@ -1082,7 +1105,7 @@ input, select, textarea {
   font-size: 14px;
 }
 
-/* ══════════════ KANBAN BOARD ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• KANBAN BOARD â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .kanban-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -1150,7 +1173,7 @@ input, select, textarea {
   color: var(--text-main);
 }
 
-/* ══════════════ MODALS & OVERLAYS ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• MODALS & OVERLAYS â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1215,7 +1238,7 @@ input, select, textarea {
   border-top: 1px solid #f1f5f9;
 }
 
-/* ══════════════ RIGHT AI DRAWER ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• RIGHT AI DRAWER â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .right-panel, .rpanel {
   position: fixed;
   top: 14px;
@@ -1275,7 +1298,7 @@ input, select, textarea {
   outline: none;
 }
 
-/* ══════════════ ENGINE SUB-TAB BAR ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• ENGINE SUB-TAB BAR â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .engine-tab-bar {
   display: flex;
   align-items: center;
@@ -1305,7 +1328,7 @@ input, select, textarea {
   color: #ffffff;
 }
 
-/* ══════════════ TOAST ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• TOAST â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .toast {
   position: fixed;
   bottom: 28px;
@@ -1328,7 +1351,7 @@ input, select, textarea {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ══════════════ ATTENTION OS — GOOGLE STITCH AMBIENT DESIGN SYSTEM ══════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• ATTENTION OS â€” GOOGLE STITCH AMBIENT DESIGN SYSTEM â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* 1. EXECUTIVE COMMAND HERO CARD */
 .cmd-hero {
@@ -1741,4 +1764,95 @@ input, select, textarea {
 .stitch-card:hover {
   box-shadow: var(--shadow-hover, 0 12px 36px rgba(0,0,0,0.08));
   transform: translateY(-2px);
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• OBSIDIAN REFINEMENT CLASSES â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(194, 198, 213, 0.3); }
+.metric-card { background: #ffffff; border: 1px solid rgba(194, 198, 213, 0.3); border-radius: 24px; }
+.ambient-shadow { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04); }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• REFINEMENT DESIGN SYSTEM CLASSES â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.flex-col { display: flex; flex-direction: column; }
+.flex-row, .flex-center { display: flex; align-items: center; }
+.flex-center { justify-content: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.align-start { align-items: flex-start; }
+.justify-end { justify-content: flex-end; }
+
+/* Dynamic spacing scale (4,8,12,16,24,32,40) */
+.gap-4 { gap: 4px; } .gap-6 { gap: 6px; } .gap-8 { gap: 8px; } .gap-12 { gap: 12px; } .gap-16 { gap: 16px; }  .gap-20 { gap: 20px; } .gap-24 { gap: 24px; }
+.mt-4 { margin-top: 4px; } .mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
+.mb-4 { margin-bottom: 4px; } .mb-8 { margin-bottom: 8px; } .mb-12 { margin-bottom: 12px; } .mb-16 { margin-bottom: 16px; } .mb-24 { margin-bottom: 24px; }
+.p-8 { padding: 8px; } .p-12 { padding: 12px; } .p-16 { padding: 16px; } .p-24 { padding: 24px; }
+
+/* Cards & Surfaces */
+.refine-card {
+  background: var(--surface-white);
+  border-radius: var(--r-md);
+  padding: 16px;
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-card);
+}
+.refine-card-dashed {
+  background: var(--surface-low);
+  border-radius: var(--r-md);
+  padding: 24px;
+  border: 1px dashed var(--outline);
+  text-align: center;
+  color: var(--text-muted);
+}
+.refine-icon-box {
+  width: 40px; height: 40px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Typography */
+.txt-heading-lg { font-size: 24px; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em; }
+.txt-heading-md { font-size: 16px; font-weight: 800; color: var(--text-main); }
+.txt-heading-sm { font-size: 14px; font-weight: 700; color: var(--text-main); }
+.txt-body { font-size: 13px; color: var(--text-main); }
+.txt-body-sm { font-size: 12px; color: var(--text-main); }
+.txt-body-xs { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.text-muted { color: var(--text-muted); }
+.text-faint { color: var(--text-faint); }
+.text-brand { color: var(--blue-accent); }
+
+/* Badges */
+.refine-badge {
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.refine-badge-gray { background: var(--surface-high); color: var(--text-main); }
+.refine-badge-blue { background: var(--blue-bg); color: var(--blue-accent); }
+.refine-badge-green { background: var(--green-bg); color: var(--green-accent); }
+.refine-badge-orange { background: var(--orange-bg); color: var(--orange-accent); }
+.refine-badge-red { background: var(--red-bg); color: var(--red-accent); }
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(194, 198, 213, 0.3);
+}
+
+.sidebar-glass {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.metric-card {
+    background: #ffffff;
+    border: 1px solid rgba(194, 198, 213, 0.3);
+}
+
+.ambient-shadow {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
 }

@@ -3,17 +3,146 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ASENZO — Growth Operating System</title>
+  <title>ASENZO â€” Growth Operating System</title>
   <meta name="description" content="ASENZO Founder Growth Operating System. Install capability, automate execution, scale with independence."/>
   <link rel="stylesheet" href="styles.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            /* ── Obsidian Command: Surface Stack ── */
+            "background":              "#F4F5F7",
+            "surface":                 "#FFFFFF",
+            "surface-dim":             "#E9EAEC",
+            "surface-container-low":   "#F4F5F7",
+            "surface-container":       "#ECEEF1",
+            "surface-container-high":  "#E4E6E9",
+            "surface-container-lowest":"#FFFFFF",
+            "surface-container-highest":"#DBDDE0",
+
+            /* ── Sidebar / Dark Layer ── */
+            "sidebar-bg":    "#18181B",
+            "sidebar-hover": "rgba(255,255,255,0.07)",
+
+            /* ── Text ── */
+            "on-surface":         "#111114",
+            "on-surface-variant": "#6B7280",
+            "on-background":      "#111114",
+            "outline":            "#9CA3AF",
+            "outline-variant":    "#E5E7EB",
+
+            /* ── Primary Action (Electric Blue) ── */
+            "primary":           "#3B82F6",
+            "primary-container": "#2563EB",
+            "on-primary":        "#FFFFFF",
+            "on-primary-container": "#DBEAFE",
+            "primary-fixed":     "#EFF6FF",
+            "electric-blue":     "#3B82F6",
+
+            /* ── Growth Emerald ── */
+            "secondary":           "#10B981",
+            "secondary-container": "#D1FAE5",
+            "on-secondary":        "#FFFFFF",
+            "on-secondary-container": "#065F46",
+            "emerald":             "#10B981",
+
+            /* ── Error / Critical ── */
+            "error":            "#EF4444",
+            "error-container":  "#FEE2E2",
+            "on-error":         "#FFFFFF",
+            "on-error-container": "#7F1D1D",
+
+            /* ── Legacy aliases (keeps all existing JS working) ── */
+            "apple-black":   "#0B0C0E",
+            "apple-metal":   "#1D1D1F",
+            "amber":         "#F59E0B",
+            "surface-tint":  "#3B82F6",
+            "inverse-surface": "#18181B",
+            "inverse-on-surface": "#F4F5F7",
+            "surface-bright":  "#FFFFFF",
+            "surface-variant": "#E5E7EB",
+            "surface-dim":     "#E9EAEC",
+            "on-error-container": "#7F1D1D",
+            "tertiary":        "#8B5CF6",
+            "tertiary-container": "#EDE9FE",
+            "on-tertiary":     "#FFFFFF",
+            "on-tertiary-container": "#4C1D95",
+          },
+          borderRadius: {
+            sm:      "0.375rem",   /* 6px */
+            DEFAULT: "0.75rem",    /* 12px – cards */
+            md:      "1rem",       /* 16px */
+            lg:      "1.25rem",    /* 20px */
+            xl:      "1.5rem",     /* 24px */
+            "2xl":   "2rem",       /* 32px */
+            "3xl":   "3rem",       /* 48px – sidebar */
+            full:    "9999px"
+          },
+          spacing: {
+            xs:    "4px",
+            sm:    "8px",
+            base:  "4px",
+            md:    "16px",
+            lg:    "24px",
+            xl:    "32px",
+            "2xl": "48px",
+            gutter: "24px",
+            margin: "40px",
+            "sidebar-width": "260px",
+            "card-gap": "16px"
+          },
+          fontFamily: {
+            geist:  ["Geist", "sans-serif"],
+            inter:  ["Inter", "sans-serif"],
+            /* token aliases */
+            "headline-xl":  ["Geist", "sans-serif"],
+            "headline-lg":  ["Geist", "sans-serif"],
+            "headline-md":  ["Geist", "sans-serif"],
+            "title-md":     ["Geist", "sans-serif"],
+            "body-lg":      ["Inter", "sans-serif"],
+            "body-md":      ["Inter", "sans-serif"],
+            "label-caps":   ["Geist", "sans-serif"],
+            "stat-value":   ["Geist", "sans-serif"],
+            /* backward compat */
+            "label-sm":     ["Geist", "sans-serif"],
+            "label-md":     ["Geist", "sans-serif"],
+            "body-lg-alt":  ["Inter", "sans-serif"],
+            "headline-lg-mobile": ["Geist", "sans-serif"],
+            "title-lg":     ["Geist", "sans-serif"],
+            "display-lg":   ["Geist", "sans-serif"]
+          },
+          fontSize: {
+            "headline-xl":  ["40px",  { lineHeight:"44px",  letterSpacing:"-0.04em", fontWeight:"700" }],
+            "headline-lg":  ["32px",  { lineHeight:"38px",  letterSpacing:"-0.03em", fontWeight:"700" }],
+            "headline-md":  ["24px",  { lineHeight:"30px",  letterSpacing:"-0.02em", fontWeight:"600" }],
+            "title-md":     ["18px",  { lineHeight:"24px",  letterSpacing:"-0.02em", fontWeight:"600" }],
+            "body-lg":      ["16px",  { lineHeight:"24px",  letterSpacing:"-0.011em",fontWeight:"400" }],
+            "body-md":      ["14px",  { lineHeight:"20px",  letterSpacing:"-0.009em",fontWeight:"400" }],
+            "label-caps":   ["11px",  { lineHeight:"16px",  letterSpacing:"0.06em",  fontWeight:"700" }],
+            "stat-value":   ["28px",  { lineHeight:"32px",  letterSpacing:"-0.03em", fontWeight:"700" }],
+            /* backward compat */
+            "label-md":     ["12px",  { lineHeight:"16px",  letterSpacing:"0.06em",  fontWeight:"700" }],
+            "label-sm":     ["11px",  { lineHeight:"14px",  letterSpacing:"0.01em",  fontWeight:"500" }],
+            "title-lg":     ["18px",  { lineHeight:"24px",  letterSpacing:"-0.01em", fontWeight:"500" }],
+            "display-lg":   ["48px",  { lineHeight:"56px",  letterSpacing:"-0.04em", fontWeight:"600" }],
+            "headline-lg-mobile": ["26px", { lineHeight:"32px", letterSpacing:"-0.02em", fontWeight:"700" }]
+          }
+        }
+      }
+    }
+  </script>
 </head>
 <body>
 
-  <!-- ══════════════ COMMAND PALETTE MODAL (⌘K) ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• COMMAND PALETTE MODAL (âŒ˜K) â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="cmd-overlay" class="cmd-overlay hidden" onclick="closePalette()">
     <div class="cmd-box" onclick="event.stopPropagation()">
       <div class="cmd-top">
@@ -25,7 +154,7 @@
     </div>
   </div>
 
-  <!-- ══════════════ POSITIONING & BUSINESS DNA SUITE MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• POSITIONING & BUSINESS DNA SUITE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="positioning-modal" class="modal-overlay hidden" onclick="closePositioningModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:860px">
       <div class="modal-head">
@@ -45,13 +174,13 @@
       <!-- Suite Sub-Tab Navigation -->
       <div class="engine-tab-bar" style="margin:14px 20px 0;background:#F8FAFC">
         <div class="engine-tab active" id="tab-btn-dna-core" onclick="switchDnaTab('core')">
-          🎯 Core DNA & Scoring
+          ðŸŽ¯ Core DNA & Scoring
         </div>
         <div class="engine-tab" id="tab-btn-dna-icp" onclick="switchDnaTab('icp')">
-          👤 Deep ICP & Offer Builder
+          ðŸ‘¤ Deep ICP & Offer Builder
         </div>
         <div class="engine-tab" id="tab-btn-dna-alts" onclick="switchDnaTab('alts')">
-          ⚡ Strategic Alternatives & Versions
+          âš¡ Strategic Alternatives & Versions
         </div>
       </div>
 
@@ -64,7 +193,7 @@
           <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:16px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
               <div style="font-weight:800;color:#0F172A;font-size:13.5px">Positioning Clarity Score Analysis</div>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="handleGenerateAlternativesFromModal()">⚡ Generate 3 Alternatives</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="handleGenerateAlternativesFromModal()">âš¡ Generate 3 Alternatives</button>
             </div>
             
             <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-bottom:12px" id="dna-score-bars-container">
@@ -75,7 +204,7 @@
 
           <div class="form-group">
             <label>Target ICP Summary (Specific Person & Revenue Tier)</label>
-            <input id="pos-icp" value="Bootstrapped B2B Founders doing $15k–$50k/mo" required oninput="recalculateDnaScorePreview()" />
+            <input id="pos-icp" value="Bootstrapped B2B Founders doing $15kâ€“$50k/mo" required oninput="recalculateDnaScorePreview()" />
           </div>
           <div class="form-group">
             <label>Core Pain (Specific Bottleneck / Friction)</label>
@@ -117,7 +246,7 @@
             </div>
             <div class="form-group">
               <label>Company Size / Revenue</label>
-              <input id="icp-size" placeholder="e.g. 3–15 Team Members ($15k–$50k/mo)" />
+              <input id="icp-size" placeholder="e.g. 3â€“15 Team Members ($15kâ€“$50k/mo)" />
             </div>
           </div>
           <div class="form-group">
@@ -144,7 +273,7 @@
         <div id="dna-tab-alts" class="hidden">
           <div style="font-weight:800;color:#0F172A;font-size:14px;margin-bottom:10px">Generated Strategic Positioning Angles</div>
           <div id="dna-alternatives-container" style="display:flex;flex-direction:column;gap:12px">
-            <div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">No alternatives generated yet. Click "⚡ Generate 3 Alternatives" to compare strategic options.</div>
+            <div style="font-size:12px;color:#94A3B8;text-align:center;padding:20px">No alternatives generated yet. Click "âš¡ Generate 3 Alternatives" to compare strategic options.</div>
           </div>
 
           <div style="font-weight:800;color:#0F172A;font-size:14px;margin-top:24px;margin-bottom:10px">Positioning Version History (1-Click Restore)</div>
@@ -159,13 +288,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ NEW DEAL / LEAD MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• NEW DEAL / LEAD MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="deal-modal" class="modal-overlay hidden" onclick="closeDealModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:680px">
       <div class="modal-head">
         <div>
           <h3 class="modal-title">Add / Edit Conversion OS Opportunity</h3>
-          <p class="modal-sub">Engine 2 — Conversion OS Pipeline & CRM Triage</p>
+          <p class="modal-sub">Engine 2 â€” Conversion OS Pipeline & CRM Triage</p>
         </div>
         <button class="btn-icon" onclick="closeDealModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -175,7 +304,7 @@
         <input type="hidden" id="deal-id" />
         <div class="form-group">
           <label>Deal / Company Title *</label>
-          <input id="deal-name" placeholder="e.g. SaaSify Inc — Growth OS Installation" required />
+          <input id="deal-name" placeholder="e.g. SaaSify Inc â€” Growth OS Installation" required />
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -220,8 +349,8 @@
           <div class="form-group">
             <label>Founder Attention Required?</label>
             <select id="deal-attention">
-              <option value="0">No — Routine Triage</option>
-              <option value="1">Yes — Founder Bottleneck Review</option>
+              <option value="0">No â€” Routine Triage</option>
+              <option value="1">Yes â€” Founder Bottleneck Review</option>
             </select>
           </div>
         </div>
@@ -276,13 +405,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ SALES CALL TRANSCRIPT & COACHING MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• SALES CALL TRANSCRIPT & COACHING MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="sales-call-modal" class="modal-overlay hidden" onclick="closeSalesCallModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:760px">
       <div class="modal-head">
         <div>
           <h3 class="modal-title">Log Sales Call Transcript</h3>
-          <p class="modal-sub">Engine 2 — Capture Sales Calls for Post-Call AI Coaching Benchmark Training</p>
+          <p class="modal-sub">Engine 2 â€” Capture Sales Calls for Post-Call AI Coaching Benchmark Training</p>
         </div>
         <button class="btn-icon" onclick="closeSalesCallModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -303,7 +432,7 @@
           <div class="form-group">
             <label>Call Outcome</label>
             <select id="call-outcome">
-              <option value="ADVANCED">ADVANCED — Next Stage</option>
+              <option value="ADVANCED">ADVANCED â€” Next Stage</option>
               <option value="PROPOSAL_REQUESTED">PROPOSAL_REQUESTED</option>
               <option value="OBJECTION_STALLED">OBJECTION_STALLED</option>
               <option value="CLOSED_WON">CLOSED_WON</option>
@@ -315,17 +444,17 @@
           <div class="form-group">
             <label>Founder Rating (1-5)</label>
             <select id="call-rating">
-              <option value="5">5 ★★★★★ — Exceptional Benchmark Call</option>
-              <option value="4" selected>4 ★★★★☆ — Strong Call</option>
-              <option value="3">3 ★★★☆☆ — Standard Call</option>
-              <option value="2">2 ★★☆☆☆ — Sub-Par Call</option>
+              <option value="5">5 â˜…â˜…â˜…â˜…â˜… â€” Exceptional Benchmark Call</option>
+              <option value="4" selected>4 â˜…â˜…â˜…â˜…â˜† â€” Strong Call</option>
+              <option value="3">3 â˜…â˜…â˜…â˜†â˜† â€” Standard Call</option>
+              <option value="2">2 â˜…â˜…â˜†â˜†â˜† â€” Sub-Par Call</option>
             </select>
           </div>
           <div class="form-group">
             <label>Benchmark Training Call?</label>
             <select id="call-is-benchmark">
-              <option value="1">Yes — Tag as Benchmark Call</option>
-              <option value="0">No — Regular Sales Call</option>
+              <option value="1">Yes â€” Tag as Benchmark Call</option>
+              <option value="0">No â€” Regular Sales Call</option>
             </select>
           </div>
         </div>
@@ -341,13 +470,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ CREATE SOP / PLAYBOOK MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• CREATE SOP / PLAYBOOK MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="sop-modal" class="modal-overlay hidden" onclick="closeSopModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-head">
         <div>
           <h3 class="modal-title">Create Operating SOP / Playbook</h3>
-          <p class="modal-sub">Engine 5 — Operator OS (Capability Installation)</p>
+          <p class="modal-sub">Engine 5 â€” Operator OS (Capability Installation)</p>
         </div>
         <button class="btn-icon" onclick="closeSopModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -361,11 +490,11 @@
         <div class="form-group">
           <label>Target Engine</label>
           <select id="sop-engine">
-            <option value="Attention">Engine 1 — Attention</option>
-            <option value="Conversion">Engine 2 — Conversion</option>
-            <option value="Delivery">Engine 3 — Delivery</option>
-            <option value="Intelligence">Engine 4 — Intelligence</option>
-            <option value="Operator">Engine 5 — Operator</option>
+            <option value="Attention">Engine 1 â€” Attention</option>
+            <option value="Conversion">Engine 2 â€” Conversion</option>
+            <option value="Delivery">Engine 3 â€” Delivery</option>
+            <option value="Intelligence">Engine 4 â€” Intelligence</option>
+            <option value="Operator">Engine 5 â€” Operator</option>
           </select>
         </div>
         <div class="form-group">
@@ -380,7 +509,7 @@
     </div>
   </div>
 
-  <!-- ══════════════ EVENT CREATION MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• EVENT CREATION MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="event-modal" class="modal-overlay hidden" onclick="closeEventModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-head">
@@ -395,7 +524,7 @@
       <form onsubmit="handleCreateEvent(event)" class="modal-body">
         <div class="form-group">
           <label>Event Title</label>
-          <input id="evt-title" placeholder="e.g. Sales Call — Enterprise Lead" required />
+          <input id="evt-title" placeholder="e.g. Sales Call â€” Enterprise Lead" required />
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -416,10 +545,10 @@
           </div>
         </div>
         <div class="form-group">
-              <option value="green">Green — Discovery / Sales Call</option>
-            <option value="yellow">Yellow — Content Sprint / Scripting</option>
-            <option value="orange">Orange — Client Onboarding / Delivery</option>
-            <option value="grey">Grey — Weekly Directive Audit</option>
+              <option value="green">Green â€” Discovery / Sales Call</option>
+            <option value="yellow">Yellow â€” Content Sprint / Scripting</option>
+            <option value="orange">Orange â€” Client Onboarding / Delivery</option>
+            <option value="grey">Grey â€” Weekly Directive Audit</option>
           </select>
         </div>
         <div class="modal-foot">
@@ -431,152 +560,133 @@
   </div>
 
   <!-- ══════════════ MAIN FULLSCREEN VIEWPORT SHELL ══════════════ -->
-  <div class="app-shell">
+  <div class="app-shell flex min-h-screen w-full text-on-surface" style="background:#F4F5F7; font-family:'Inter',sans-serif;">
 
-    <!-- ══════════════ LEFT SIDEBAR ══════════════ -->
-    <aside class="sidebar" id="sidebar">
-      
-      <!-- Top Brand Header -->
-      <div class="sb-top">
-        <div class="sb-brand" onclick="go('overview', document.getElementById('nav-overview'))">
-          <div class="sb-logo">
-            <span class="material-symbols-outlined" style="font-size:22px">space_dashboard</span>
-          </div>
-          <span class="sb-title">ASENZO OS</span>
+    <!-- ══════════════ LEFT SIDEBAR — Stitch Executive Command Center ══════════════ -->
+    <aside id="sidebar" class="sidebar fixed h-screen left-0 top-0 z-50 flex flex-col transition-all duration-300" style="width:260px; background:#18181B; border-right:1px solid rgba(255,255,255,0.06);">
+
+      <!-- Brand Header -->
+      <div class="flex items-center gap-3 px-5 pt-6 pb-5 cursor-pointer" onclick="go('overview', document.getElementById('nav-overview'))">
+        <div style="width:32px;height:32px;background:#27272A;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
+          <span class="material-symbols-outlined" style="font-size:16px;color:#A1A1AA;font-variation-settings:'FILL' 1;">terminal</span>
         </div>
-        <button class="sb-collapse-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
-          <span class="material-symbols-outlined" style="font-size:18px">chevron_left</span>
+        <div>
+          <div style="font-family:'Geist',sans-serif;font-size:13px;font-weight:700;color:#FAFAFA;letter-spacing:-0.02em;line-height:1.2;">Asenzo OS</div>
+          <div style="font-size:11px;color:#71717A;font-weight:400;letter-spacing:0.01em;">Founder Control</div>
+        </div>
+        <button class="ml-auto text-zinc-600 hover:text-zinc-300 transition-colors md:hidden" onclick="toggleSidebar()" title="Close sidebar">
+          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
         </button>
       </div>
 
-      <!-- Sidebar Navigation Menu -->
-      <nav class="sb-nav">
+      <!-- Divider -->
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin:0 16px;"></div>
 
-        <!-- Command + Foundation -->
-        <div class="sb-item active" id="nav-overview" onclick="go('overview', this)">
-          <span class="material-symbols-outlined">grid_view</span>
-          <span class="sb-label">Command Center</span>
-        </div>
+      <!-- Nav -->
+      <nav class="sb-nav flex-1 flex flex-col px-3 pt-3 pb-2 overflow-y-auto hide-scrollbar" style="gap:2px;">
 
-        <div class="sb-item" id="nav-foundation" onclick="go('foundation', this)">
-          <span class="material-symbols-outlined">fingerprint</span>
-          <span class="sb-label">Foundation</span>
-        </div>
+        <!-- Foundation -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#52525B;text-transform:uppercase;padding:8px 10px 4px;">Foundation</div>
 
-        <!-- Divider: Growth Engines -->
-        <div class="sb-divider">
-          <span class="sb-divider-label">Growth Engines</span>
-        </div>
+        <a id="nav-overview" class="sb-item active" onclick="go('overview', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;">
+          <span class="material-symbols-outlined" style="font-size:17px;">dashboard</span>
+          Command Center
+        </a>
+        <a id="nav-foundation" class="sb-item" onclick="go('foundation', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">fingerprint</span>
+          Business Truth
+        </a>
 
-        <div class="sb-item" id="nav-attention" onclick="go('attention', this)">
-          <span class="material-symbols-outlined">auto_graph</span>
-          <div class="sb-label-group">
-            <span class="sb-label">Attention</span>
-            <span class="sb-label-sub">Create demand</span>
-          </div>
-        </div>
+        <!-- Growth Engines -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#52525B;text-transform:uppercase;padding:12px 10px 4px;">Growth Engines</div>
 
-        <div class="sb-item" id="nav-conversion" onclick="go('conversion', this)">
-          <span class="material-symbols-outlined">person_search</span>
-          <div class="sb-label-group">
-            <span class="sb-label">Conversion</span>
-            <span class="sb-label-sub">Capture demand</span>
-          </div>
-        </div>
+        <a id="nav-attention" class="sb-item" onclick="go('attention', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">campaign</span>
+          Attention
+        </a>
+        <a id="nav-conversion" class="sb-item" onclick="go('conversion', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">sync_alt</span>
+          Conversion
+        </a>
+        <a id="nav-revenue" class="sb-item" onclick="go('revenue', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">payments</span>
+          Revenue
+        </a>
+        <a id="nav-delivery" class="sb-item" onclick="go('delivery', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">local_shipping</span>
+          Delivery
+        </a>
+        <a id="nav-retention" class="sb-item" onclick="go('retention', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">autorenew</span>
+          Retention
+        </a>
 
-        <div class="sb-item" id="nav-revenue" onclick="go('revenue', this)">
-          <span class="material-symbols-outlined">payments</span>
-          <div class="sb-label-group">
-            <span class="sb-label">Revenue</span>
-            <span class="sb-label-sub">Monetize demand</span>
-          </div>
-        </div>
+        <!-- System Layer -->
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#52525B;text-transform:uppercase;padding:12px 10px 4px;">System Layer</div>
 
-        <div class="sb-item" id="nav-delivery" onclick="go('delivery', this)">
-          <span class="material-symbols-outlined">hub</span>
-          <div class="sb-label-group">
-            <span class="sb-label">Delivery</span>
-            <span class="sb-label-sub">Fulfill the promise</span>
-          </div>
-        </div>
+        <a id="nav-intelligence" class="sb-item" onclick="go('intelligence', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">psychology</span>
+          Intelligence
+        </a>
+        <a id="nav-actions" class="sb-item" onclick="go('actions', this)" style="display:flex;align-items:center;gap:10px;justify-content:space-between;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span class="material-symbols-outlined" style="font-size:17px;">checklist_rtl</span>
+            Action Queue
+          </span>
+          <span id="sidebar-action-count-badge" style="background:#EF4444;color:#fff;font-weight:700;font-size:10px;padding:1px 6px;border-radius:9999px;">3</span>
+        </a>
+        <a id="nav-operator" class="sb-item" onclick="go('operator', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">architecture</span>
+          Operator OS
+        </a>
+        <a id="nav-calendar" class="sb-item" onclick="go('calendar', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
+          <span class="material-symbols-outlined" style="font-size:17px;">calendar_today</span>
+          Growth Schedule
+        </a>
 
-        <div class="sb-item" id="nav-retention" onclick="go('retention', this)">
-          <span class="material-symbols-outlined">cycle</span>
-          <div class="sb-label-group">
-            <span class="sb-label">Retention</span>
-            <span class="sb-label-sub">Compound LTV</span>
-          </div>
-        </div>
-
-        <!-- Divider: System Layer -->
-        <div class="sb-divider">
-          <span class="sb-divider-label">System Layer</span>
-        </div>
-
-        <div class="sb-item" id="nav-intelligence" onclick="go('intelligence', this)">
-          <span class="material-symbols-outlined">psychology</span>
-          <span class="sb-label">Intelligence</span>
-        </div>
-
-        <div class="sb-item" id="nav-actions" onclick="go('actions', this)">
-          <span class="material-symbols-outlined">checklist</span>
-          <span class="sb-label">Action Queue</span>
-          <span class="sb-badge" id="sidebar-action-count-badge" style="background:#EF4444;color:#FFFFFF;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:800;margin-left:auto">3</span>
-        </div>
-
-        <div class="sb-item" id="nav-operator" onclick="go('operator', this)">
-          <span class="material-symbols-outlined">architecture</span>
-          <span class="sb-label">Operator OS</span>
-        </div>
-
-        <div class="sb-item" id="nav-calendar" onclick="go('calendar', this)">
-          <span class="material-symbols-outlined">calendar_today</span>
-          <span class="sb-label">Growth Schedule</span>
-        </div>
       </nav>
 
-      <!-- Sidebar FIS Score Card -->
-      <div class="sb-upgrade-card">
-        <div class="sb-upgrade-icon-wrap">
-          <span class="material-symbols-outlined" style="font-size:24px;color:#FFD700">bolt</span>
+      <!-- Footer PRO Card -->
+      <div style="padding:12px 12px 16px;">
+        <div style="background:#27272A;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center;">
+          <div style="width:36px;height:36px;background:#F59E0B;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#fff;font-variation-settings:'FILL' 1;">star</span>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#FAFAFA;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">System Health</div>
+          <div style="font-size:18px;font-weight:700;color:#FAFAFA;font-family:'Geist',sans-serif;letter-spacing:-0.02em;" id="sb-fis-score-val">FIS: 84</div>
+          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:12px;">(Stable)</div>
+          <button onclick="openPanel()" style="width:100%;padding:8px 0;background:#FAFAFA;color:#18181B;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.15s;" onmouseover="this.style.background='#E4E4E7'" onmouseout="this.style.background='#FAFAFA'">
+            <span class="material-symbols-outlined" style="font-size:15px;">smart_toy</span>Ask AI Coach
+          </button>
         </div>
-        <div class="sb-upgrade-text">
-          Founder Independence<br/>
-          <strong style="font-size:13px;color:#ffffff" id="sb-fis-score-val">FIS: 84/100 (Demo)</strong>
-        </div>
-        <button class="sb-upgrade-btn" onclick="openPanel()">Ask AI Coach</button>
       </div>
-
     </aside>
 
     <!-- ══════════════ MAIN CONTENT CANVAS ══════════════ -->
-    <div class="main-wrapper">
-      
-      <!-- Top Header Navigation Bar -->
-      <header class="topbar">
-        <div class="topbar-title" id="topbar-title">Growth Command</div>
+    <main class="main-wrapper flex-1 h-screen overflow-y-auto hide-scrollbar relative transition-all duration-300" style="margin-left:260px;background:#F4F5F7;">
 
-        <!-- Search Bar Input -->
-        <div class="topbar-search" onclick="openPalette()">
-          <span class="material-symbols-outlined" style="font-size:18px;color:#64748B">search</span>
-          <input placeholder="Search ASENZO engines..." readonly/>
-          <kbd style="font-size:11px;font-weight:700;color:#94A3B8;background:#F1F5F9;padding:2px 6px;border-radius:4px">⌘K</kbd>
+      <!-- Topbar -->
+      <header class="topbar sticky top-0 z-40 flex items-center justify-between px-8" style="height:60px;background:rgba(244,245,247,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #E4E6E9;">
+        <!-- Page title -->
+        <div>
+          <h2 id="topbar-title" style="font-family:'Geist',sans-serif;font-size:17px;font-weight:700;color:#111114;letter-spacing:-0.02em;">Dashboard</h2>
         </div>
-
-        <!-- Top Right Actions & User Profile -->
-        <div class="topbar-right">
-          <div class="notif-wrap" onclick="toggleNotifs()">
-            <button class="notif-btn" title="Notifications">
-              <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
-            </button>
-            <span class="notif-badge">2</span>
+        <!-- Right controls -->
+        <div style="display:flex;align-items:center;gap:12px;">
+          <!-- Search -->
+          <div style="position:relative;cursor:pointer;" onclick="openPalette()">
+            <span class="material-symbols-outlined" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:#9CA3AF;">search</span>
+            <input type="text" readonly placeholder="Search anything..." style="width:220px;padding:7px 12px 7px 36px;border-radius:8px;border:1px solid #E4E6E9;background:#fff;font-size:13px;color:#111114;outline:none;cursor:pointer;font-family:'Inter',sans-serif;" />
           </div>
-
-          <div class="user-btn" onclick="openPanel()">
-            <div class="user-avatar">
-              <span class="material-symbols-outlined" style="font-size:22px;color:#0058bc">account_circle</span>
-            </div>
-            <span class="user-name" style="font-size:13px;font-weight:700;color:#121214">Alex Morgan</span>
+          <!-- Notifications -->
+          <button style="width:36px;height:36px;border-radius:8px;border:1px solid #E4E6E9;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#6B7280;">notifications</span>
+            <span style="position:absolute;top:6px;right:6px;width:7px;height:7px;background:#3B82F6;border-radius:50%;border:1.5px solid #fff;"></span>
+          </button>
+          <!-- Avatar -->
+          <div style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvKuTHxQEBhtUL1Xk6_BbKmJGggF7YOqSolpY8tUenyc5O6sLzEPwbvr5nKiw0BwbDEopuoK6RBhPB6hyGUUD7pj_9Au_7bAmPWEXASC7AuQGibBo-YjQ4w_CgGesTLbqq1QnfOf5FO3YpR0AwHvSj3NXt2TbPdXMPX-XkxrnTEyhK-xYNTEfFOSJyHiW-Wrr1tXQSSW8cYvj3Sx5msyX1xWfTB5zux4WkR2aKVjRldGr2Vcp8gGPs7Q" alt="Profile" style="width:32px;height:32px;border-radius:8px;object-fit:cover;border:1px solid #E4E6E9;" />
+            <span class="material-symbols-outlined" style="font-size:16px;color:#9CA3AF;">expand_more</span>
           </div>
         </div>
       </header>
@@ -599,13 +709,15 @@
         <button class="btn btn-primary" type="button" onclick="sendMsg()">Send</button>
       </div>
     </div>
+  </div>
+</div>
 
-  <!-- ══════════════ AI HOOK & SCRIPT GENERATOR MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• AI HOOK & SCRIPT GENERATOR MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="script-generator-modal" class="modal-overlay hidden" onclick="closeScriptGeneratorModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()">
       <div class="modal-head">
         <div>
-          <h3 class="modal-title">⚡ AI Hook + Script Generator</h3>
+          <h3 class="modal-title">âš¡ AI Hook + Script Generator</h3>
           <p class="modal-sub">Structured Hook Frameworks (Pattern Interrupt, Question, Story, Contrarian) + Business DNA Context</p>
         </div>
         <button class="btn-icon" onclick="closeScriptGeneratorModal()">
@@ -639,7 +751,7 @@
         </div>
         
         <div style="display:flex;justify-content:flex-end">
-          <button type="submit" class="btn btn-primary" id="btn-generate-script">⚡ Generate Structured Script</button>
+          <button type="submit" class="btn btn-primary" id="btn-generate-script">âš¡ Generate Structured Script</button>
         </div>
 
         <!-- Generated Result Output Area -->
@@ -664,7 +776,7 @@
           <div class="modal-foot">
             <button type="button" class="btn btn-secondary" onclick="closeScriptGeneratorModal()">Cancel</button>
             <button type="button" class="btn btn-primary" onclick="handleSaveGeneratedScriptToKanban()">
-              🔒 Save to Kanban (Human Approved)
+              ðŸ”’ Save to Kanban (Human Approved)
             </button>
           </div>
         </div>
@@ -672,12 +784,12 @@
     </div>
   </div>
 
-  <!-- ══════════════ INTELLIGENT CONTENT CREATOR MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• INTELLIGENT CONTENT CREATOR MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="create-content-modal" class="modal-overlay hidden" onclick="closeCreateContentModal()">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:540px">
       <div class="modal-head">
         <div>
-          <h3 class="modal-title">⚡ Intelligent Content Creator</h3>
+          <h3 class="modal-title">âš¡ Intelligent Content Creator</h3>
           <p class="modal-sub">How would you like to create content today?</p>
         </div>
         <button class="btn-icon" onclick="closeCreateContentModal()">
@@ -689,7 +801,7 @@
         <div style="background:#F0F7FF;border:2px solid #0058bc;border-radius:14px;padding:16px;cursor:pointer" onclick="handleCreateFromRecommendedIdea()">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <span class="sb-badge blue" style="font-weight:700">RECOMMENDED BY AI</span>
-            <span style="font-size:11.5px;color:#0058bc;font-weight:700">Write Script →</span>
+            <span style="font-size:11.5px;color:#0058bc;font-weight:700">Write Script â†’</span>
           </div>
           <div id="modal-rec-title" style="font-weight:800;color:#0F172A;font-size:14px;margin-top:8px">Loading top recommendation...</div>
           <div id="modal-rec-reason" style="font-size:12px;color:#475569;margin-top:4px">Based on recent audience demand and mechanism gap.</div>
@@ -698,8 +810,8 @@
         <!-- Option B: Create from Scratch -->
         <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:16px;cursor:pointer" onclick="handleCreateFromScratch()">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700;color:#0F172A;font-size:13.5px">✍️ Create Content from Scratch</div>
-            <span style="font-size:11.5px;color:#64748B;font-weight:700">Start Blank →</span>
+            <div style="font-weight:700;color:#0F172A;font-size:13.5px">âœï¸ Create Content from Scratch</div>
+            <span style="font-size:11.5px;color:#64748B;font-weight:700">Start Blank â†’</span>
           </div>
           <div style="font-size:12px;color:#64748B;margin-top:4px">Select format and topic, then generate a Foundation-aligned script.</div>
         </div>
@@ -707,8 +819,8 @@
         <!-- Option C: Re-Angle Existing Content -->
         <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:16px;cursor:pointer" onclick="handleCreateFromReAngle()">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:700;color:#0F172A;font-size:13.5px">🔄 Re-Angle Published Content</div>
-            <span style="font-size:11.5px;color:#64748B;font-weight:700">Select Post →</span>
+            <div style="font-weight:700;color:#0F172A;font-size:13.5px">ðŸ”„ Re-Angle Published Content</div>
+            <span style="font-size:11.5px;color:#64748B;font-weight:700">Select Post â†’</span>
           </div>
           <div style="font-size:12px;color:#64748B;margin-top:4px">Take a past post and re-hook it with a new belief, story, or format.</div>
         </div>
@@ -716,12 +828,12 @@
     </div>
   </div>
 
-  <!-- ══════════════ RE-ANGLE CONTENT MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• RE-ANGLE CONTENT MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="reangle-modal" class="modal-overlay hidden" onclick="closeReAngleModal()">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:540px">
       <div class="modal-head">
         <div>
-          <h3 class="modal-title">🔄 Re-Angle Content Engine</h3>
+          <h3 class="modal-title">ðŸ”„ Re-Angle Content Engine</h3>
           <p class="modal-sub">Transform underperforming or proven content into a fresh high-converting angle</p>
         </div>
         <button class="btn-icon" onclick="closeReAngleModal()">
@@ -741,7 +853,7 @@
             <option value="ANGLE">Change Angle (New perspective / contrarian frame)</option>
             <option value="BELIEF">Change Belief (Target a different mindset shift)</option>
             <option value="STORY">Change Story (New founder or client anecdote)</option>
-            <option value="FORMAT">Change Format (e.g. Text Post → Short-Form Video script)</option>
+            <option value="FORMAT">Change Format (e.g. Text Post â†’ Short-Form Video script)</option>
             <option value="CTA">Change Call-to-Action (Soft value offer vs diagnostic)</option>
           </select>
         </div>
@@ -751,13 +863,13 @@
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-secondary" onclick="closeReAngleModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">⚡ Generate Re-Angled Script</button>
+          <button type="submit" class="btn btn-primary">âš¡ Generate Re-Angled Script</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ══════════════ PRODUCTION WORKSPACE / CONTENT WORKSPACE MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• PRODUCTION WORKSPACE / CONTENT WORKSPACE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="production-workspace-modal" class="modal-overlay hidden" onclick="closeProductionWorkspaceModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:920px;width:95vw">
       <div class="modal-head">
@@ -777,19 +889,19 @@
       <!-- Workspace Sub-Tab Navigation Bar -->
       <div class="engine-tab-bar" style="margin:12px 20px 0;background:#F1F5F9;padding:4px;border-radius:8px">
         <div class="engine-tab active" id="tab-btn-pw-script" onclick="switchPwTab('script')">
-          📝 Script & Copy
+          ðŸ“ Script & Copy
         </div>
         <div class="engine-tab" id="tab-btn-pw-assets" onclick="switchPwTab('assets')">
-          🖼 Creative Assets
+          ðŸ–¼ Creative Assets
         </div>
         <div class="engine-tab" id="tab-btn-pw-publish" onclick="switchPwTab('publish')">
-          🚀 Schedule & Publish
+          ðŸš€ Schedule & Publish
         </div>
         <div class="engine-tab" id="tab-btn-pw-analytics" onclick="switchPwTab('analytics')">
-          📊 Performance & Analytics
+          ðŸ“Š Performance & Analytics
         </div>
         <div class="engine-tab" id="tab-btn-pw-versions" onclick="switchPwTab('versions')">
-          📜 Version History
+          ðŸ“œ Version History
         </div>
       </div>
 
@@ -904,7 +1016,7 @@
         <!-- TAB 3: SCHEDULE & PUBLISH -->
         <div id="pw-tab-publish" class="hidden">
           <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px;margin-bottom:14px">
-            <h4 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1E3A8A">🗓 Schedule Distribution</h4>
+            <h4 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#1E3A8A">ðŸ—“ Schedule Distribution</h4>
             <p style="margin:0 0 10px;font-size:12px;color:#1E40AF">Set scheduled publication timestamp across connected platform channels</p>
             <div style="display:flex;gap:10px;align-items:center">
               <input type="datetime-local" id="pw-schedule-date" style="padding:8px 12px;border-radius:6px;border:1px solid #93C5FD;font:inherit;font-size:13px" />
@@ -913,11 +1025,11 @@
           </div>
 
           <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px">
-            <h4 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#065F46">🚀 Confirmed Publishing Execution (No Fake Status)</h4>
+            <h4 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#065F46">ðŸš€ Confirmed Publishing Execution (No Fake Status)</h4>
             <p style="margin:0 0 10px;font-size:12px;color:#047857">Executes verified distribution. Updates status to PUBLISHED, generates verified post URL and logs audit record.</p>
             <div style="display:flex;gap:10px;align-items:center">
               <input id="pw-publish-url" placeholder="Target Post URL (or leave blank to auto-generate)" style="padding:8px 12px;border-radius:6px;border:1px solid #A7F3D0;font:inherit;font-size:12.5px;flex:1" />
-              <button type="button" class="btn btn-primary btn-sm" style="background:#10B981;border-color:#059669" onclick="handleExecutePublishAction()">🚀 Execute Confirmed Publish</button>
+              <button type="button" class="btn btn-primary btn-sm" style="background:#10B981;border-color:#059669" onclick="handleExecutePublishAction()">ðŸš€ Execute Confirmed Publish</button>
             </div>
             <div id="pw-publish-status-box" class="hidden" style="margin-top:10px;font-size:12px;color:#047857;font-weight:600"></div>
           </div>
@@ -937,8 +1049,8 @@
             <div class="metric-card" style="padding:12px;text-align:center">
               <div style="font-size:11px;color:#64748B;font-weight:600">Ad Amplification?</div>
               <select id="pw-ad-candidate" style="font-size:12px;font-weight:700;margin-top:6px;padding:4px;border-radius:6px;border:1px solid #CBD5E1">
-                <option value="false">No — Organic Only</option>
-                <option value="true">🔥 Yes — Paid Amplification Candidate</option>
+                <option value="false">No â€” Organic Only</option>
+                <option value="true">ðŸ”¥ Yes â€” Paid Amplification Candidate</option>
               </select>
             </div>
           </div>
@@ -956,10 +1068,10 @@
         <div class="modal-foot" style="justify-content:space-between;margin-top:16px">
           <div style="display:flex;gap:8px">
             <button type="button" class="btn btn-secondary" style="color:#EF4444;border-color:#FCA5A5" onclick="handleDeleteContentItem()">
-              🗑 Delete
+              ðŸ—‘ Delete
             </button>
             <button type="button" class="btn btn-secondary" onclick="handleDuplicateContentAction()">
-              📋 Duplicate Asset
+              ðŸ“‹ Duplicate Asset
             </button>
           </div>
           <div style="display:flex;gap:10px">
@@ -971,13 +1083,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ KNOWLEDGE INGESTION PIPELINE MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• KNOWLEDGE INGESTION PIPELINE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="ingest-knowledge-modal" class="modal-overlay hidden" onclick="closeIngestModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:760px">
       <div class="modal-head">
         <div>
           <h3 class="modal-title">Ingest Founder Source Material</h3>
-          <p class="modal-sub">Engine 1 Pipeline: Source → Validation → Cleaning → Chunking → Metadata → Storage → Retrieval</p>
+          <p class="modal-sub">Engine 1 Pipeline: Source â†’ Validation â†’ Cleaning â†’ Chunking â†’ Metadata â†’ Storage â†’ Retrieval</p>
         </div>
         <button class="btn-icon" onclick="closeIngestModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1007,13 +1119,13 @@
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-secondary" onclick="closeIngestModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="btn-run-ingestion">⚡ Run Ingestion Pipeline (Clean & Chunk)</button>
+          <button type="submit" class="btn btn-primary" id="btn-run-ingestion">âš¡ Run Ingestion Pipeline (Clean & Chunk)</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ══════════════ FOUNDER & BRAND PROFILE MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• FOUNDER & BRAND PROFILE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="founder-profile-modal" class="modal-overlay hidden" onclick="closeFounderProfileModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:760px">
       <div class="modal-head">
@@ -1055,9 +1167,9 @@
           <div class="form-group">
             <label>Directness Level</label>
             <select id="bp-directness">
-              <option value="High">High — Straight to the point, metric-driven</option>
-              <option value="Moderate">Moderate — Balanced context & action</option>
-              <option value="Soft">Soft — Educational & conversational</option>
+              <option value="High">High â€” Straight to the point, metric-driven</option>
+              <option value="Moderate">Moderate â€” Balanced context & action</option>
+              <option value="Soft">Soft â€” Educational & conversational</option>
             </select>
           </div>
         </div>
@@ -1078,13 +1190,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ MARKET INTELLIGENCE MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• MARKET INTELLIGENCE MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="market-intel-modal" class="modal-overlay hidden" onclick="closeMarketIntelModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:680px">
       <div class="modal-head">
         <div>
           <h3 class="modal-title">Log Market Intelligence Signal</h3>
-          <p class="modal-sub">Engine 1 — External Signal Harvester & ICP Friction Radar</p>
+          <p class="modal-sub">Engine 1 â€” External Signal Harvester & ICP Friction Radar</p>
         </div>
         <button class="btn-icon" onclick="closeMarketIntelModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1110,9 +1222,9 @@
           <div class="form-group">
             <label>Relevance</label>
             <select id="mi-relevance">
-              <option value="HIGH">HIGH — Critical ICP overlap</option>
-              <option value="MEDIUM">MEDIUM — Moderate interest</option>
-              <option value="LOW">LOW — Background noise</option>
+              <option value="HIGH">HIGH â€” Critical ICP overlap</option>
+              <option value="MEDIUM">MEDIUM â€” Moderate interest</option>
+              <option value="LOW">LOW â€” Background noise</option>
             </select>
           </div>
         </div>
@@ -1146,13 +1258,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ AUTHORITY PROOF ASSET MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• AUTHORITY PROOF ASSET MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="authority-asset-modal" class="modal-overlay hidden" onclick="closeAuthorityAssetModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:720px">
       <div class="modal-head">
         <div>
           <h3 class="modal-title" id="authority-modal-title">New Authority Proof Asset</h3>
-          <p class="modal-sub">Approved Proof Vault — Strict source of truth for AI generation & anti-fabrication rules</p>
+          <p class="modal-sub">Approved Proof Vault â€” Strict source of truth for AI generation & anti-fabrication rules</p>
         </div>
         <button class="btn-icon" onclick="closeAuthorityAssetModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1182,10 +1294,10 @@
           <div class="form-group">
             <label>Permission Status *</label>
             <select id="auth-permission">
-              <option value="APPROVED">APPROVED — Active for AI Prompts</option>
-              <option value="PENDING">PENDING — Pending Client Signoff</option>
-              <option value="EXPIRED">EXPIRED — Past NDA / Permission Date</option>
-              <option value="DENIED">DENIED — Do Not Use</option>
+              <option value="APPROVED">APPROVED â€” Active for AI Prompts</option>
+              <option value="PENDING">PENDING â€” Pending Client Signoff</option>
+              <option value="EXPIRED">EXPIRED â€” Past NDA / Permission Date</option>
+              <option value="DENIED">DENIED â€” Do Not Use</option>
             </select>
           </div>
         </div>
@@ -1231,7 +1343,7 @@
     </div>
   </div>
 
-  <!-- ══════════════ ATTENTION OUTREACH PROSPECT MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• ATTENTION OUTREACH PROSPECT MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="outreach-prospect-modal" class="modal-overlay hidden" onclick="closeOutreachProspectModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:720px">
       <div class="modal-head">
@@ -1291,14 +1403,14 @@
           <div class="form-group">
             <label>AI Reply Classification (Human Override Available)</label>
             <select id="prosp-classification">
-              <option value="INTERESTED">INTERESTED — High Intent</option>
-              <option value="POSITIVE">POSITIVE — Positive Affinity</option>
-              <option value="QUESTION">QUESTION — Asking Details</option>
-              <option value="NEUTRAL">NEUTRAL — General Reply</option>
-              <option value="NOT_NOW">NOT_NOW — Delayed Followup</option>
-              <option value="REFERRAL">REFERRAL — Pointed to Team</option>
-              <option value="UNSUBSCRIBE">UNSUBSCRIBE — Opt-Out</option>
-              <option value="NEGATIVE">NEGATIVE — Declined</option>
+              <option value="INTERESTED">INTERESTED â€” High Intent</option>
+              <option value="POSITIVE">POSITIVE â€” Positive Affinity</option>
+              <option value="QUESTION">QUESTION â€” Asking Details</option>
+              <option value="NEUTRAL">NEUTRAL â€” General Reply</option>
+              <option value="NOT_NOW">NOT_NOW â€” Delayed Followup</option>
+              <option value="REFERRAL">REFERRAL â€” Pointed to Team</option>
+              <option value="UNSUBSCRIBE">UNSUBSCRIBE â€” Opt-Out</option>
+              <option value="NEGATIVE">NEGATIVE â€” Declined</option>
               <option value="UNKNOWN">UNKNOWN</option>
             </select>
           </div>
@@ -1308,7 +1420,7 @@
           </div>
         </div>
         <div class="modal-foot" style="justify-content:space-between">
-          <button type="button" class="btn btn-secondary" onclick="handleAutoClassifyProspectModalReply()">⚡ Run AI Reply Classifier</button>
+          <button type="button" class="btn btn-secondary" onclick="handleAutoClassifyProspectModalReply()">âš¡ Run AI Reply Classifier</button>
           <div style="display:flex;gap:10px">
             <button type="button" class="btn btn-secondary" onclick="closeOutreachProspectModal()">Cancel</button>
             <button type="submit" class="btn btn-primary">Save Prospect</button>
@@ -1318,13 +1430,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ CONTENT PILLAR MODAL (CONTENT STRATEGY) ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• CONTENT PILLAR MODAL (CONTENT STRATEGY) â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="pillar-modal" class="modal-overlay hidden" onclick="closePillarModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()">
       <div class="modal-head">
         <div>
           <h3 class="modal-title" id="pillar-modal-title">Create Content Pillar</h3>
-          <p class="modal-sub">Content Strategy — define the strategic lane this pillar owns</p>
+          <p class="modal-sub">Content Strategy â€” define the strategic lane this pillar owns</p>
         </div>
         <button class="btn-icon" onclick="closePillarModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1352,7 +1464,7 @@
         </div>
         <div class="form-group">
           <label>Target Audience</label>
-          <input id="pillar-audience" placeholder="e.g. Bootstrapped B2B Founders doing $15k–$50k/mo" />
+          <input id="pillar-audience" placeholder="e.g. Bootstrapped B2B Founders doing $15kâ€“$50k/mo" />
         </div>
         <div class="form-group">
           <label>Objective</label>
@@ -1392,13 +1504,13 @@
     </div>
   </div>
 
-  <!-- ══════════════ CONTENT IDEA MODAL (IDEA ENGINE) ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• CONTENT IDEA MODAL (IDEA ENGINE) â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="idea-modal" class="modal-overlay hidden" onclick="closeIdeaModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:720px">
       <div class="modal-head">
         <div>
           <h3 class="modal-title" id="idea-modal-title">New Content Idea</h3>
-          <p class="modal-sub">Content Idea Engine — score, prioritize, convert to pipeline</p>
+          <p class="modal-sub">Content Idea Engine â€” score, prioritize, convert to pipeline</p>
         </div>
         <button class="btn-icon" onclick="closeIdeaModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1436,7 +1548,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Target ICP</label>
-            <input id="idea-icp" placeholder="e.g. Bootstrapped B2B Founders doing $15k–$50k/mo" />
+            <input id="idea-icp" placeholder="e.g. Bootstrapped B2B Founders doing $15kâ€“$50k/mo" />
           </div>
           <div class="form-group">
             <label>Pain</label>
@@ -1503,7 +1615,7 @@
         <div id="idea-duplicate-warning" class="hidden" style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px;font-size:12px;color:#B91C1C"></div>
         <div class="modal-foot" style="justify-content:space-between">
           <div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="handleDeleteIdea()" id="idea-delete-btn" style="color:#EF4444;border-color:#FCA5A5">🗑 Delete</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="handleDeleteIdea()" id="idea-delete-btn" style="color:#EF4444;border-color:#FCA5A5">ðŸ—‘ Delete</button>
           </div>
           <div style="display:flex;gap:10px">
             <button type="button" class="btn btn-secondary" onclick="closeIdeaModal()">Cancel</button>
@@ -1514,12 +1626,12 @@
     </div>
   </div>
 
-  <!-- ══════════════ AI IDEA GENERATOR MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• AI IDEA GENERATOR MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="idea-generator-modal" class="modal-overlay hidden" onclick="closeIdeaGeneratorModal()">
     <div class="modal-card" onclick="event.stopPropagation()">
       <div class="modal-head">
         <div>
-          <h3 class="modal-title">⚡ AI Content Idea Generator</h3>
+          <h3 class="modal-title">âš¡ AI Content Idea Generator</h3>
           <p class="modal-sub">Grounds ideas in Business DNA, Positioning, Brand Voice, Pillars & Founder Knowledge</p>
         </div>
         <button class="btn-icon" onclick="closeIdeaGeneratorModal()">
@@ -1530,13 +1642,13 @@
         <div class="form-group">
           <label>Idea Source (what triggers the idea)</label>
           <select id="gen-idea-source">
-            <option value="AI_GENERATED">⚡ AI-Generated (all DNA signals)</option>
-            <option value="CUSTOMER_QUESTION">💬 From Customer Questions</option>
-            <option value="OBJECTION">🛡 From Objections</option>
-            <option value="SALES_CONVERSATION">🎧 From Sales Conversations</option>
-            <option value="CASE_STUDY">📊 From Case Studies & Proof</option>
-            <option value="MARKET_INTEL">🔍 From Market Intelligence</option>
-            <option value="SUCCESSFUL_CONTENT">🚀 From Previous Successful Content</option>
+            <option value="AI_GENERATED">âš¡ AI-Generated (all DNA signals)</option>
+            <option value="CUSTOMER_QUESTION">ðŸ’¬ From Customer Questions</option>
+            <option value="OBJECTION">ðŸ›¡ From Objections</option>
+            <option value="SALES_CONVERSATION">ðŸŽ§ From Sales Conversations</option>
+            <option value="CASE_STUDY">ðŸ“Š From Case Studies & Proof</option>
+            <option value="MARKET_INTEL">ðŸ” From Market Intelligence</option>
+            <option value="SUCCESSFUL_CONTENT">ðŸš€ From Previous Successful Content</option>
           </select>
         </div>
         <div class="form-row">
@@ -1558,19 +1670,19 @@
         </div>
         <div class="modal-foot">
           <button type="button" class="btn btn-secondary" onclick="closeIdeaGeneratorModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">⚡ Generate & Score Ideas</button>
+          <button type="submit" class="btn btn-primary">âš¡ Generate & Score Ideas</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ══════════════ ATTENTION OS AI HOOK & SCRIPT STUDIO MODAL ══════════════ -->
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• ATTENTION OS AI HOOK & SCRIPT STUDIO MODAL â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
   <div id="ai-studio-modal" class="modal-overlay hidden" onclick="closeAiStudioModal()">
     <div class="modal-card modal-lg" onclick="event.stopPropagation()" style="max-width:920px;width:95vw">
       <div class="modal-head">
         <div>
           <div style="display:flex;align-items:center;gap:10px">
-            <h3 class="modal-title">⚡ Attention OS — AI Hook & Script Studio</h3>
+            <h3 class="modal-title">âš¡ Attention OS â€” AI Hook & Script Studio</h3>
             <span class="sb-badge blue" id="ai-studio-version-badge">Prompt Engine v2.1</span>
             <span class="sb-badge green" id="ai-studio-score-badge">Overall Score: --</span>
           </div>
@@ -1602,16 +1714,16 @@
       <!-- Studio Navigation Tabs -->
       <div class="engine-tab-bar" style="margin:12px 20px 0;background:#F1F5F9;padding:4px;border-radius:8px">
         <div class="engine-tab active" id="tab-btn-studio-hooks" onclick="switchStudioTab('hooks')">
-          🎯 Hook Studio (9 Styles)
+          ðŸŽ¯ Hook Studio (9 Styles)
         </div>
         <div class="engine-tab" id="tab-btn-studio-script" onclick="switchStudioTab('script')">
-          📱 Platform Script Studio (8 Platforms)
+          ðŸ“± Platform Script Studio (8 Platforms)
         </div>
         <div class="engine-tab" id="tab-btn-studio-guardrails" onclick="switchStudioTab('guardrails')">
-          🛡 Guardrails & Proof Gap Inspector
+          ðŸ›¡ Guardrails & Proof Gap Inspector
         </div>
         <div class="engine-tab" id="tab-btn-studio-versions" onclick="switchStudioTab('versions')">
-          📜 Version History & Audits
+          ðŸ“œ Version History & Audits
         </div>
       </div>
 
@@ -1625,7 +1737,7 @@
               <p style="margin:2px 0 0;font-size:12px;color:#64748B">Generate pattern-interrupting hooks scored against ICP friction & positioning resonance</p>
             </div>
             <button type="button" class="btn btn-primary btn-sm" onclick="runHookGenerator()">
-              ⚡ Generate Hooks Across All Styles
+              âš¡ Generate Hooks Across All Styles
             </button>
           </div>
 
@@ -1646,7 +1758,7 @@
           <!-- Generated Hooks List -->
           <div id="ai-studio-hooks-list" style="display:flex;flex-direction:column;gap:10px">
             <div style="padding:24px;text-align:center;color:#64748B;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px">
-              Click <strong>"⚡ Generate Hooks Across All Styles"</strong> to synthesize candidate hooks anchored in Business DNA.
+              Click <strong>"âš¡ Generate Hooks Across All Styles"</strong> to synthesize candidate hooks anchored in Business DNA.
             </div>
           </div>
         </div>
@@ -1659,7 +1771,7 @@
               <p style="margin:2px 0 0;font-size:12px;color:#64748B">Generates platform-tailored scripts with explicit 7-section structure</p>
             </div>
             <button type="button" class="btn btn-primary btn-sm" onclick="runScriptSynthesizer()">
-              ⚡ Synthesize Script
+              âš¡ Synthesize Script
             </button>
           </div>
 
@@ -1721,7 +1833,7 @@
               <p style="margin:2px 0 0;font-size:12px;color:#64748B">Enforces brand voice prohibited words, ICP/Positioning alignment, and anti-fabrication rules</p>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" onclick="runDraftValidation()">
-              🛡 Re-Validate Current Draft
+              ðŸ›¡ Re-Validate Current Draft
             </button>
           </div>
 
@@ -1752,7 +1864,7 @@
           <!-- Proof Gap Alert Container -->
           <div id="ai-studio-proof-gap-alert" class="hidden" style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:12px 16px;margin-bottom:14px">
             <div style="display:flex;align-items:center;gap:8px;color:#991B1B;font-weight:700;font-size:13px;margin-bottom:4px">
-              ⚠️ PROOF GAP DETECTED — Anti-Fabrication Rule Triggered
+              âš ï¸ PROOF GAP DETECTED â€” Anti-Fabrication Rule Triggered
             </div>
             <div style="font-size:12px;color:#B91C1C;line-height:1.4" id="ai-studio-proof-gap-text">
               Generated script contains metric claims or case study references that cannot be verified in the stored authority assets database.
@@ -1792,8 +1904,8 @@
       <div class="modal-foot" style="justify-content:space-between">
         <button type="button" class="btn btn-secondary" onclick="closeAiStudioModal()">Close</button>
         <div style="display:flex;gap:10px">
-          <button type="button" class="btn btn-secondary" onclick="saveStudioVersion('DRAFT')">💾 Save Draft Version</button>
-          <button type="button" class="btn btn-primary" onclick="saveStudioVersion('APPROVED')">✅ Approve & Persist Version</button>
+          <button type="button" class="btn btn-secondary" onclick="saveStudioVersion('DRAFT')">ðŸ’¾ Save Draft Version</button>
+          <button type="button" class="btn btn-primary" onclick="saveStudioVersion('APPROVED')">âœ… Approve & Persist Version</button>
         </div>
       </div>
     </div>
