@@ -1,424 +1,318 @@
 <!DOCTYPE html>
-
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Asenzo OS - Growth Command Center</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        "colors": {
-                "tertiary-fixed": "#ffdbcd",
-                "background": "#fcf8fb",
-                "secondary-fixed-dim": "#c7c6cb",
-                "surface-container": "#f0edef",
-                "surface-container-highest": "#e4e2e4",
-                "on-primary-fixed": "#001a41",
-                "tertiary-fixed-dim": "#ffb595",
-                "sidebar-dark": "#303032",
-                "inverse-surface": "#303032",
-                "primary": "#00418f",
-                "chart-blue-light": "#adc6ff",
-                "inverse-on-surface": "#f3f0f2",
-                "on-secondary-fixed-variant": "#46464b",
-                "secondary": "#5e5e63",
-                "outline-variant": "#c2c6d5",
-                "outline": "#727784",
-                "on-error-container": "#93000a",
-                "on-primary-fixed-variant": "#004494",
-                "inverse-primary": "#adc6ff",
-                "tertiary-container": "#9e3d00",
-                "on-primary": "#ffffff",
-                "surface": "#fcf8fb",
-                "secondary-fixed": "#e3e2e7",
-                "surface-background": "#fcf8fb",
-                "primary-fixed-dim": "#adc6ff",
-                "on-tertiary-fixed-variant": "#7c2e00",
-                "surface-tint": "#095bbf",
-                "on-surface-variant": "#424753",
-                "on-tertiary-fixed": "#351000",
-                "on-error": "#ffffff",
-                "primary-fixed": "#d8e2ff",
-                "surface-bright": "#fcf8fb",
-                "on-tertiary-container": "#ffc9b2",
-                "surface-container-high": "#eae7ea",
-                "surface-container-lowest": "#ffffff",
-                "surface-variant": "#e4e2e4",
-                "error-container": "#ffdad6",
-                "success-accent": "#9e3d00",
-                "on-tertiary": "#ffffff",
-                "secondary-container": "#e0dfe5",
-                "on-secondary-container": "#626267",
-                "on-background": "#1b1b1d",
-                "surface-dim": "#dcd9dc",
-                "on-secondary": "#ffffff",
-                "on-primary-container": "#c3d4ff",
-                "tertiary": "#782c00",
-                "surface-container-low": "#f6f3f5",
-                "primary-container": "#0058bc",
-                "on-surface": "#1b1b1d",
-                "on-secondary-fixed": "#1b1b20",
-                "error": "#ba1a1a",
-                "chart-blue": "#0058bc",
-                "apple-black": "#0B0C0E",
-                "apple-metal": "#1D1D1F",
-                "electric-blue": "#3b82f6",
-                "emerald": "#10b981",
-                "amber": "#f59e0b"
-        },
-        "borderRadius": {
-                "DEFAULT": "1rem",
-                "lg": "2rem",
-                "xl": "3rem",
-                "full": "9999px"
-        },
-        "spacing": {
-                "gutter": "24px",
-                "unit": "8px",
-                "container-padding-mobile": "20px",
-                "section-gap": "64px",
-                "container-padding-desktop": "40px"
-        },
-        "fontFamily": {
-                "headline-lg": [
-                        "Inter"
-                ],
-                "label-sm": [
-                        "Inter"
-                ],
-                "headline-md": [
-                        "Inter"
-                ],
-                "body-md": [
-                        "Inter"
-                ],
-                "label-md": [
-                        "Inter"
-                ],
-                "display-lg": [
-                        "Inter"
-                ],
-                "display-lg-mobile": [
-                        "Inter"
-                ],
-                "body-lg": [
-                        "Inter"
-                ]
-        },
-        "fontSize": {
-                "headline-lg": [
-                        "32px",
-                        {
-                                "lineHeight": "38px",
-                                "letterSpacing": "-0.019em",
-                                "fontWeight": "600"
-                        }
-                ],
-                "label-sm": [
-                        "11px",
-                        {
-                                "lineHeight": "16px",
-                                "letterSpacing": "0.02em",
-                                "fontWeight": "600"
-                        }
-                ],
-                "headline-md": [
-                        "24px",
-                        {
-                                "lineHeight": "30px",
-                                "letterSpacing": "-0.019em",
-                                "fontWeight": "600"
-                        }
-                ],
-                "body-md": [
-                        "15px",
-                        {
-                                "lineHeight": "22px",
-                                "letterSpacing": "-0.009em",
-                                "fontWeight": "400"
-                        }
-                ],
-                "label-md": [
-                        "13px",
-                        {
-                                "lineHeight": "18px",
-                                "letterSpacing": "0.01em",
-                                "fontWeight": "500"
-                        }
-                ],
-                "display-lg": [
-                        "48px",
-                        {
-                                "lineHeight": "52px",
-                                "letterSpacing": "-0.022em",
-                                "fontWeight": "700"
-                        }
-                ],
-                "display-lg-mobile": [
-                        "34px",
-                        {
-                                "lineHeight": "40px",
-                                "letterSpacing": "-0.022em",
-                                "fontWeight": "700"
-                        }
-                ],
-                "body-lg": [
-                        "17px",
-                        {
-                                "lineHeight": "26px",
-                                "letterSpacing": "-0.011em",
-                                "fontWeight": "400"
-                        }
-                ]
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sleek Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300,1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        bg: '#111111',
+                        panel: '#151515',
+                        panelHover: '#1f1f1f',
+                        border: '#2a2a2a',
+                        textMain: '#ededed',
+                        textMuted: '#888888',
+                        accentBlue: '#5e43f3',
+                        accentGreen: '#10b981'
+                    }
+                }
+            }
         }
-},
-    },
-  }
-</script>
-<style>
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(194, 198, 213, 0.3);
-        }
-        
-        .sidebar-glass {
-            background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .metric-card {
-            background: #ffffff;
-            border: 1px solid rgba(194, 198, 213, 0.3);
-        }
-
-        .ambient-shadow {
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-        }
-        
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111111; color: #ededed; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-surface text-on-surface font-body-md h-screen overflow-hidden flex selection:bg-primary selection:text-on-primary">
-<aside class="sidebar-glass fixed h-screen w-64 left-0 top-0 shadow-2xl z-50 flex flex-col p-6 rounded-r-3xl" style="background: linear-gradient(180deg, #0B0C0E 0%, #1D1D1F 100%); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-right: 1px solid rgba(255, 255, 255, 0.1);">
-<div class="mb-12 flex items-center gap-4">
-<div class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">terminal</span>
-</div>
-<div class="bg-white/10">
-<h1 class="font-headline-md text-headline-md font-bold text-white">Asenzo OS</h1>
-<p class="font-label-md text-label-md text-slate-400">Founder Control</p>
-</div>
-</div>
-<nav class="flex-1 flex flex-col gap-2">
-<a class="flex items-center gap-3 bg-white text-slate-900 font-label-md text-label-md rounded-full px-4 py-3 scale-105 transition-all duration-300" href="#">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
-                Dashboard
+<body class="h-screen overflow-hidden flex bg-bg p-4 gap-4">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-panel rounded-[24px] border border-border flex flex-col p-4 shadow-2xl relative">
+        <!-- Header -->
+        <div class="flex items-center gap-3 mb-6 p-2 rounded-xl hover:bg-panelHover cursor-pointer">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center font-bold">K</div>
+            <div>
+                <h1 class="font-semibold text-sm">Kangaroo Inc.</h1>
+                <p class="text-xs text-textMuted">admin@kangaroo.com</p>
+            </div>
+            <span class="material-symbols-outlined ml-auto text-textMuted text-sm">unfold_more</span>
+        </div>
+
+        <div class="text-xs font-semibold text-textMuted mb-2 px-2 flex justify-between">
+            Link Integrations
+            <div class="flex gap-1">
+                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 space-y-0.5 mt-4">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-panelHover text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">home</span> Home
             </a>
-<a class="flex items-center gap-3 text-slate-300 hover:text-white hover:bg-white/10 font-label-md text-label-md rounded-full px-4 py-3 transition-colors" href="#">
-<span class="material-symbols-outlined">work</span>
-                Portfolio
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-textMuted hover:bg-panelHover hover:text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">analytics</span> Analytics
             </a>
-<a class="flex items-center gap-3 text-slate-300 hover:text-white hover:bg-white/10 font-label-md text-label-md rounded-full px-4 py-3 transition-colors" href="#">
-<span class="material-symbols-outlined">trending_up</span>
-                Investments
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-textMuted hover:bg-panelHover hover:text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">group</span> Customers
+                <span class="ml-auto bg-green-900/30 text-green-400 text-[10px] px-1.5 py-0.5 rounded">6</span>
             </a>
-<a class="flex items-center gap-3 text-slate-300 hover:text-white hover:bg-white/10 font-label-md text-label-md rounded-full px-4 py-3 transition-colors" href="#">
-<span class="material-symbols-outlined">insights</span>
-                Market Insights
+            <hr class="border-border my-4" />
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-textMuted hover:bg-panelHover hover:text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">handshake</span> Partners
+                <span class="ml-auto bg-green-900/30 text-green-400 text-[10px] px-1.5 py-0.5 rounded">New</span>
             </a>
-<a class="flex items-center gap-3 text-slate-300 hover:text-white hover:bg-white/10 font-label-md text-label-md rounded-full px-4 py-3 transition-colors" href="#">
-<span class="material-symbols-outlined">smart_toy</span>
-                AI Advisor
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-textMuted hover:bg-panelHover hover:text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">payments</span> Payouts
             </a>
-<a class="flex items-center gap-3 text-slate-300 hover:text-white hover:bg-white/10 font-label-md text-label-md rounded-full px-4 py-3 transition-colors" href="#">
-<span class="material-symbols-outlined">account_tree</span>
-                Resource mgnt
+        </nav>
+
+        <!-- Affiliate Promo -->
+        <div class="mt-auto mb-4 bg-bg border border-border p-3 flex flex-col rounded-xl relative">
+            <button class="absolute top-2 right-2 text-textMuted hover:text-textMain"><span class="material-symbols-outlined text-[14px]">close</span></button>
+            <span class="text-xs text-green-400 border border-green-900/50 bg-green-900/10 px-1.5 py-0.5 rounded w-max mb-2">New</span>
+            <h4 class="text-sm font-semibold mb-1">Partners affiliate program</h4>
+            <p class="text-[11px] text-textMuted mb-3">Run your own affiliate program with zero overhead</p>
+            <button class="text-xs text-textMain flex items-center gap-1 w-max font-medium hover:text-white">Try it out <span class="material-symbols-outlined text-[12px]">arrow_forward</span></button>
+        </div>
+
+        <nav class="space-y-0.5">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-textMuted hover:bg-panelHover hover:text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">settings</span> Settings
             </a>
-<a class="flex items-center gap-3 text-slate-300 hover:text-white hover:bg-white/10 font-label-md text-label-md rounded-full px-4 py-3 transition-colors" href="#">
-<span class="material-symbols-outlined">group</span>
-                Users
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-textMuted hover:bg-panelHover hover:text-textMain font-medium text-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">help</span> Help Center
             </a>
-</nav>
-<div class="mt-auto">
-<div class="bg-gradient-to-br from-slate-800 to-slate-900 p-4 text-center border border-white/10 rounded-[24px]">
-<div class="w-12 h-12 mx-auto bg-amber-400 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-amber-400/20">
-<span class="material-symbols-outlined text-white">star</span>
-</div>
-<p class="text-sm text-slate-300 mb-4">Upgrade to PRO to get access to all features!</p>
-<button class="w-full py-2 bg-white text-slate-900 rounded-full font-semibold text-sm hover:bg-slate-100 transition-colors">Get Pro Now</button>
-</div>
-</div>
-</aside>
-<main class="ml-64 flex-1 h-screen overflow-y-auto hide-scrollbar bg-slate-50 relative">
-<header class="sticky top-0 z-40 bg-slate-50/80 backdrop-blur-md px-10 h-20 flex justify-between items-center w-full">
-<div>
-<h2 class="font-headline-lg text-headline-lg font-bold text-slate-900">Dashboard</h2>
-</div>
-<div class="flex items-center gap-6">
-<div class="relative w-96">
-<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-<input class="w-full pl-12 pr-4 py-3 rounded-full bg-white border border-slate-200 focus:ring-2 focus:ring-electric-blue text-slate-900 font-label-md shadow-sm" placeholder="Search anything..." type="text"/>
-</div>
-<div class="flex items-center gap-4">
-<button class="w-10 h-10 rounded-full bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition-colors text-slate-600 relative">
-<span class="material-symbols-outlined">notifications</span>
-<span class="absolute top-0 right-0 w-3 h-3 bg-electric-blue rounded-full border-2 border-white"></span>
-</button>
-<div class="flex items-center gap-2 cursor-pointer">
-<img alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvKuTHxQEBhtUL1Xk6_BbKmJGggF7YOqSolpY8tUenyc5O6sLzEPwbvr5nKiw0BwbDEopuoK6RBhPB6hyGUUD7pj_9Au_7bAmPWEXASC7AuQGibBo-YjQ4w_CgGesTLbqq1QnfOf5FO3YpR0AwHvSj3NXt2TbPdXMPX-XkxrnTEyhK-xYNTEfFOSJyHiW-Wrr1tXQSSW8cYvj3Sx5msyX1xWfTB5zux4WkR2aKVjRldGr2Vcp8gGPs7Q"/>
-<span class="material-symbols-outlined text-slate-400">expand_more</span>
-</div>
-</div>
-</div>
-</header>
-<div class="p-10 max-w-7xl mx-auto space-y-8 gap-10">
-<div class="flex justify-between items-end mb-6">
-<div>
-<h1 class="text-3xl font-bold text-slate-900 mb-2">Growth Command Center</h1>
-<p class="text-slate-500">Welcome back, A. Mercer. Your pipeline is up 12% this quarter.</p>
-</div>
-<div class="flex gap-3">
-<button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Export CSV</button>
-<button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Share Insights</button>
-</div>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-electric-blue flex items-center justify-center shadow-lg shadow-electric-blue/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">star</span>
-</div>
-<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">+2.4% <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">FIS Score</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">84<span class="text-slate-400 text-xl">/100</span></h3>
-</div>
-<div class="metric-card rounded-[24px] p-6 ambient-shadow bg-slate-50 hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
-</div>
-<span class="px-2 py-1 bg-white text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">+12% <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">Pipeline Value</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">$101,500</h3>
-</div>
-<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">work</span>
-</div>
-<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">Active <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">Active Leads</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">24</h3>
-</div>
-<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">schedule</span>
-</div>
-<span class="px-2 py-1 bg-red-50 text-red-500 rounded-md font-label-sm text-label-sm flex items-center gap-1">Action <span class="material-symbols-outlined text-[14px]">arrow_forward</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">Pending Ops</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">12<span class="text-slate-400 text-xl">/100</span></h3>
-</div>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-<div class="metric-card rounded-[24px] p-8 ambient-shadow lg:col-span-2">
-<div class="flex justify-between items-center mb-8">
-<div>
-<h3 class="text-xl font-bold text-slate-900 mb-1">Acquisition Velocity</h3>
-<p class="text-sm text-slate-500">Pipeline value over the last 6 months</p>
-</div>
-<div class="flex gap-4 text-sm font-medium">
-<span class="text-slate-400 cursor-pointer">Daily</span>
-<span class="text-slate-400 cursor-pointer">Weekly</span>
-<span class="text-electric-blue border-b-2 border-electric-blue pb-1 cursor-pointer">Monthly</span>
-</div>
-</div>
-<div class="h-64 relative flex items-end justify-between px-4 pb-4 pt-10">
-<!-- Simplified Chart Visualization for Demo -->
-<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none" viewbox="0 0 100 100">
-<defs>
-<lineargradient id="gradBlue" x1="0%" x2="0%" y1="0%" y2="100%"><stop offset="0%" style="stop-color:#64748b;stop-opacity:0.2"></stop><stop offset="100%" style="stop-color:#64748b;stop-opacity:0"></stop></lineargradient>
-<lineargradient id="gradGreen" x1="0%" x2="0%" y1="0%" y2="100%">
-<stop offset="0%" style="stop-color:#10b981;stop-opacity:0.2"></stop>
-<stop offset="100%" style="stop-color:#10b981;stop-opacity:0"></stop>
-</lineargradient>
-</defs>
-<path d="M0,80 C10,70 20,40 30,30 C40,20 50,60 60,70 C70,80 80,40 90,50 L100,50 L100,100 L0,100 Z" fill="url(#gradBlue)" stroke="#3b82f6" stroke-width="0.5"></path>
-<path d="M0,90 C15,80 25,30 35,20 C45,10 55,50 65,40 C75,30 85,70 95,60 L100,60 L100,100 L0,100 Z" fill="url(#gradGreen)" stroke="#10b981" stroke-width="0.5"></path>
-</svg>
-<div class="absolute left-0 bottom-0 h-full flex flex-col justify-between text-xs text-slate-400 py-4">
-<span>400</span>
-<span>300</span>
-<span>200</span>
-<span>100</span>
-<span>0</span>
-</div>
-<div class="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-slate-400">
-<span>May</span>
-<span>Jun</span>
-<span>Jul</span>
-<span>Aug</span>
-<span>Sep</span>
-<span>Oct</span>
-<span>Nov</span>
-<span>Dec</span>
-<span>Jan</span>
-<span>Feb</span>
-<span>Mar</span>
-</div>
-</div>
-</div>
-<div class="metric-card rounded-[24px] p-8 ambient-shadow flex flex-col">
-<div class="flex justify-between items-center mb-8">
-<h3 class="text-xl font-bold text-slate-900">Growth Architecture</h3>
-<button class="flex items-center text-sm text-slate-500 gap-1">All <span class="material-symbols-outlined text-sm">expand_more</span></button>
-</div>
-<div class="flex-1 flex flex-col items-center justify-center relative">
-<div class="w-48 h-48 rounded-full border-[12px] border-slate-100 relative mb-8">
-<div class="absolute inset-0 rounded-full border-[12px] border-cyan-400" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);"></div>
-<div class="absolute inset-0 rounded-full border-[12px] border-amber-400" style="clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); transform: rotate(45deg);"></div>
-<div class="absolute inset-0 rounded-full border-[12px] border-emerald-400" style="clip-path: polygon(50% 0, 100% 0, 100% 50%, 50% 50%); transform: rotate(-45deg);"></div>
-<div class="absolute inset-0 flex items-center justify-center flex-col">
-<span class="text-2xl font-bold text-slate-900">$101k</span>
-</div>
-</div>
-<div class="flex justify-between w-full mt-auto">
-<div class="text-center">
-<p class="text-lg font-bold text-slate-900">55%</p>
-<p class="text-sm text-slate-500">Signal</p>
-</div>
-<div class="text-center">
-<p class="text-lg font-bold text-slate-900">20%</p>
-<p class="text-sm text-slate-500">Conv.</p>
-</div>
-<div class="text-center">
-<p class="text-lg font-bold text-slate-900">10%</p>
-<p class="text-sm text-slate-500">Retain</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</main>
-</body></html>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col bg-panel rounded-[24px] border border-border overflow-hidden rounded-tr-[24px] relative p-8 h-full">
+
+        <!-- Top Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2 text-xl font-bold">
+                Links <span class="material-symbols-outlined text-textMuted text-sm">unfold_more</span>
+            </div>
+            <button class="bg-[#222222] hover:bg-[#333333] border border-border text-sm px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">link</span> Create Link
+            </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex gap-2">
+                <button class="bg-[#1f1f1f] border border-border px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px]">view_list</span> Display
+                </button>
+                <button class="bg-transparent border border-border px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 text-textMuted hover:text-textMain">
+                    <span class="material-symbols-outlined text-[16px]">settings</span> Settings
+                </button>
+            </div>
+            <div class="relative max-w-xs w-full">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-textMuted text-[18px]">search</span>
+                <input type="text" placeholder="Search links" class="w-full bg-bg border border-border rounded-lg pl-9 pr-4 py-1.5 text-sm focus:outline-none focus:border-gray-500 text-textMuted">
+            </div>
+        </div>
+
+        <!-- List Area -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar flex flex-col gap-2">
+            <!-- Item 1 -->
+            <div class="flex items-center justify-between p-3 bg-bg border border-border rounded-xl hover:bg-panelHover transition-colors cursor-pointer group">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold text-white text-xs">B</div>
+                    <div>
+                        <div class="flex items-center gap-2 text-sm font-semibold">
+                            linkd.sh/hKWhPq <span class="material-symbols-outlined text-textMuted text-[14px]">content_copy</span>
+                        </div>
+                        <div class="text-[11px] text-textMuted flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">subdirectory_arrow_right</span> mywebsite.com 7m
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-textMuted flex-1 text-center">IG conversion funnel #2</div>
+                <div class="px-2.5 py-1 bg-green-900/20 border border-green-900/40 rounded text-xs text-green-400 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                    27 clicks <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="flex items-center justify-between p-3 bg-bg border border-border rounded-xl hover:bg-panelHover transition-colors cursor-pointer group">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center font-bold text-white text-xs">B</div>
+                    <div>
+                        <div class="flex items-center gap-2 text-sm font-semibold">
+                            linkd.sh/iSnlPc <span class="material-symbols-outlined text-textMuted text-[14px]">content_copy</span>
+                        </div>
+                        <div class="text-[11px] text-textMuted flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">subdirectory_arrow_right</span> mywebsite.com/blogposts 10d
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-textMuted flex-1 text-center">Pinterest blog post links</div>
+                <div class="px-2.5 py-1 bg-green-900/20 border border-green-900/40 rounded text-xs text-green-400 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                    48 clicks <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                </div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="flex items-center justify-between p-3 bg-bg border border-border rounded-xl hover:bg-panelHover transition-colors cursor-pointer group">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center font-bold text-white text-xs">O</div>
+                    <div>
+                        <div class="flex items-center gap-2 text-sm font-semibold">
+                            linkd.sh/iSnlPc <span class="material-symbols-outlined text-textMuted text-[14px]">content_copy</span>
+                        </div>
+                        <div class="text-[11px] text-textMuted flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">subdirectory_arrow_right</span> mywebsite.com/blogposts 10d
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-textMuted flex-1 text-center">Pinterest blog post links</div>
+                <div class="px-2.5 py-1 bg-green-900/20 border border-green-900/40 rounded text-xs text-green-400 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                    48 clicks <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                </div>
+            </div>
+            
+             <!-- Item 4 -->
+            <div class="flex items-center justify-between p-3 bg-bg border border-border rounded-xl hover:bg-panelHover transition-colors cursor-pointer group">
+                <div class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-white text-xs">Y</div>
+                    <div>
+                        <div class="flex items-center gap-2 text-sm font-semibold">
+                            linkd.sh/iSnlPc <span class="material-symbols-outlined text-textMuted text-[14px]">content_copy</span>
+                        </div>
+                        <div class="text-[11px] text-textMuted flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[12px]">subdirectory_arrow_right</span> mywebsite.com/blogposts 10d
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-textMuted flex-1 text-center">Pinterest blog post links</div>
+                <div class="px-2.5 py-1 bg-green-900/20 border border-green-900/40 rounded text-xs text-green-400 flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                    48 clicks <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Graphs Area -->
+        <div class="mt-6 flex h-48 gap-4 shrink-0">
+            <!-- Line Chart -->
+            <div class="flex-1 bg-bg border border-border rounded-xl p-4 flex flex-col relative overflow-hidden">
+                <div class="flex justify-between items-center mb-4 z-10">
+                    <div class="text-sm font-medium">Total clicks: <span class="font-bold text-white text-base">352</span></div>
+                    <div class="flex bg-[#1a1a1a] p-0.5 rounded-lg border border-border">
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">1d</button>
+                        <button class="px-2 py-0.5 text-[11px] bg-panel text-textMain rounded shadow">1w</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">1m</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">6m</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">1y</button>
+                    </div>
+                </div>
+                
+                <!-- Mock SVG Chart -->
+                <div class="absolute inset-0 top-12 left-0 right-0 bottom-0 pointer-events-none p-4 pb-8 pl-8 flex items-end">
+                    <div class="flex flex-col justify-between h-full text-[10px] text-textMuted absolute left-2 top-2 bottom-6 py-2">
+                        <span>40</span>
+                        <span>30</span>
+                        <span>20</span>
+                        <span>10</span>
+                        <span>0</span>
+                    </div>
+                    
+                    <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#5e43f3" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#5e43f3" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M0,60 Q10,70 20,50 T40,60 T60,40 T80,70 T100,40 L100,100 L0,100 Z" fill="url(#lineGrad)"/>
+                        <path d="M0,60 Q10,70 20,50 T40,60 T60,40 T80,70 T100,40" fill="none" stroke="#5e43f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    
+                    <div class="absolute bottom-1 left-8 right-4 flex justify-between text-[10px] text-textMuted">
+                        <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bar Chart -->
+            <div class="flex-1 bg-bg border border-border rounded-xl p-4 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex gap-4 text-[13px]">
+                        <button class="text-textMain font-medium border-b border-textMain pb-1">Clicks</button>
+                        <button class="text-textMuted hover:text-textMain">Signups</button>
+                        <button class="text-textMuted hover:text-textMain">Conversions</button>
+                    </div>
+                    <div class="flex bg-[#1a1a1a] p-0.5 rounded-lg border border-border">
+                        <button class="px-2 py-0.5 text-[11px] bg-panel text-textMain rounded shadow">1d</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">1w</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">1m</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">6m</button>
+                        <button class="px-2 py-0.5 text-[11px] text-textMuted hover:text-textMain rounded">1y</button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col justify-between gap-1 overflow-y-auto hide-scrollbar">
+                    <div class="flex items-center gap-3 text-xs w-full">
+                        <div class="w-5 h-5 rounded-full bg-orange-500 shrink-0 text-[10px] flex items-center justify-center font-bold text-white">O</div>
+                        <div class="bg-[#3e2ca8] text-white px-2 py-1 rounded truncate relative h-[22px] flex items-center" style="width: 80%">
+                             linkd.sh/hKWhPq
+                        </div>
+                        <span class="ml-auto font-medium">124</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 text-xs w-full">
+                        <div class="w-5 h-5 rounded-full bg-blue-500 shrink-0 text-[10px] flex items-center justify-center font-bold text-white">B</div>
+                        <div class="bg-[#3b2a9e] text-white px-2 py-1 rounded truncate relative h-[22px] flex items-center" style="width: 65%">
+                             linkd.sh/iSnlPc
+                        </div>
+                        <span class="ml-auto font-medium">86</span>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-xs w-full">
+                        <div class="w-5 h-5 rounded-full bg-red-400 shrink-0 text-[10px] flex items-center justify-center font-bold text-white">C</div>
+                        <div class="bg-[#342485] text-white px-2 py-1 rounded truncate relative h-[22px] flex items-center" style="width: 45%">
+                             linkd.sh/hKWhPq
+                        </div>
+                        <span class="ml-auto font-medium">51</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 text-xs w-full">
+                        <div class="w-5 h-5 rounded-full bg-yellow-500 shrink-0 text-[10px] flex items-center justify-center font-bold text-white">Y</div>
+                        <div class="bg-[#2a1d6b] text-white px-2 py-1 rounded truncate relative h-[22px] flex items-center" style="width: 35%">
+                             linkd.sh/hKWhPq
+                        </div>
+                        <span class="ml-auto font-medium">46</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 text-xs w-full">
+                        <div class="w-5 h-5 rounded-full bg-blue-400 shrink-0 text-[10px] flex items-center justify-center font-bold text-white">B</div>
+                        <div class="bg-[#201652] text-white px-2 py-1 rounded truncate relative h-[22px] flex items-center" style="width: 25%">
+                             linkd.sh/hKWhPq
+                        </div>
+                        <span class="ml-auto font-medium">21</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

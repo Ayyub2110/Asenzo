@@ -560,113 +560,96 @@
   </div>
 
   <!-- ══════════════ MAIN FULLSCREEN VIEWPORT SHELL ══════════════ -->
-  <div class="app-shell flex min-h-screen w-full text-on-surface" style="background:#F4F5F7; font-family:'Inter',sans-serif;">
+  <div class="app-shell flex h-screen w-full overflow-hidden text-on-surface p-4 gap-4" style="background:#ECEEF1; font-family:'Inter',sans-serif;">
 
-    <!-- ══════════════ LEFT SIDEBAR — Stitch Executive Command Center ══════════════ -->
-    <aside id="sidebar" class="sidebar fixed h-screen left-0 top-0 z-50 flex flex-col transition-all duration-300" style="width:260px; background:#18181B; border-right:1px solid rgba(255,255,255,0.06);">
+    <!-- ══════════════ LEFT SIDEBAR — Apple Black Premium ══════════════ -->
+    <aside id="sidebar" class="sidebar relative h-full flex flex-col transition-all duration-300 shrink-0 shadow-2xl rounded-[32px] p-6 pb-5" style="width:280px; background:#0a0a0a; border: 1px solid #1f1f1f; color: #e5e5e5;">
 
       <!-- Brand Header -->
-      <div class="flex items-center gap-3 px-5 pt-6 pb-5 cursor-pointer" onclick="go('overview', document.getElementById('nav-overview'))">
-        <div style="width:32px;height:32px;background:#27272A;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
-          <span class="material-symbols-outlined" style="font-size:16px;color:#A1A1AA;font-variation-settings:'FILL' 1;">terminal</span>
+      <div class="flex items-center gap-3 mb-8 cursor-pointer group" onclick="go('overview', document.getElementById('nav-overview'))">
+        <div class="w-10 h-10 rounded-full bg-[#1c1c1c] flex items-center justify-center font-bold text-white shadow-sm border border-[#2a2a2a] text-sm shrink-0">
+          AZ
         </div>
         <div>
-          <div style="font-family:'Geist',sans-serif;font-size:13px;font-weight:700;color:#FAFAFA;letter-spacing:-0.02em;line-height:1.2;">Asenzo OS</div>
-          <div style="font-size:11px;color:#71717A;font-weight:400;letter-spacing:0.01em;">Founder Control</div>
+          <h1 class="font-medium text-[15px] text-white tracking-tight leading-tight group-hover:text-gray-300 transition-colors">Asenzo OS</h1>
+          <p class="text-[12px] text-[#888888] leading-tight mt-0.5">Founder Control</p>
         </div>
-        <button class="ml-auto text-zinc-600 hover:text-zinc-300 transition-colors md:hidden" onclick="toggleSidebar()" title="Close sidebar">
-          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
-        </button>
+        <span class="material-symbols-outlined ml-auto text-[#888888] text-[16px]">keyboard_arrow_down</span>
       </div>
 
-      <!-- Divider -->
-      <div style="height:1px;background:rgba(255,255,255,0.06);margin:0 16px;"></div>
+      <!-- Link Integrations Header (Exactly like image) -->
+      <div class="text-[11px] font-bold text-[#888888] mb-3 flex justify-between items-center tracking-widest uppercase">
+        Link Integrations
+        <div class="flex gap-1.5 opacity-80">
+          <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+          <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+          <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+        </div>
+      </div>
 
-      <!-- Nav -->
-      <nav class="sb-nav flex-1 flex flex-col px-3 pt-3 pb-2 overflow-y-auto hide-scrollbar" style="gap:2px;">
-
-        <!-- Foundation -->
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#52525B;text-transform:uppercase;padding:8px 10px 4px;">Foundation</div>
-
-        <a id="nav-overview" class="sb-item active" onclick="go('overview', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;">
-          <span class="material-symbols-outlined" style="font-size:17px;">dashboard</span>
-          Command Center
+      <!-- Nav Sections -->
+      <nav class="space-y-1 flex-1 pb-4">
+        
+        <a id="nav-overview" class="sb-item active flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#202020] text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('overview', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">grid_view</span> Command Center
         </a>
-        <a id="nav-foundation" class="sb-item" onclick="go('foundation', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">fingerprint</span>
-          Business Truth
-        </a>
-
-        <!-- Growth Engines -->
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#52525B;text-transform:uppercase;padding:12px 10px 4px;">Growth Engines</div>
-
-        <a id="nav-attention" class="sb-item" onclick="go('attention', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">campaign</span>
-          Attention
-        </a>
-        <a id="nav-conversion" class="sb-item" onclick="go('conversion', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">sync_alt</span>
-          Conversion
-        </a>
-        <a id="nav-revenue" class="sb-item" onclick="go('revenue', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">payments</span>
-          Revenue
-        </a>
-        <a id="nav-delivery" class="sb-item" onclick="go('delivery', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">local_shipping</span>
-          Delivery
-        </a>
-        <a id="nav-retention" class="sb-item" onclick="go('retention', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">autorenew</span>
-          Retention
+        <a id="nav-foundation" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('foundation', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">filter_vintage</span> Business Truth
         </a>
 
-        <!-- System Layer -->
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#52525B;text-transform:uppercase;padding:12px 10px 4px;">System Layer</div>
+        <hr class="border-t border-[#1f1f1f] my-4 mx-2" />
 
-        <a id="nav-intelligence" class="sb-item" onclick="go('intelligence', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">psychology</span>
-          Intelligence
+        <a id="nav-attention" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('attention', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">light_mode</span> Attention
         </a>
-        <a id="nav-actions" class="sb-item" onclick="go('actions', this)" style="display:flex;align-items:center;gap:10px;justify-content:space-between;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span style="display:flex;align-items:center;gap:10px;">
-            <span class="material-symbols-outlined" style="font-size:17px;">checklist_rtl</span>
-            Action Queue
-          </span>
-          <span id="sidebar-action-count-badge" style="background:#EF4444;color:#fff;font-weight:700;font-size:10px;padding:1px 6px;border-radius:9999px;">3</span>
+        <a id="nav-conversion" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('conversion', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">swap_horiz</span> Conversion
         </a>
-        <a id="nav-operator" class="sb-item" onclick="go('operator', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">architecture</span>
-          Operator OS
+        <a id="nav-revenue" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('revenue', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">payments</span> Revenue
         </a>
-        <a id="nav-calendar" class="sb-item" onclick="go('calendar', this)" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;color:#A1A1AA;">
-          <span class="material-symbols-outlined" style="font-size:17px;">calendar_today</span>
-          Growth Schedule
+        <a id="nav-delivery" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('delivery', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">local_shipping</span> Delivery
+        </a>
+        <a id="nav-retention" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('retention', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">autorenew</span> Retention
         </a>
 
+        <hr class="border-t border-[#1f1f1f] my-4 mx-2" />
+
+        <a id="nav-intelligence" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('intelligence', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">psychology</span> Intelligence
+        </a>
+        <a id="nav-actions" class="sb-item flex items-center justify-between px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('actions', this)">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-[20px] font-light">checklist</span> Action Queue
+          </div>
+          <span id="sidebar-action-count-badge" class="bg-[#242424] text-white text-[11px] px-2 py-0.5 rounded-md font-medium transition-all">3</span>
+        </a>
+        <a id="nav-operator" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('operator', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">person_outline</span> Operator OS
+        </a>
+        <a id="nav-calendar" class="sb-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors cursor-pointer" onclick="go('calendar', this)">
+          <span class="material-symbols-outlined text-[20px] font-light">calendar_today</span> Growth Schedule
+        </a>
       </nav>
 
-      <!-- Footer PRO Card -->
-      <div style="padding:12px 12px 16px;">
-        <div style="background:#27272A;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;text-align:center;">
-          <div style="width:36px;height:36px;background:#F59E0B;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#fff;font-variation-settings:'FILL' 1;">star</span>
-          </div>
-          <div style="font-size:11px;font-weight:700;color:#FAFAFA;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">System Health</div>
-          <div style="font-size:18px;font-weight:700;color:#FAFAFA;font-family:'Geist',sans-serif;letter-spacing:-0.02em;" id="sb-fis-score-val">FIS: 84</div>
-          <div style="font-size:11px;color:#10B981;font-weight:600;margin-bottom:12px;">(Stable)</div>
-          <button onclick="openPanel()" style="width:100%;padding:8px 0;background:#FAFAFA;color:#18181B;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.15s;" onmouseover="this.style.background='#E4E4E7'" onmouseout="this.style.background='#FAFAFA'">
-            <span class="material-symbols-outlined" style="font-size:15px;">smart_toy</span>Ask AI Coach
-          </button>
-        </div>
-      </div>
+      <nav class="mt-auto space-y-1">
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors no-underline">
+          <span class="material-symbols-outlined text-[20px] font-light">settings</span> Settings
+        </a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#a0a0a0] hover:bg-[#1a1a1a] hover:text-white font-medium text-[14px] transition-colors no-underline">
+          <span class="material-symbols-outlined text-[20px] font-light">help_outline</span> Help Center
+        </a>
+      </nav>
+
     </aside>
 
-    <!-- ══════════════ MAIN CONTENT CANVAS ══════════════ -->
-    <main class="main-wrapper flex-1 h-screen overflow-y-auto hide-scrollbar relative transition-all duration-300" style="margin-left:260px;background:#F4F5F7;">
+    <!-- ══════════════ MAIN CONTENT CANVAS (White Light Mode) ══════════════ -->
+    <main class="main-wrapper flex-1 h-full overflow-y-auto hide-scrollbar relative transition-all duration-300 rounded-[24px] shadow-lg border border-gray-200" style="background:#FFFFFF;">
 
       <!-- Topbar -->
-      <header class="topbar sticky top-0 z-40 flex items-center justify-between px-8" style="height:60px;background:rgba(244,245,247,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #E4E6E9;">
+      <header class="topbar sticky top-0 z-40 flex items-center justify-between px-8 rounded-t-[24px]" style="height:60px;background:rgba(255,255,255,0.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #E4E6E9;">
         <!-- Page title -->
         <div>
           <h2 id="topbar-title" style="font-family:'Geist',sans-serif;font-size:17px;font-weight:700;color:#111114;letter-spacing:-0.02em;">Dashboard</h2>

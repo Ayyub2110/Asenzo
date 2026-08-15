@@ -164,6 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeProductionWorkspaceModal();
       closeKnowledgeModal();
       closeMarketIntelModal();
+      if(typeof closeKnowledgeVaultModal === 'function') closeKnowledgeVaultModal();
     }
   });
 });
@@ -254,152 +255,445 @@ function toggleSidebar() {
 
 
 
-// ── 1. RENDER OVERVIEW (FOUNDER COMMAND DASHBOARD) ────────────────────────
-function renderOverview() {
+// ── COMMAND CENTER INTELLIGENCE ENGINE & RENDER (PHASE 12) ────────────
+
+let COMMAND_CENTER_DATA = {
+  fis: null,
+  engines: {},
+  attentionItems: [],
+  winningPatterns: [],
+  activity: [],
+  nextMoves: [],
+  summary: null,
+  loading: false,
+  error: false
+};
+
+const FIS_WEIGHTS = {
+  sales: 0.18, marketing: 0.18, delivery: 0.18, team: 0.16, operations: 0.15, decisions: 0.15
+};
+
+async function getCommandCenterData() {
+  // Temporary mock source. Later replaced with: fetch('/api/command-center')
+  return {
+    sales: { score: 86, data: 'Close rate 24%' },
+    marketing: { score: 78, data: 'Content output stable' },
+    delivery: { score: 92, data: 'SLA at 98%' },
+    team: { score: 64, data: 'Delegation gaps in triage' },
+    operations: { score: 81, data: 'Systems online' },
+    decisions: { score: 88, data: 'Clear metrics' },
+    attentionM: 88, conversionM: 76, revenueM: 91, deliveryM: 94, retentionM: 89
+  };
+}
+
+function calculateFounderIndependenceScore(raw) {
+  let total = 0; let weakest = { id: '', score: 100 };
+  const dims = {};
+  for (const [key, weight] of Object.entries(FIS_WEIGHTS)) {
+    const s = raw[key]?.score || 50;
+    total += s * weight;
+    if (s < weakest.score) weakest = { id: key, score: s };
+    dims[key] = { score: s, status: s > 80 ? 'Good' : 'Needs Focus' };
+  }
+  const overall = Math.round(total);
+  const interpretation = overall >= 90 ? 'Highly independent' :
+    overall >= 75 ? 'Strong but with founder dependencies' :
+    overall >= 60 ? 'Founder involvement remains significant' :
+    overall >= 40 ? 'High founder dependency' : 'Business heavily dependent on founder';
+  return { overall, interpretation, weakestArea: weakest.id, dims };
+}
+
+function calculateEngineHealth(raw) {
+  return {
+    attention: { score: raw.attentionM, trend: 14, metric: "Qualified Reach", status: "healthy", direction: "up", explanation: "Mechanism content outperforming." },
+    conversion: { score: raw.conversionM, trend: -8, metric: "Booking Rate", status: "watch", direction: "down", explanation: "Qualified traffic stable, fewer booking." },
+    revenue: { score: raw.revenueM, trend: 12, metric: "Revenue Growth", status: "healthy", direction: "up", explanation: "Expansion revenue driving MTD growth." },
+    delivery: { score: raw.deliveryM, trend: 6, metric: "On-time Delivery", status: "healthy", direction: "up", explanation: "All milestones completed on time." },
+    retention: { score: raw.retentionM, trend: 9, metric: "Client Retention", status: "healthy", direction: "up", explanation: "Zero churn in the last 45 days." }
+  };
+}
+
+function generateAttentionItems() {
+  return [
+    { id: "conversion-vsl-drop", engine: "Conversion", type: "bottleneck", priority: "critical", title: "Conversion Leak Detected", metric: "Booking Rate", change: -8, explanation: "VSL → booking rate dropped 8%. Qualified traffic is stable, but fewer prospects are moving from VSL to booking.", impact: "high", recommendedAction: "Test 3 CTA variations", actionType: "open_conversion", actionRoute: "conversion" },
+    { id: "sales-followup-delay", engine: "Revenue", type: "bottleneck", priority: "high", title: "SLA Slipping in Sales", metric: "Time to Contact", change: -15, explanation: "Inbound leads are waiting 15% longer for a first touch from sales reps, hurting close probability.", impact: "medium", recommendedAction: "Enforce 5-min SLA", actionType: "open_revenue", actionRoute: "revenue" },
+    { id: "delivery-risk", engine: "Delivery", type: "risk", priority: "high", title: "Delivery Risk", metric: "Milestones", change: 0, explanation: "2 clients approaching milestone delay (Nexus Growth, Apex Logistics).", impact: "medium", recommendedAction: "Review", actionType: "open_delivery", actionRoute: "delivery" }
+  ];
+}
+
+function detectWinningPatterns() {
+  return [
+    { title: "Mechanism Content", metric: "3.2x qualified DM output", change: 28, recommendation: "Create More", actionRoute: "attention" },
+    { title: "Sales Follow-up", metric: "Response rate", change: 11, recommendation: "View Pattern", actionRoute: "conversion" },
+    { title: "Client Delivery", metric: "Milestones on time", change: 4, recommendation: "View Delivery", actionRoute: "delivery" }
+  ];
+}
+
+function getSystemActivityFeed() {
+  return [
+    { id: 1, action: "Qualified 3 new leads", time: "10 mins ago", source: "Intelligence OS" },
+    { id: 2, action: "Generated follow-up sequence for Apex Logistics", time: "1 hour ago", source: "Intelligence OS" },
+    { id: 3, action: "Published approved mechanism content", time: "2 hours ago", source: "Attention OS" },
+    { id: 4, action: "Updated FIS calculation", time: "3 hours ago", source: "System" }
+  ];
+}
+
+function generateNextMoves() {
+  return [
+    { id: "m1", rank: "01", title: "Fix VSL → Booking Conversion", description: "Test 3 new CTA angles to plug the 8% drop off.", impact: "High", owner: "Founder", actionStr: "Open Conversion", actionFn: "go('conversion')" },
+    { id: "m2", rank: "02", title: "Publish 2 Mechanism-led Posts", description: "Mechanism content is currently outperforming generic content by 3.2x.", impact: "High", owner: "Founder", actionStr: "Open Attention", actionFn: "go('attention')" },
+    { id: "m3", rank: "03", title: "Delegate DM Qualification", description: "Team is the weakest FIS area. Create SOP and delegate DM triage.", impact: "Medium", owner: "Founder", actionStr: "Generate SOP", actionFn: "openPalette('Create SOP')" }
+  ];
+}
+
+function generateExecutiveSummary(engs, items) {
+  let bottleneck = items.find(a => a.type === 'bottleneck');
+  let summary = "Your Growth System is healthy.";
+  if (bottleneck) {
+    summary = `Revenue is trending up, but ${bottleneck.engine} has weakened. One bottleneck requires your attention.`;
+  }
+  return summary;
+}
+
+function loadCommandCenterData() {
+  COMMAND_CENTER_DATA.loading = true; COMMAND_CENTER_DATA.error = false;
+  renderCommandCenterUI();
+  
+  setTimeout(async () => {
+    try {
+      const rawBusinessData = await getCommandCenterData();
+      
+      COMMAND_CENTER_DATA.fis = calculateFounderIndependenceScore(rawBusinessData);
+      COMMAND_CENTER_DATA.engines = calculateEngineHealth(rawBusinessData);
+      COMMAND_CENTER_DATA.attentionItems = generateAttentionItems();
+      COMMAND_CENTER_DATA.winningPatterns = detectWinningPatterns();
+      COMMAND_CENTER_DATA.activity = getSystemActivityFeed();
+      COMMAND_CENTER_DATA.nextMoves = generateNextMoves();
+      COMMAND_CENTER_DATA.summary = generateExecutiveSummary(COMMAND_CENTER_DATA.engines, COMMAND_CENTER_DATA.attentionItems);
+      
+      COMMAND_CENTER_DATA.loading = false;
+      renderCommandCenterUI();
+    } catch(err) {
+      console.error(err);
+      COMMAND_CENTER_DATA.loading = false; COMMAND_CENTER_DATA.error = true;
+      renderCommandCenterUI();
+    }
+  }, 400);
+}
+
+function renderOverview() { loadCommandCenterData(); }
+
+const topCardHTML = (name, score, suffix, trend, icon, iconBgClass, route, isPrimary = false) => `
+  <div class="relative group rounded-[24px] p-6 cursor-pointer bg-white overflow-hidden transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] border ${isPrimary ? 'border-slate-800 bg-slate-900 text-white' : 'border-slate-200/60 hover:border-slate-300'}" onclick="go('${route}')">
+    ${isPrimary ? '<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-30 pointer-events-none"></div>' : ''}
+    <div class="relative z-10 flex flex-col justify-between h-full">
+      <div>
+        <div class="flex justify-between items-start mb-6">
+          <div class="w-10 h-10 rounded-[14px] flex items-center justify-center shadow-sm transition-transform duration-300 ${isPrimary ? 'border border-white/20 bg-white/10 text-white' : `${iconBgClass} text-white group-hover:scale-105`}">
+            <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">${icon}</span>
+          </div>
+          ${trend !== null ? `
+          <div class="px-2 py-1 ${trend >= 0 ? (isPrimary ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600') : (isPrimary ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-600')} rounded-lg text-[11px] flex items-center gap-1 font-bold shadow-sm">
+            ${trend >= 0 ? '+' : ''}${trend}% <span class="material-symbols-outlined text-[12px]">${trend >= 0 ? 'trending_up' : 'trending_down'}</span>
+          </div>
+          ` : ''}
+        </div>
+        <h4 class="font-bold ${isPrimary ? 'text-slate-400' : 'text-slate-500'} text-[10px] mb-1.5 uppercase tracking-[0.2em]">${name}</h4>
+        <div class="flex items-baseline gap-1">
+          <h3 class="font-display-lg text-4xl font-bold ${isPrimary ? 'text-white' : 'text-slate-900'} tracking-tight">${score}</h3>
+          <span class="${isPrimary ? 'text-slate-500' : 'text-slate-400'} text-sm font-medium">${suffix}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+function renderCommandCenterUI() {
   const ca = document.getElementById('content-area');
   if (!ca) return;
 
-  const deals = DEALS || [];
-  const pipelineVal = deals.reduce((acc, d) => acc + (d.val || 0), 0);
-  const formattedPipeline = '$' + pipelineVal.toLocaleString();
+  if (COMMAND_CENTER_DATA.loading) {
+    ca.innerHTML = `<div class="p-10 max-w-7xl mx-auto space-y-8 flex items-center justify-center h-full"><div class="text-slate-400 font-medium animate-pulse flex items-center gap-2"><span class="material-symbols-outlined shrink-0 animate-spin">refresh</span> Calibrating ASENZO Intelligence...</div></div>`;
+    return;
+  }
+  
+  if (COMMAND_CENTER_DATA.error) {
+    ca.innerHTML = `<div class="p-10 max-w-7xl mx-auto space-y-8"><div class="p-6 bg-red-50 text-red-600 rounded-[12px] border border-red-100 shadow-sm flex justify-between items-center"><div><strong>System Warning</strong><p class="text-sm mt-1">ASENZO couldn't refresh your business intelligence.</p></div><button onclick="loadCommandCenterData()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition">Retry Connection</button></div></div>`;
+    return;
+  }
 
+  const d = COMMAND_CENTER_DATA;
+  if (!d.fis) {
     ca.innerHTML = `
-    <!-- Dashboard Content -->
-    <div class="p-10 max-w-7xl mx-auto space-y-8 gap-10">
-<div class="flex justify-between items-end mb-6">
-<div>
-<h1 class="text-3xl font-bold text-slate-900 mb-2">Growth Command Center</h1>
-<p class="text-slate-500">Welcome back, A. Mercer. Your pipeline is up 12% this quarter.</p>
-</div>
-<div class="flex gap-3">
-<button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Export CSV</button>
-<button class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Share Insights</button>
-</div>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-electric-blue flex items-center justify-center shadow-lg shadow-electric-blue/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">star</span>
-</div>
-<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">+2.4% <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">FIS Score</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">84<span class="text-slate-400 text-xl">/100</span></h3>
-</div>
-<div class="metric-card rounded-[24px] p-6 ambient-shadow bg-slate-50 hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
-</div>
-<span class="px-2 py-1 bg-white text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">+12% <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">Pipeline Value</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">${formattedPipeline}</h3>
-</div>
-<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">work</span>
-</div>
-<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md font-label-sm text-label-sm flex items-center gap-1">Active <span class="material-symbols-outlined text-[14px]">trending_up</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">Active Leads</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">24</h3>
-</div>
-<div class="metric-card rounded-[24px] p-6 ambient-shadow hover:shadow-lg transition-shadow">
-<div class="flex justify-between items-start mb-6">
-<div class="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
-<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">schedule</span>
-</div>
-<span class="px-2 py-1 bg-red-50 text-red-500 rounded-md font-label-sm text-label-sm flex items-center gap-1">Action <span class="material-symbols-outlined text-[14px]">arrow_forward</span></span>
-</div>
-<p class="font-label-md text-label-md text-slate-500 mb-2">Pending Ops</p>
-<h3 class="font-display-lg text-3xl font-bold text-slate-900">12<span class="text-slate-400 text-xl">/100</span></h3>
-</div>
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-<div class="metric-card rounded-[24px] p-8 ambient-shadow lg:col-span-2">
-<div class="flex justify-between items-center mb-8">
-<div>
-<h3 class="text-xl font-bold text-slate-900 mb-1">Acquisition Velocity</h3>
-<p class="text-sm text-slate-500">Pipeline value over the last 6 months</p>
-</div>
-<div class="flex gap-4 text-sm font-medium">
-<span class="text-slate-400 cursor-pointer">Daily</span>
-<span class="text-slate-400 cursor-pointer">Weekly</span>
-<span class="text-electric-blue border-b-2 border-electric-blue pb-1 cursor-pointer">Monthly</span>
-</div>
-</div>
-<div class="h-64 relative flex items-end justify-between px-4 pb-4 pt-10">
-<!-- Simplified Chart Visualization for Demo -->
-<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none" viewbox="0 0 100 100">
-<defs>
-<lineargradient id="gradBlue" x1="0%" x2="0%" y1="0%" y2="100%"><stop offset="0%" style="stop-color:#64748b;stop-opacity:0.2"></stop><stop offset="100%" style="stop-color:#64748b;stop-opacity:0"></stop></lineargradient>
-<lineargradient id="gradGreen" x1="0%" x2="0%" y1="0%" y2="100%">
-<stop offset="0%" style="stop-color:#10b981;stop-opacity:0.2"></stop>
-<stop offset="100%" style="stop-color:#10b981;stop-opacity:0"></stop>
-</lineargradient>
-</defs>
-<path d="M0,80 C10,70 20,40 30,30 C40,20 50,60 60,70 C70,80 80,40 90,50 L100,50 L100,100 L0,100 Z" fill="url(#gradBlue)" stroke="#3b82f6" stroke-width="0.5"></path>
-<path d="M0,90 C15,80 25,30 35,20 C45,10 55,50 65,40 C75,30 85,70 95,60 L100,60 L100,100 L0,100 Z" fill="url(#gradGreen)" stroke="#10b981" stroke-width="0.5"></path>
-</svg>
-<div class="absolute left-0 bottom-0 h-full flex flex-col justify-between text-xs text-slate-400 py-4">
-<span>400</span>
-<span>300</span>
-<span>200</span>
-<span>100</span>
-<span>0</span>
-</div>
-<div class="absolute bottom-0 left-8 right-0 flex justify-between text-xs text-slate-400">
-<span>May</span>
-<span>Jun</span>
-<span>Jul</span>
-<span>Aug</span>
-<span>Sep</span>
-<span>Oct</span>
-<span>Nov</span>
-<span>Dec</span>
-<span>Jan</span>
-<span>Feb</span>
-<span>Mar</span>
-</div>
-</div>
-</div>
-<div class="metric-card rounded-[24px] p-8 ambient-shadow flex flex-col">
-<div class="flex justify-between items-center mb-8">
-<h3 class="text-xl font-bold text-slate-900">Growth Architecture</h3>
-<button class="flex items-center text-sm text-slate-500 gap-1">All <span class="material-symbols-outlined text-sm">expand_more</span></button>
-</div>
-<div class="flex-1 flex flex-col items-center justify-center relative">
-<div class="w-48 h-48 rounded-full border-[12px] border-slate-100 relative mb-8">
-<div class="absolute inset-0 rounded-full border-[12px] border-cyan-400" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);"></div>
-<div class="absolute inset-0 rounded-full border-[12px] border-amber-400" style="clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); transform: rotate(45deg);"></div>
-<div class="absolute inset-0 rounded-full border-[12px] border-emerald-400" style="clip-path: polygon(50% 0, 100% 0, 100% 50%, 50% 50%); transform: rotate(-45deg);"></div>
-<div class="absolute inset-0 flex items-center justify-center flex-col">
-<span class="text-2xl font-bold text-slate-900">$101k</span>
-</div>
-</div>
-<div class="flex justify-between w-full mt-auto">
-<div class="text-center">
-<p class="text-lg font-bold text-slate-900">55%</p>
-<p class="text-sm text-slate-500">Signal</p>
-</div>
-<div class="text-center">
-<p class="text-lg font-bold text-slate-900">20%</p>
-<p class="text-sm text-slate-500">Conv.</p>
-</div>
-<div class="text-center">
-<p class="text-lg font-bold text-slate-900">10%</p>
-<p class="text-sm text-slate-500">Retain</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+      <div class="p-10 max-w-7xl mx-auto space-y-8 text-center mt-20">
+        <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4"><span class="material-symbols-outlined text-[32px]">database</span></div>
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">Not enough data yet.</h2>
+        <p class="text-slate-500 mb-6 max-w-md mx-auto">Connect your sales and delivery data to begin calculating your Founder Independence Score and active Engine bottlenecks.</p>
+        <button class="px-5 py-2.5 bg-electric-blue text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors shadow-sm" onclick="openPalette('Connect Data Sources')">Connect Data Sources</button>
+      </div>
+    `;
+    return;
+  }
+
+
+
+  ca.innerHTML = `
+    <div class="p-10 max-w-[1600px] mx-auto space-y-8 pb-32">
+      
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 border-b border-slate-200/60 pb-8">
+        <div class="max-w-3xl">
+          <h1 class="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Executive Command Center</h1>
+          <p class="text-slate-500 text-lg leading-relaxed">Good morning, A. Mercer. ${d.summary}</p>
+        </div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <div class="relative group cursor-pointer" onclick="loadCommandCenterData()">
+            <select class="pl-4 pr-10 py-3 bg-white border border-slate-200 rounded-[14px] text-sm font-semibold text-slate-700 outline-none hover:border-slate-300 transition-colors shadow-sm appearance-none cursor-pointer">
+              <option>Last 7 days</option>
+              <option>Last 30 days</option>
+              <option>This quarter</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors">expand_more</span>
+          </div>
+          <button class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.25)] flex items-center gap-2 group" onclick="openPalette('Analyze Command Center')">
+            <span class="material-symbols-outlined text-[16px] group-hover:rotate-12 transition-transform text-amber-400">auto_awesome</span> Ask ASENZO
+          </button>
+        </div>
+      </div>
+  
+      <!-- TOP ROW: 6 METRIC CARDS -->
+      <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5 relative z-20">
+        ${topCardHTML('Independence', d.fis.overall, '/100', null, 'star', 'bg-slate-800', '', false)}
+        ${topCardHTML('Attention OS', d.engines.attention.score, '/100', d.engines.attention.trend, 'campaign', 'bg-[#8B5CF6]', 'attention')}
+        ${topCardHTML('Conversion OS', d.engines.conversion.score, '/100', d.engines.conversion.trend, 'filter_alt', 'bg-[#F59E0B]', 'conversion')}
+        ${topCardHTML('Revenue OS', d.engines.revenue.score, '/100', d.engines.revenue.trend, 'attach_money', 'bg-[#10B981]', 'revenue')}
+        ${topCardHTML('Delivery OS', d.engines.delivery.score, '/100', d.engines.delivery.trend, 'check_circle', 'bg-[#3B82F6]', 'delivery')}
+        ${topCardHTML('Retention OS', d.engines.retention.score, '/100', d.engines.retention.trend, 'change_circle', 'bg-[#0EA5E9]', 'retention')}
+      </div>
+      
+      <!-- DATA VISUALIZATION ROW -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-8">
+        
+        <!-- MAIN CHART -->
+        <div class="rounded-[32px] p-8 bg-white border border-slate-200/60 xl:col-span-2 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col justify-between">
+          <div class="absolute right-0 top-0 w-[500px] h-[500px] bg-gradient-to-bl from-blue-50 to-transparent opacity-40 rounded-full blur-3xl pointer-events-none -mr-40 -mt-40"></div>
+          
+          <div class="flex justify-between items-start mb-10 relative z-10">
+            <div>
+              <h3 class="text-xl font-extrabold text-slate-900 tracking-tight mb-2">Acquisition Velocity</h3>
+              <p class="text-sm font-medium text-slate-400">Total pipeline generation over 6 months</p>
+            </div>
+            <div class="flex p-1 bg-slate-50 rounded-xl border border-slate-100/50 shadow-inner">
+              <button class="px-4 py-1.5 text-xs font-bold text-slate-400 rounded-lg rounded-r-none hover:text-slate-600 transition-colors">7D</button>
+              <button class="px-4 py-1.5 text-xs font-bold text-slate-400 rounded-lg hover:text-slate-600 transition-colors">30D</button>
+              <button class="px-4 py-1.5 text-xs font-bold bg-white text-slate-900 rounded-lg shadow-sm border border-slate-200/50 transition-colors">6M</button>
+            </div>
+          </div>
+          
+          <div class="h-64 relative flex items-end justify-between px-2 pt-10">
+            <!-- Premium Fintech Chart SVG -->
+            <svg class="absolute inset-0 w-full h-full pointer-events-none drop-shadow-xl" preserveAspectRatio="none" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="chartGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+                  <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3" />
+                  <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <path d="M0,85 C10,75 25,90 35,60 C45,30 55,50 65,30 C75,10 85,40 100,20 L100,100 L0,100 Z" fill="url(#chartGrad)" stroke="none"></path>
+              <path d="M0,85 C10,75 25,90 35,60 C45,30 55,50 65,30 C75,10 85,40 100,20" fill="none" stroke="#3b82f6" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              <!-- Data points -->
+              <circle cx="35" cy="60" r="1.5" fill="white" stroke="#3b82f6" stroke-width="0.5"></circle>
+              <circle cx="65" cy="30" r="1.5" fill="white" stroke="#3b82f6" stroke-width="0.5"></circle>
+              <circle cx="100" cy="20" r="1.5" fill="white" stroke="#3b82f6" stroke-width="0.5"></circle>
+            </svg>
+            
+            <div class="absolute left-0 bottom-0 h-full flex flex-col justify-between text-[10px] font-bold text-slate-300 py-2">
+              <span>$150k</span><span>$100k</span><span>$50k</span><span>0</span>
+            </div>
+            
+            <div class="absolute bottom-0 left-10 right-0 flex justify-between text-[10px] font-bold text-slate-300 uppercase tracking-widest border-t border-slate-100 pt-3">
+              <span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- GROWTH ARCHITECTURE PIE -->
+        <div class="rounded-[32px] p-8 bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] flex flex-col">
+          <div class="flex justify-between items-start mb-8">
+            <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">OS Distribution</h3>
+            <span class="material-symbols-outlined text-slate-300">pie_chart</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center justify-center relative my-6">
+            <div class="w-52 h-52 relative group cursor-pointer drop-shadow-2xl hover:scale-105 transition-transform duration-500">
+              <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f1f5f9" stroke-width="4"></path>
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#3b82f6" stroke-width="4" stroke-dasharray="55, 100" class="hover:stroke-[5px] transition-all"></path>
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="4" stroke-dasharray="25, 100" stroke-dashoffset="-55"></path>
+                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#8b5cf6" stroke-width="4" stroke-dasharray="20, 100" stroke-dashoffset="-80"></path>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center flex-col">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total ARR</span>
+                <span class="text-3xl font-extrabold text-slate-900 tracking-tighter">$1.2M</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between w-full mt-auto pt-6 border-t border-slate-100">
+            <div class="text-left"><p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Signal</p><p class="text-lg font-bold text-slate-900">55%</p></div>
+            <div class="text-center"><p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Capture</p><p class="text-lg font-bold text-slate-900">25%</p></div>
+            <div class="text-right"><p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Retain</p><p class="text-lg font-bold text-slate-900">20%</p></div>
+          </div>
+        </div>
+      </div>
+  
+      <!-- INTEL & ACTION ROW (BOTTLENECKS + NEXT MOVES) -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6 items-stretch">
+        
+        <!-- ACTIVE BOTTLENECKS -->
+        <div class="xl:col-span-2 h-full flex flex-col">
+          <div class="rounded-[24px] p-6 bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] h-full flex-1 flex flex-col">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="material-symbols-outlined text-red-500 bg-red-50 p-2 rounded-xl text-[20px]">warning</span>
+              <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Active Bottlenecks</h3>
+            </div>
+            <div class="grid gap-3 flex-1">
+              ${d.attentionItems.map(item => `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-[16px] bg-slate-50 border border-slate-200/60 hover:bg-white hover:border-slate-300 hover:shadow-md transition-all cursor-pointer group" onclick="go('${item.actionRoute}')">
+                  <div class="flex items-start gap-4 shadow-sm">
+                    <div class="w-10 h-10 rounded-[10px] ${item.priority === 'critical' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'} flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                      <span class="material-symbols-outlined text-[20px]">${item.priority === 'critical' ? 'error' : 'priority_high'}</span>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2 mb-0.5">
+                        <h4 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">${item.title}</h4>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest ${item.change < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'} border ${item.change < 0 ? 'border-red-200' : 'border-emerald-200'}">${item.metric} ${item.change}%</span>
+                      </div>
+                      <p class="text-xs font-medium text-slate-500 max-w-xl line-clamp-1">${item.explanation}</p>
+                    </div>
+                  </div>
+                  <div class="sm:border-l sm:border-slate-200 sm:pl-4 shrink-0 mt-2 sm:mt-0">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Suggested Fix</span>
+                    <span class="text-xs font-bold text-slate-900 flex items-center gap-1 group-hover:text-blue-600 transition-colors">${item.recommendedAction} <span class="material-symbols-outlined text-[14px]">arrow_forward</span></span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- YOUR NEXT MOVES -->
+        <div class="h-full flex flex-col">
+          <div class="rounded-[24px] p-6 bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] h-full flex-1 flex flex-col overflow-visible">
+            <div class="flex items-center justify-between mb-6 relative z-10">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-blue-500 bg-blue-50 p-2 rounded-xl text-[20px]">checklist</span>
+                <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Your Next Moves</h3>
+              </div>
+            </div>
+            
+            <div class="space-y-4 relative z-10 flex-col flex justify-start flex-1 mt-2">
+              ${d.nextMoves.slice(0, 2).map((move, i) => `
+                <div class="relative pl-10 ${i === 0 ? 'pb-4 border-b border-slate-100' : ''} group">
+                  <div class="absolute left-0 top-0 w-7 h-7 rounded-[8px] bg-slate-50 border border-slate-200 text-[10px] font-bold flex items-center justify-center text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-200 transition-colors shadow-sm">${move.rank}</div>
+                  <h4 class="font-bold text-sm mb-1 text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors">${move.title}</h4>
+                  <p class="text-[11px] text-slate-500 mb-3 leading-relaxed font-medium line-clamp-2">${move.description}</p>
+                  <button class="text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1 max-w-max" onclick="${move.actionFn}">
+                    ${move.actionStr} <span class="material-symbols-outlined text-[12px]">arrow_forward</span>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- View All Button -->
+            <div class="mt-4 pt-4 border-t border-slate-100 flex justify-center z-10 relative">
+              <button class="text-[11px] font-bold text-blue-600 hover:text-blue-500 uppercase tracking-widest flex items-center gap-1 transition-colors" onclick="go('actions')">
+                View All ${d.nextMoves.length} Moves <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+
+      <!-- SUCCESS & SCHEDULE ROW (WINNING PATTERNS + UPCOMING MEETINGS) -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6 items-stretch">
+        
+        <!-- WINNING PATTERNS -->
+        <div class="xl:col-span-2 h-full flex flex-col">
+          <div class="rounded-[24px] p-6 bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] h-full flex-1 flex flex-col">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="material-symbols-outlined text-emerald-500 bg-emerald-50 p-2 rounded-xl text-[20px]">auto_graph</span>
+              <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Winning Patterns</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 items-start">
+              ${d.winningPatterns.map(item => `
+                <div class="p-4 rounded-[16px] bg-emerald-50/50 border border-emerald-100/60 hover:bg-emerald-50 hover:border-emerald-200 hover:shadow-sm transition-all cursor-pointer group" onclick="go('${item.actionRoute}')">
+                  <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-bold text-slate-900 text-sm tracking-tight">${item.title}</h4>
+                    <span class="material-symbols-outlined text-emerald-500 bg-emerald-100 p-1.5 rounded-lg text-[14px] group-hover:-translate-y-1 transition-transform">trending_up</span>
+                  </div>
+                  <p class="text-xs font-medium text-slate-600 mb-3">${item.metric} <span class="text-emerald-700 font-extrabold ml-1">(+${item.change}%)</span></p>
+                  <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-100 px-2 py-1 rounded inline-block">${item.recommendation}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- UPCOMING MEETINGS -->
+        <div class="h-full flex flex-col">
+          <div class="rounded-[24px] p-6 bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] h-full flex-1 overflow-visible">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-800 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[14px] text-slate-400">calendar_today</span> Upcoming
+              </h3>
+              <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold tracking-widest uppercase border border-blue-100">Live</span>
+            </div>
+            
+            <div class="space-y-6 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px before:w-px before:-translate-y-4 before:h-[110%] before:bg-slate-200 flex flex-col flex-1">
+              
+              <div class="relative flex items-start gap-4 group">
+                <div class="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center relative z-10 shrink-0 mt-0.5 transition-colors group-hover:border-blue-500 shadow-sm">
+                  <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                </div>
+                <div>
+                  <p class="text-sm text-slate-900 font-extrabold leading-snug tracking-tight">Onboarding: Nexus Growth</p>
+                  <p class="text-[11px] text-slate-500 font-bold mt-1 uppercase tracking-widest">In 15 Mins • Google Meet</p>
+                  <div class="mt-2 flex -space-x-2">
+                    <div class="w-6 h-6 rounded-full border-2 border-white bg-slate-200"></div>
+                    <div class="w-6 h-6 rounded-full border-2 border-white bg-blue-200"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="relative flex items-start gap-4 group">
+                <div class="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center relative z-10 shrink-0 mt-0.5 transition-colors group-hover:border-slate-500">
+                  <div class="w-2.5 h-2.5 rounded-full bg-slate-200 group-hover:bg-slate-400 transition-colors"></div>
+                </div>
+                <div>
+                  <p class="text-sm text-slate-900 font-extrabold leading-snug tracking-tight text-slate-600">Q3 Review: Apex Logistics</p>
+                  <p class="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-widest">2:00 PM • Zoom</p>
+                </div>
+              </div>
+
+              <div class="relative flex items-start gap-4 group">
+                <div class="w-6 h-6 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center relative z-10 shrink-0 mt-0.5 transition-colors group-hover:border-slate-500">
+                  <div class="w-2.5 h-2.5 rounded-full bg-slate-200 group-hover:bg-slate-400 transition-colors"></div>
+                </div>
+                <div>
+                  <p class="text-sm text-slate-900 font-extrabold leading-snug tracking-tight text-slate-600">Growth Team Sync</p>
+                  <p class="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-widest">4:30 PM • Huddle</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   `;
 }
+
 
 // ── SESSION 02: FOUNDATION OS — SINGLE SOURCE OF BUSINESS TRUTH ──────────────
 function renderFoundationPage() {
@@ -428,236 +722,179 @@ function renderFoundationPage() {
   const proofComplete = Math.min(100, proofCount * 25);
   const voiceComplete = 80; // known from hardcoded voice profile
 
-  function foundationRow(icon, color, num, title, subtitle, completeness, lastUpdated, fields, editFn) {
-    const isComplete = completeness >= 100;
-    const badgeColor = completeness >= 80 ? '#16a34a' : completeness >= 50 ? '#d97706' : '#ef4444';
-    const badgeBg = completeness >= 80 ? '#dcfce7' : completeness >= 50 ? '#fef3c7' : '#fee2e2';
-    return `
-      <div class="foundation-row">
-        <div class="foundation-row-head">
-          <div class="flex-row gap-12" style="flex:1;min-width:0">
-            <div style="width:40px;height:40px;border-radius:12px;background:${color};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-              <span class="material-symbols-outlined" style="font-size:20px;color:#ffffff;font-variation-settings:'FILL' 1">${icon}</span>
-            </div>
-            <div style="flex:1;min-width:0">
-              <div class="flex-row gap-8">
-                <span style="font-size:10.5px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em">Section ${num}</span>
-                <span style="background:${badgeBg};color:${badgeColor};font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:999px">${completeness}% Complete</span>
-              </div>
-              <div class="mt-1" style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-0.01em">${title}</div>
-              <div class="txt-body-sm text-muted mt-1">${subtitle}</div>
-            </div>
+  const foundationCard = (icon, iconBgClass, iconTextClass, num, title, subtitle, completeness, lastUpdated, fieldsHTML, editFn) => `
+    <div class="rounded-[32px] bg-white border border-slate-200/60 p-8 flex flex-col hover:border-slate-300 hover:shadow-[0_15px_40px_-20px_rgba(0,0,0,0.05)] transition-all h-full">
+      <div class="flex items-start justify-between mb-8">
+        <div class="flex gap-4">
+          <div class="w-14 h-14 rounded-[16px] ${iconBgClass} ${iconTextClass} flex items-center justify-center shrink-0 shadow-inner">
+            <span class="material-symbols-outlined text-[28px]">${icon}</span>
           </div>
-          <div class="flex-row gap-12" style="flex-shrink:0">
-            <span style="font-size:11px;color:var(--text-faint)">Updated ${lastUpdated}</span>
-            <button class="btn btn-secondary btn-sm" onclick="${editFn}">
-              <span class="material-symbols-outlined" style="font-size:14px">edit</span> Edit
-            </button>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Section ${num}</span>
+              <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest ${completeness >= 80 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}">${completeness}% Complete</span>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">${title}</h3>
+            <p class="text-sm font-medium text-slate-500 mt-1 max-w-sm">${subtitle}</p>
           </div>
         </div>
-        <div class="foundation-row-body">
-          ${fields}
-        </div>
-      </div>`;
-  }
-
-  function fieldPair(label, val) {
-    return `<div class="foundation-field"><div class="foundation-field-label">${label}</div><div class="foundation-field-val">${val || '<span style="color:#94a3b8;font-style:italic">Not yet defined</span>'}</div></div>`;
-  }
-
-  ca.innerHTML = `
-    <!-- Header -->
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Foundation</h1>
-        <p class="pg-sub">The single source of truth that governs content creation, sales conversations, delivery, and every AI-generated output.</p>
-      </div>
-      <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="openNewKnowledgeModal()">
-          <span class="material-symbols-outlined" style="font-size:16px">add</span> Ingest Voice Source
-        </button>
-        <button class="btn btn-primary" onclick="openPositioningModal()">
-          <span class="material-symbols-outlined" style="font-size:16px">edit</span> Edit Positioning DNA
+        <button class="w-10 h-10 rounded-full bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors shadow-sm" onclick="${editFn}" title="Edit Data">
+          <span class="material-symbols-outlined text-[18px]">edit</span>
         </button>
       </div>
-    </div>
-
-    <!-- Completeness Overview -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box purple"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">verified</span></div>
-          <span class="sc-delta-pill">v${version}</span>
-        </div>
-        <div class="sc-label">Positioning Score</div>
-        <div class="sc-value">${score}<span>/100</span></div>
+      <div class="bg-slate-50/50 rounded-[20px] p-6 flex-1 relative border border-slate-100/50">
+        ${fieldsHTML}
       </div>
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box blue"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">groups</span></div>
-          <span class="sc-delta-pill">${audienceComplete}% filled</span>
-        </div>
-        <div class="sc-label">Audience Definition</div>
-        <div class="sc-value" style="font-size:18px;line-height:22px">ICP Defined</div>
+      <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block bg-slate-50 px-3 py-1 rounded-md">Last Updated: ${lastUpdated}</span>
+        <span class="material-symbols-outlined text-[18px] text-slate-300">sync_saved_locally</span>
       </div>
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box green"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">shield</span></div>
-          <span class="sc-delta-pill">${proofCount} assets</span>
-        </div>
-        <div class="sc-label">Proof & Authority</div>
-        <div class="sc-value">${proofCount} <span>Assets</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box orange"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">record_voice_over</span></div>
-          <span class="sc-delta-pill">${knowledgeCount} ingested</span>
-        </div>
-        <div class="sc-label">Founder Voice Sources</div>
-        <div class="sc-value">${knowledgeCount} <span>Sources</span></div>
-      </div>
-    </div>
-
-    <!-- N8N Context Banner -->
-    <div class="flex-row gap-12" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:14px;padding:14px 20px">
-      <span class="material-symbols-outlined" style="font-size:20px;color:#94a3b8;flex-shrink:0">hub</span>
-      <div style="flex:1">
-        <div style="font-size:12.5px;font-weight:700;color:var(--text-main)">Foundation is the root of every ASENZO AI action</div>
-        <div class="txt-body-sm text-muted mt-2">Content ideas, scripts, sales calls, onboarding flows, and retention messages all inherit data from this module. Keep it current.</div>
-      </div>
-      <span style="background:#e0f2fe;color:#0284c7;font-size:10.5px;font-weight:700;padding:4px 12px;border-radius:999px;white-space:nowrap">Live Source of Truth</span>
-    </div>
-
-    <!-- Foundation Sections -->
-    <div class="flex-col gap-12">
-
-      ${foundationRow(
-        'badge', '#0058bc',
-        '1', 'Business Identity',
-        'Who you are, what you do, and the category you occupy.',
-        95, 'Today',
-        `<div class="foundation-fields-grid">
-          ${fieldPair('Business Name', 'ASENZO Growth Operating System')}
-          ${fieldPair('Category', 'Founder Growth OS / Capability Installation Platform')}
-          ${fieldPair('Core Mission', 'Eliminate founder execution bottlenecks and systematically increase the Founder Independence Score.')}
-          ${fieldPair('Business Stage', 'Growth — $15k–$50k/mo MRR')}
-        </div>`,
-        `openPositioningModal()`
-      )}
-
-      ${foundationRow(
-        'groups', '#9333ea',
-        '2', 'Audience & ICP',
-        'The specific person you are building this business for.',
-        audienceComplete, 'Today',
-        `<div class="foundation-fields-grid">
-          ${fieldPair('Target ICP', icp)}
-          ${fieldPair('Core Problem', pain)}
-          ${fieldPair('Buying Trigger', 'Founder realizes they are the bottleneck—cannot scale without systematizing marketing and sales')}
-          ${fieldPair('Primary Objection', 'Not sure how to implement — wants done-with-you installation, not a course')}
-        </div>`,
-        `openPositioningModal()`
-      )}
-
-      ${foundationRow(
-        'target', '#ea580c',
-        '3', 'Positioning & Differentiation',
-        'Why you and not anyone else. The unique mechanism that creates certainty.',
-        posComplete, 'Today',
-        `<div class="foundation-fields-grid">
-          ${fieldPair('Unique Mechanism', mechanism)}
-          ${fieldPair('Quantified Result', result)}
-          ${fieldPair('Positioning Statement', 'The only Founder Growth OS that installs all 5 acquisition-to-retention engines in 90 days')}
-          ${fieldPair('Key Differentiator', 'Operating logic, not just tools. Connected system, not isolated dashboards.')}
-        </div>`,
-        `openPositioningModal()`
-      )}
-
-      ${foundationRow(
-        'inventory_2', '#16a34a',
-        '4', 'Offer Architecture',
-        'What you sell, what it costs, and what the client receives.',
-        85, '2 days ago',
-        `<div class="foundation-fields-grid">
-          ${fieldPair('Core Offer', 'ASENZO OS 90-Day Installation Sprint')}
-          ${fieldPair('Price Point', '$12,500 (one-time installation)')}
-          ${fieldPair('Primary Outcome', 'Full installation of 5 growth engines with automated execution queue')}
-          ${fieldPair('Delivery Format', 'Done-with-you — weekly sessions + async OS build-out')}
-        </div>`,
-        `openPositioningModal()`
-      )}
-
-      ${foundationRow(
-        'person', '#0284c7',
-        '5', 'Founder Identity',
-        'Your expertise, story, and the authority behind the brand.',
-        70, '5 days ago',
-        `<div class="foundation-fields-grid">
-          ${fieldPair('Founder Expertise', 'Growth systems, content compounding, and founder-led sales')}
-          ${fieldPair('Years of Experience', '8+ years building B2B service businesses')}
-          ${fieldPair('Proof of Concept', 'Built own business to $50k/mo using the same 5-engine system being taught')}
-          ${fieldPair('Point of View', 'Founders should not be trapped in their own business — systems create freedom')}
-        </div>`,
-        `openPositioningModal()`
-      )}
-
-      ${foundationRow(
-        'record_voice_over', '#7c3aed',
-        '6', 'Brand Voice',
-        'How you communicate — the tone, style, and rules every AI output must follow.',
-        voiceComplete, '3 days ago',
-        `<div class="foundation-fields-grid">
-          ${fieldPair('Tone', 'Authoritative, direct, practitioner-first, zero fluff')}
-          ${fieldPair('Style Rules', 'Short sentences. Metric-backed claims. Clear call-to-actions.')}
-          ${fieldPair('Forbidden Words', '"game-changer", "synergy", "unleash", "unlock potential", "crush it"')}
-          ${fieldPair('Content Personality', 'Practitioner, not guru. Evidence, not hype.')}
-        </div>`,
-        `openPositioningModal()`
-      )}
-
-      ${foundationRow(
-        'shield', '#059669',
-        '7', 'Proof & Authority Assets',
-        'The results, testimonials, and case studies that create belief.',
-        proofComplete, 'Today',
-        `<div class="flex-col gap-8">
-          ${proofCount > 0 ? `
-            <div style="background:#F8FAFC;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--text-main)">Apex Logistics — Founder Dave</div>
-                <div class="txt-body-sm text-muted mt-2">Engine 3 installed. Revenue from $28k to $47k MRR in 90 days.</div>
-              </div>
-              <span class="badge-stage-approved">Verified</span>
-            </div>
-            <div style="background:#F8FAFC;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--text-main)">Lumina Tech — Founder Elena</div>
-                <div class="txt-body-sm text-muted mt-2">Full OS delegated. Founder working 22 hrs/week at $62k MRR.</div>
-              </div>
-              <span class="badge-stage-approved">Verified</span>
-            </div>
-          ` : '<div style="color:var(--text-faint);font-style:italic;font-size:13px">No proof assets yet. Add your first case study or testimonial.</div>'}
-          <button class="btn btn-secondary btn-sm mt-4" style="align-self:flex-start" onclick="go('retention')">
-            <span class="material-symbols-outlined" style="font-size:14px">add</span> Add Proof Asset
-          </button>
-        </div>`,
-        `go('retention')`
-      )}
-
-    </div>
-
-    <!-- Founder Knowledge Vault -->
-    <div class="dash-card">
-      <div class="dash-card-header">
-        <div>
-          <h3 class="dash-card-title">Founder Knowledge Vault</h3>
-          <p class="dash-card-sub">Ingested articles, transcripts, and voice sources powering AI content generation</p>
-        </div>
-        <button class="btn btn-secondary btn-sm" onclick="openNewKnowledgeModal()">+ Add Knowledge Source</button>
-      </div>
-      ${renderKnowledgeTab()}
     </div>
   `;
+
+  const fieldPair = (label, val) => `
+    <div>
+      <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">${label}</h4>
+      <p class="text-sm font-bold text-slate-900 leading-snug">${val || '<span class="text-slate-400 italic font-medium">Not defined</span>'}</p>
+    </div>
+  `;
+
+  ca.innerHTML = `
+    <div class="p-10 max-w-[1600px] mx-auto space-y-8 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 border-b border-slate-200/60 pb-8">
+        <div class="max-w-3xl">
+          <h1 class="text-4xl font-bold text-slate-900 mb-3 tracking-tight">Foundation OS</h1>
+          <p class="text-slate-500 text-lg leading-relaxed">The single source of truth governing content creation, sales conversations, delivery, and every AI-generated output.</p>
+        </div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-[14px] text-sm font-semibold transition-all shadow-sm flex items-center gap-2 group" onclick="openNewKnowledgeModal()">
+            <span class="material-symbols-outlined text-[18px] group-hover:scale-110 transition-transform text-slate-500">upload</span> Ingest Voice
+          </button>
+          <button class="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.25)] flex items-center gap-2 group" onclick="openPositioningModal()">
+            <span class="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform text-white">edit_document</span> Edit Positioning
+          </button>
+        </div>
+      </div>
+
+      <!-- METRICS & STATUS -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 relative z-20 mb-8">
+        ${topCardHTML('Positioning Score', score, '<span class="text-xl">/100</span>', null, 'verified', 'bg-slate-800', '')}
+        ${topCardHTML('Audience Def', audienceComplete, '% Filled', null, 'groups', 'bg-blue-600', '')}
+        ${topCardHTML('Proof Assets', proofCount, ' Verified', null, 'shield', 'bg-emerald-600', '')}
+        ${topCardHTML('Voice Sources', knowledgeCount, ' Ingested', null, 'record_voice_over', 'bg-purple-600', '')}
+      </div>
+
+      <!-- N8N BANNER -->
+      <div class="bg-blue-50/50 border border-blue-100 rounded-[24px] p-6 flex items-start sm:items-center gap-5 shadow-sm relative overflow-hidden group">
+        <div class="absolute right-0 top-0 w-96 h-96 bg-blue-400/5 blur-3xl rounded-full pointer-events-none group-hover:bg-blue-400/10 transition-colors"></div>
+        <div class="w-14 h-14 rounded-[16px] bg-white border border-blue-100 shadow-sm text-blue-600 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-[28px] animate-pulse">hub</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-3 mb-1.5">
+            <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Foundation is the root of every ASENZO AI action</h3>
+            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md text-[10px] font-bold uppercase tracking-widest border border-blue-200">Live Source of Truth</span>
+          </div>
+          <p class="text-sm font-medium text-slate-600 max-w-4xl leading-relaxed">Content ideas, scripts, sales calls, onboarding flows, and retention messages all systematically inherit parameters from this central module. Ensure all sections are maintained to guarantee accurate AI output via n8n.</p>
+        </div>
+      </div>
+
+      <!-- GRID OF FOUNDATION CARDS -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8 items-stretch">
+        ${foundationCard('badge', 'bg-blue-50', 'text-blue-600', '1', 'Business Identity', 'Who you are, what you do, and the category you occupy.', 95, 'Today', 
+          `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+            ${fieldPair('Business Name', 'ASENZO Growth Operating System')}
+            ${fieldPair('Category', 'Founder Growth OS / Capability Installation Platform')}
+            <div class="col-span-2">${fieldPair('Core Mission', 'Eliminate founder execution bottlenecks and systematically increase the Founder Independence Score.')}</div>
+            ${fieldPair('Business Stage', 'Growth — $15k–$50k/mo MRR')}
+          </div>`, 'openPositioningModal()'
+        )}
+
+        ${foundationCard('groups', 'bg-purple-50', 'text-purple-600', '2', 'Audience & ICP', 'The specific person you are building this business for.', audienceComplete, 'Today', 
+          `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+            <div class="col-span-2">${fieldPair('Target ICP', icp)}</div>
+            <div class="col-span-2">${fieldPair('Core Problem', pain)}</div>
+            <div class="col-span-2">${fieldPair('Buying Trigger', 'Founder realizes they are the bottleneck—cannot scale without systematizing marketing and sales')}</div>
+            <div class="col-span-2">${fieldPair('Primary Objection', 'Not sure how to implement — wants done-with-you installation, not a course')}</div>
+          </div>`, 'openPositioningModal()'
+        )}
+
+        ${foundationCard('target', 'bg-amber-50', 'text-amber-600', '3', 'Positioning & Differentiation', 'Why you and not anyone else. The unique mechanism.', posComplete, 'Today', 
+          `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+            <div class="col-span-2">${fieldPair('Unique Mechanism', mechanism)}</div>
+            <div class="col-span-2">${fieldPair('Quantified Result', result)}</div>
+            <div class="col-span-2">${fieldPair('Positioning Statement', 'The only Founder Growth OS that installs all 5 acquisition-to-retention engines in 90 days')}</div>
+            <div class="col-span-2">${fieldPair('Key Differentiator', 'Operating logic, not just tools. Connected system, not isolated dashboards.')}</div>
+          </div>`, 'openPositioningModal()'
+        )}
+
+        ${foundationCard('inventory_2', 'bg-emerald-50', 'text-emerald-600', '4', 'Offer Architecture', 'What you sell, what it costs, and what the client receives.', 85, '2 days ago', 
+          `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+            <div class="col-span-2">${fieldPair('Core Offer', 'ASENZO OS 90-Day Installation Sprint')}</div>
+            ${fieldPair('Price Point', '$12,500 (one-time)')}
+            ${fieldPair('Delivery Format', 'Done-with-you — weekly sessions')}
+            <div class="col-span-2">${fieldPair('Primary Outcome', 'Full installation of 5 growth engines with automated execution queue')}</div>
+          </div>`, 'openPositioningModal()'
+        )}
+
+        ${foundationCard('person', 'bg-cyan-50', 'text-cyan-600', '5', 'Founder Identity', 'Your expertise, story, and the authority behind the brand.', 70, '5 days ago', 
+          `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+            <div class="col-span-2">${fieldPair('Founder Expertise', 'Growth systems, content compounding, and founder-led sales')}</div>
+            ${fieldPair('Years of Experience', '8+ years')}
+            <div class="col-span-2">${fieldPair('Proof of Concept', 'Built own business to $50k/mo using the same 5-engine system being taught')}</div>
+            <div class="col-span-2">${fieldPair('Point of View', 'Founders should not be trapped in their own business — systems create freedom')}</div>
+          </div>`, 'openPositioningModal()'
+        )}
+
+        ${foundationCard('record_voice_over', 'bg-indigo-50', 'text-indigo-600', '6', 'Brand Voice', 'How you communicate — the tone and style rules.', voiceComplete, '3 days ago', 
+          `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+            <div class="col-span-2">${fieldPair('Tone', 'Authoritative, direct, practitioner-first, zero fluff')}</div>
+            <div class="col-span-2">${fieldPair('Style Rules', 'Short sentences. Metric-backed claims. Clear call-to-actions.')}</div>
+            <div class="col-span-2">${fieldPair('Forbidden Words', '"game-changer", "synergy", "unleash", "unlock potential", "crush it"')}</div>
+            <div class="col-span-2">${fieldPair('Content Personality', 'Practitioner, not guru. Evidence, not hype.')}</div>
+          </div>`, 'openPositioningModal()'
+        )}
+        
+        <div class="xl:col-span-2">
+          ${foundationCard('shield', 'bg-slate-50', 'text-slate-600', '7', 'Founder Authority Knowledge Vault', 'Knowledge Ingestion Pipeline: Source → Validation → Cleaning → Chunking → Metadata → Storage → Retrieval', 100, 'Just now', 
+            `<div class="grid grid-cols-2 gap-x-4 gap-y-7">
+              <div class="col-span-2">${fieldPair('Ingested Assets', 'Ingested articles, transcripts, and voice sources powering AI content generation')}</div>
+              <div class="col-span-2">${fieldPair('System Action', 'Click to open the FOUNDER VOICE PROFILE ENGINE')}</div>
+            </div>`, 'openKnowledgeVaultModal()'
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openKnowledgeVaultModal() {
+  const modalHTML = `
+  <div id="knowledge-vault-modal" class="modal-overlay" onclick="closeKnowledgeVaultModal()" style="display:flex; z-index:9999;">
+    <div class="modal-card" style="max-width:1000px; width:95%; max-height:90vh; overflow-y:auto; padding:0; background:#f4f5f7; border-radius: 32px;" onclick="event.stopPropagation()">
+      <div style="position:sticky; top:0; background:#fff; z-index:10; padding:24px 32px; border-bottom:1px solid #e5e7eb; border-radius: 32px 32px 0 0; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">Founder Voice Profile Engine</h3>
+          <p class="text-sm font-medium text-slate-500 mt-1">Manage ingested knowledge assets and formatting rules.</p>
+        </div>
+        <button class="w-10 h-10 flex flex-col items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 rounded-full transition-colors" onclick="closeKnowledgeVaultModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="p-8 space-y-6">
+        ${renderKnowledgeTab()}
+      </div>
+    </div>
+  </div>`;
+  let existing = document.getElementById('knowledge-vault-modal');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeKnowledgeVaultModal() {
+  const m = document.getElementById('knowledge-vault-modal');
+  if (m) m.remove();
 }
 // ── 1C. REVENUE OS — REVENUE HEALTH & PRICING ─────────────────────────────────
 function renderRevenue() {
@@ -669,92 +906,56 @@ function renderRevenue() {
   const closedWon = deals.filter(d => d.stage === 'Closed Won' || d.stage === 'CLOSED_WON').reduce((acc, d) => acc + (d.val || 0), 0);
 
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Engine 3 — Revenue OS</h1>
-        <p class="pg-sub">Revenue health, cash velocity, contract value optimization, and monetization strategy.</p>
-      </div>
-      <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="openDealModal()"><span class="material-symbols-outlined" style="font-size:16px">add</span> Log Opportunity</button>
-      </div>
-    </div>
-
-    <!-- Revenue Stat Grid -->
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box green"><span class="material-symbols-outlined">attach_money</span></div>
-          <span class="sc-delta-pill">+14.2% MoM</span>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Revenue OS</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Revenue health, cash velocity, contract value optimization, and monetization strategy.</p>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Monthly Recurring Revenue (MRR)</div>
-          <div class="sc-value">$42,500</div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="openDealModal()">
+            <span class="material-symbols-outlined text-[18px]">add</span> Log Opportunity
+          </button>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box orange"><span class="material-symbols-outlined">bar_chart</span></div>
-          <span class="sc-delta-pill">Active Pipeline</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Pipeline Value</div>
-          <div class="sc-value">$${pipelineVal.toLocaleString()}</div>
-        </div>
+      <!-- METRICS -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-20 mb-6">
+        ${topCardHTML('MRR', '$42,500', '', '+14.2', 'attach_money', 'bg-emerald-600', '')}
+        ${topCardHTML('Pipeline Value', '$' + pipelineVal.toLocaleString(), '', null, 'bar_chart', 'bg-orange-500', '')}
+        ${topCardHTML('Average Ticket (ACV)', '$18,400', '', null, 'request_quote', 'bg-blue-600', '')}
+        ${topCardHTML('Cash Collected (MTD)', '$' + (closedWon > 0 ? closedWon.toLocaleString() : '15,000'), '', null, 'verified', 'bg-purple-600', '')}
       </div>
 
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box blue"><span class="material-symbols-outlined">request_quote</span></div>
-          <span class="sc-delta-pill">Average Ticket</span>
+      <!-- DATA TABLE -->
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] overflow-hidden mt-6">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <h3 class="text-lg font-bold text-slate-900 tracking-tight">Revenue Opportunities & Contract Breakdown</h3>
+          <p class="text-xs text-slate-500 mt-1">Active deals mapped directly to Revenue OS pipeline value</p>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Average Contract Value (ACV)</div>
-          <div class="sc-value">$18,400</div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box purple"><span class="material-symbols-outlined">verified</span></div>
-          <span class="sc-delta-pill">Closed Won</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Cash Collected (MTD)</div>
-          <div class="sc-value">$${closedWon > 0 ? closedWon.toLocaleString() : '15,000'}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Revenue Breakdown Card -->
-    <div class="dash-card mt-16">
-      <div class="dash-card-header">
-        <div>
-          <h3 class="dash-card-title">Revenue Opportunities & Contract Breakdown</h3>
-          <p class="dash-card-sub">Active deals mapped directly to Revenue OS pipeline value</p>
-        </div>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="cmd-table">
-          <thead>
-            <tr>
-              <th>Deal / Company</th>
-              <th>Stage</th>
-              <th>Contract Value</th>
-              <th>Founder Action Required</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${deals.map(d => `
-              <tr>
-                <td><strong>${d.name}</strong></td>
-                <td><span class="badge badge-stage-script">${d.stage}</span></td>
-                <td style="font-weight:800;color:#16a34a">$${(d.val || 0).toLocaleString()}</td>
-                <td>${d.objection || 'None — On track'}</td>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400 font-bold bg-slate-50/50">
+                <th class="p-4 pl-6 font-semibold">Deal / Company</th>
+                <th class="p-4 font-semibold">Stage</th>
+                <th class="p-4 font-semibold">Contract Value</th>
+                <th class="p-4 font-semibold">Founder Action Required</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody class="text-sm font-medium text-slate-700 divide-y divide-slate-100">
+              ${deals.map(d => `
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                  <td class="p-4 pl-6 text-slate-900 font-bold">${d.name}</td>
+                  <td class="p-4"><span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-widest border border-slate-200/60">${d.stage}</span></td>
+                  <td class="p-4 font-extrabold text-emerald-600">$${(d.val || 0).toLocaleString()}</td>
+                  <td class="p-4 font-medium text-slate-600">${d.objection || 'None — On track'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   `;
@@ -766,94 +967,59 @@ function renderRetention() {
   if (!ca) return;
 
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Engine 5 — Retention OS</h1>
-        <p class="pg-sub">Client retention, churn prevention, satisfaction tracking, and expansion revenue.</p>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Retention OS</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Client retention, churn prevention, satisfaction tracking, and expansion revenue.</p>
+        </div>
       </div>
-    </div>
 
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box green"><span class="material-symbols-outlined">repeat</span></div>
-          <span class="sc-delta-pill">Optimal</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Gross Client Retention</div>
-          <div class="sc-value">94.2%</div>
-        </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-20 mb-6">
+        ${topCardHTML('Gross Retention', '94.2%', '', null, 'repeat', 'bg-emerald-600', '')}
+        ${topCardHTML('Expansion MRR', '$6,800', '', null, 'group_add', 'bg-blue-600', '')}
+        ${topCardHTML('Client Health Score', '91', '<span class="text-sm font-medium text-slate-400">/100</span>', null, 'sentiment_satisfied', 'bg-amber-500', '')}
+        ${topCardHTML('Churn Risk Accounts', '0', '', null, 'warning', 'bg-red-500', '')}
       </div>
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box blue"><span class="material-symbols-outlined">group_add</span></div>
-          <span class="sc-delta-pill">+2 Accounts</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Expansion MRR</div>
-          <div class="sc-value">$6,800</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box orange"><span class="material-symbols-outlined">sentiment_satisfied</span></div>
-          <span class="sc-delta-pill">High</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Client Health Score</div>
-          <div class="sc-value">91<span>/100</span></div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box red"><span class="material-symbols-outlined">warning</span></div>
-          <span class="sc-delta-pill red-tag">0 Critical</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Churn Risk Accounts</div>
-          <div class="sc-value">0 Accounts</div>
-        </div>
-      </div>
-    </div>
 
-    <div class="dash-card mt-16">
-      <div class="dash-card-header">
-        <div>
-          <h3 class="dash-card-title">Active Retention Accounts & Renewals</h3>
-          <p class="dash-card-sub">Monitored client accounts with upcoming renewal & expansion milestones</p>
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] overflow-hidden mt-6">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <h3 class="text-lg font-bold text-slate-900 tracking-tight">Active Retention Accounts & Renewals</h3>
+          <p class="text-xs text-slate-500 mt-1">Monitored client accounts with upcoming renewal & expansion milestones</p>
         </div>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="cmd-table">
-          <thead>
-            <tr>
-              <th>Client Account</th>
-              <th>Health Score</th>
-              <th>Milestone Status</th>
-              <th>Expansion Signal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Apex Logistics</strong></td>
-              <td><span class="badge badge-stage-approved">96/100 · Strong</span></td>
-              <td>Engine 3 Installed</td>
-              <td>Ready for Engine 4 Scaling</td>
-            </tr>
-            <tr>
-              <td><strong>Nexus Growth</strong></td>
-              <td><span class="badge badge-stage-script">84/100 · Good</span></td>
-              <td>Positioning Intake</td>
-              <td>Awaiting Intake Brief</td>
-            </tr>
-            <tr>
-              <td><strong>Lumina Tech</strong></td>
-              <td><span class="badge badge-stage-approved">98/100 · Exceptional</span></td>
-              <td>Full OS Delegated</td>
-              <td>Case Study Verified · Expansion Ready</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400 font-bold bg-slate-50/50">
+                <th class="p-4 pl-6 font-semibold">Client Account</th>
+                <th class="p-4 font-semibold">Health Score</th>
+                <th class="p-4 font-semibold">Milestone Status</th>
+                <th class="p-4 font-semibold">Expansion Signal</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm font-medium text-slate-700 divide-y divide-slate-100">
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="p-4 pl-6 text-slate-900 font-bold">Apex Logistics</td>
+                <td class="p-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[10px] font-bold uppercase tracking-widest border border-emerald-200">96/100 · Strong</span></td>
+                <td class="p-4 font-medium text-slate-600">Engine 3 Installed</td>
+                <td class="p-4 font-bold text-slate-900">Ready for Engine 4 Scaling</td>
+              </tr>
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="p-4 pl-6 text-slate-900 font-bold">Nexus Growth</td>
+                <td class="p-4"><span class="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md text-[10px] font-bold uppercase tracking-widest border border-amber-200">84/100 · Good</span></td>
+                <td class="p-4 font-medium text-slate-600">Positioning Intake</td>
+                <td class="p-4 font-bold text-slate-900">Awaiting Intake Brief</td>
+              </tr>
+              <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="p-4 pl-6 text-slate-900 font-bold">Lumina Tech</td>
+                <td class="p-4"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[10px] font-bold uppercase tracking-widest border border-emerald-200">98/100 · Exceptional</span></td>
+                <td class="p-4 font-medium text-slate-600">Full OS Delegated</td>
+                <td class="p-4 font-bold text-slate-900">Case Study Verified · Expansion Ready</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   `;
@@ -865,114 +1031,88 @@ function renderActionQueue() {
   if (!ca) return;
 
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Action Queue — Central Approval Layer</h1>
-        <p class="pg-sub">Propose, never execute without founder authorization. Review, modify, approve, or reject automated execution proposals.</p>
-      </div>
-      <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="showToast('Queue refreshed')"><span class="material-symbols-outlined" style="font-size:16px">refresh</span> Refresh Queue</button>
-      </div>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box orange"><span class="material-symbols-outlined">pending_actions</span></div>
-          <span class="sc-delta-pill red-tag">Action Needed</span>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Action Queue — Approval Layer</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Propose, never execute without founder authorization. Review, modify, or reject AI proposals.</p>
         </div>
-        <div class="sc-main">
-          <div class="sc-label">Pending Approval</div>
-          <div class="sc-value">3 Actions</div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="showToast('Queue refreshed')">
+            <span class="material-symbols-outlined text-[18px]">refresh</span> Refresh Queue
+          </button>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box green"><span class="material-symbols-outlined">task_alt</span></div>
-          <span class="sc-delta-pill">This Week</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Executed Actions</div>
-          <div class="sc-value">14 Approved</div>
-        </div>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-20 mb-6">
+        ${topCardHTML('Pending Approval', '3', ' Actions', null, 'pending_actions', 'bg-orange-500', '')}
+        ${topCardHTML('Executed Actions', '14', ' Approved', null, 'task_alt', 'bg-emerald-600', '')}
+        ${topCardHTML('Automation Engine', 'n8n', ' Connect', null, 'cable', 'bg-blue-600', '')}
+        ${topCardHTML('Founder Review Time', '2.4', ' min', null, 'schedule', 'bg-purple-600', '')}
       </div>
 
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box blue"><span class="material-symbols-outlined">cable</span></div>
-          <span class="sc-delta-pill">n8n Connected</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Automation Engine</div>
-          <div class="sc-value" style="font-size:18px">n8n Webhook Ready</div>
-        </div>
-      </div>
+      <div class="grid gap-4 mt-6">
 
-      <div class="stat-card">
-        <div class="sc-top">
-          <div class="sc-icon-box purple"><span class="material-symbols-outlined">schedule</span></div>
-          <span class="sc-delta-pill">Avg 2.4 min</span>
-        </div>
-        <div class="sc-main">
-          <div class="sc-label">Founder Review Time</div>
-          <div class="sc-value">Fast</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="flex-col gap-12 mt-16">
-      
       <!-- Proposal Card 1 -->
-      <div class="dash-card" style="border-left:4px solid #EA580C">
-        <div class="flex-between align-start">
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] p-6 relative overflow-hidden group">
+        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-orange-500"></div>
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-6 pl-2">
           <div>
-            <div class="flex-row gap-8">
-              <span class="badge badge-stage-script" style="background:#ffedd5;color:#ea580c">ATTENTION ENGINE</span>
-              <span class="txt-body-sm text-muted">Generated 20 mins ago by n8n Pipeline Worker</span>
+            <div class="flex items-center gap-3 mb-2">
+              <span class="px-2.5 py-1 bg-orange-50 text-orange-600 rounded-md text-[10px] font-bold uppercase tracking-widest border border-orange-100">ATTENTION ENGINE</span>
+              <span class="text-xs font-medium text-slate-400">Generated 20 mins ago by n8n Worker</span>
             </div>
-            <h3 class="mt-6" style="font-size:16px;font-weight:700;color:var(--text-main)">Publish Mechanism Post: "The 5-Engine Growth OS Blueprint"</h3>
-            <p class="mt-4" style="font-size:13px;color:var(--text-muted)">Proposed content hook matched top performance pillar (Mechanism Proof, 88/100 score). Scheduled for LinkedIn publishing at 09:00 AM tomorrow.</p>
+            <h3 class="text-base font-bold text-slate-900 tracking-tight mt-1">Publish Mechanism Post: "The 5-Engine Growth OS Blueprint"</h3>
+            <p class="text-sm font-medium text-slate-500 mt-2 max-w-3xl leading-relaxed">Proposed content hook matched top performance pillar (Mechanism Proof, 88/100 score). Scheduled for LinkedIn publishing at 09:00 AM tomorrow.</p>
           </div>
-          <div class="flex-row gap-8">
-            <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Approve & Execute</button>
+          <div class="flex items-center gap-3 shrink-0">
+            <button class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-[10px] text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm" onclick="showToast('Action rejected')">Reject</button>
+            <button class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-[10px] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5" onclick="showToast('Action approved & executed')">
+              <span class="material-symbols-outlined text-[16px]">check</span> Approve & Execute
+            </button>
           </div>
         </div>
       </div>
 
       <!-- Proposal Card 2 -->
-      <div class="dash-card" style="border-left:4px solid #0058bc">
-        <div class="flex-between align-start">
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] p-6 relative overflow-hidden group">
+        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-6 pl-2">
           <div>
-            <div class="flex-row gap-8">
-              <span class="badge badge-stage-script" style="background:#e0f2fe;color:#0284c7">CONVERSION ENGINE</span>
-              <span class="txt-body-sm text-muted">Generated 1 hour ago</span>
+            <div class="flex items-center gap-3 mb-2">
+              <span class="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-bold uppercase tracking-widest border border-blue-100">CONVERSION ENGINE</span>
+              <span class="text-xs font-medium text-slate-400">Generated 1 hour ago</span>
             </div>
-            <h3 class="mt-6" style="font-size:16px;font-weight:700;color:var(--text-main)">Send Follow-up Sequence to SaaSify Inc (Mark Vance)</h3>
-            <p class="mt-4" style="font-size:13px;color:var(--text-muted)">Proposal sent 3 days ago. n8n classifier detected objection on onboarding timeline. Drafted personalized response reassuring 14-day installation timeline.</p>
+            <h3 class="text-base font-bold text-slate-900 tracking-tight mt-1">Send Follow-up Sequence to SaaSify Inc (Mark Vance)</h3>
+            <p class="text-sm font-medium text-slate-500 mt-2 max-w-3xl leading-relaxed">Proposal sent 3 days ago. n8n classifier detected objection on onboarding timeline. Drafted personalized response reassuring 14-day timeline.</p>
           </div>
-          <div class="flex-row gap-8">
-            <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Approve & Send Email</button>
+          <div class="flex items-center gap-3 shrink-0">
+            <button class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-[10px] text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm" onclick="showToast('Action rejected')">Reject</button>
+            <button class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-[10px] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5" onclick="showToast('Action approved')">
+              <span class="material-symbols-outlined text-[16px]">check</span> Approve & Send
+            </button>
           </div>
         </div>
       </div>
-
+      
       <!-- Proposal Card 3 -->
-      <div class="dash-card" style="border-left:4px solid #16a34a">
-        <div class="flex-between align-start">
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] p-6 relative overflow-hidden group">
+        <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></div>
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-6 pl-2">
           <div>
-            <div class="flex-row gap-8">
-              <span class="badge badge-stage-script" style="background:#dcfce7;color:#16a34a">DELIVERY ENGINE</span>
-              <span class="txt-body-sm text-muted">Generated 2 hours ago</span>
+            <div class="flex items-center gap-3 mb-2">
+              <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase tracking-widest border border-emerald-100">DELIVERY ENGINE</span>
+              <span class="text-xs font-medium text-slate-400">Generated 2 hours ago</span>
             </div>
-            <h3 class="mt-6" style="font-size:16px;font-weight:700;color:var(--text-main)">Trigger Milestone 2 Onboarding Checklist for Apex Logistics</h3>
-            <p class="mt-4" style="font-size:13px;color:var(--text-muted)">Engine 3 installation verified. Send client portal welcome package and schedule strategy review sprint.</p>
+            <h3 class="text-base font-bold text-slate-900 tracking-tight mt-1">Trigger Milestone 2 Onboarding Checklist for Apex Logistics</h3>
+            <p class="text-sm font-medium text-slate-500 mt-2 max-w-3xl leading-relaxed">Engine 3 installation verified. Send client portal welcome package and schedule strategy review sprint.</p>
           </div>
-          <div class="flex-row gap-8">
-            <button class="btn btn-secondary btn-sm" onclick="showToast('Action rejected')">Reject</button>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Action approved & sent to execution queue')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">check</span> Approve & Execute</button>
+          <div class="flex items-center gap-3 shrink-0">
+            <button class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-[10px] text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm" onclick="showToast('Action rejected')">Reject</button>
+            <button class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-[10px] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5" onclick="showToast('Action approved')">
+              <span class="material-symbols-outlined text-[16px]">check</span> Approve & Execute
+            </button>
           </div>
         </div>
       </div>
@@ -1016,48 +1156,50 @@ async function renderAttention() {
   if (!ca) return;
 
   ca.innerHTML = `
-    <!-- Header -->
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">ATTENTION OS</h1>
-        <p class="pg-sub">Turn your expertise into attention that compounds.</p>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Attention OS</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Turn your expertise into attention that compounds.</p>
+        </div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-[12px] text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm" onclick="go('foundation')">
+            <span class="material-symbols-outlined text-[16px]">bolt</span> Foundation Active
+          </button>
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="openCreateContentModal()">
+            <span class="material-symbols-outlined text-[18px]">add</span> Create Content
+          </button>
+        </div>
       </div>
-      <div class="pg-actions" style="align-items:center">
-        <span class="sb-badge green" style="font-weight:600;font-size:11.5px;cursor:pointer;padding:6px 12px" onclick="go('foundation')">
-          <span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Foundation Context Active
-        </span>
-        <button class="btn btn-primary" onclick="openCreateContentModal()">
-          <span class="material-symbols-outlined" style="font-size:18px">add</span> + Create Content
-        </button>
-      </div>
-    </div>
 
     <!-- 6 Sub-Tab Navigation Bar -->
-    <div class="engine-tab-bar mb-14" style="display:flex;flex-wrap:wrap;gap:4px">
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'overview' ? 'active' : ''}" onclick="switchAttentionSubTab('overview')">
-        📊 Overview
-      </div>
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'ideas' ? 'active' : ''}" onclick="switchAttentionSubTab('ideas')">
-        💡 Ideas
-      </div>
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'scripts' ? 'active' : ''}" onclick="switchAttentionSubTab('scripts')">
-        📝 Scripts
-      </div>
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'production' ? 'active' : ''}" onclick="switchAttentionSubTab('production')">
-        🎬 Production
-      </div>
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'published' ? 'active' : ''}" onclick="switchAttentionSubTab('published')">
-        🚀 Published
-      </div>
-      <div class="engine-tab ${ATTENTION_SUB_TAB === 'learn' ? 'active' : ''}" onclick="switchAttentionSubTab('learn')">
-        🧠 Learn
-      </div>
+    <div class="flex flex-wrap gap-2 mb-8 bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/60 w-fit">
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${ATTENTION_SUB_TAB === 'overview' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchAttentionSubTab('overview')">
+        <span class="material-symbols-outlined text-[16px]">bar_chart</span> Overview
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${ATTENTION_SUB_TAB === 'ideas' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchAttentionSubTab('ideas')">
+        <span class="material-symbols-outlined text-[16px]">lightbulb</span> Ideas
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${ATTENTION_SUB_TAB === 'scripts' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchAttentionSubTab('scripts')">
+        <span class="material-symbols-outlined text-[16px]">description</span> Scripts
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${ATTENTION_SUB_TAB === 'production' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchAttentionSubTab('production')">
+        <span class="material-symbols-outlined text-[16px]">movie</span> Production
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${ATTENTION_SUB_TAB === 'published' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchAttentionSubTab('published')">
+        <span class="material-symbols-outlined text-[16px]">rocket_launch</span> Published
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${ATTENTION_SUB_TAB === 'learn' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchAttentionSubTab('learn')">
+        <span class="material-symbols-outlined text-[16px]">psychology</span> Learn
+      </button>
     </div>
 
     <!-- Sub-Tab Content View Container -->
-    <div id="attention-subtab-content">
+    <div id="attention-subtab-content" class="relative z-10 w-full mb-16">
       ${getAttentionSubTabHtml()}
     </div>
+  </div>
   `;
 }
 
@@ -3270,52 +3412,59 @@ async function renderConversion() {
   }
 
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Engine 2 — Conversion OS (Sales & Pipeline)</h1>
-        <p class="pg-sub">Turn qualified attention into revenue. Capture founder sales behavior as benchmark training data.</p>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Conversion OS (Sales & Pipeline)</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Turn qualified attention into revenue. Capture founder sales behavior as benchmark training data.</p>
+        </div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-[14px] text-sm font-semibold transition-all shadow-sm flex items-center gap-2" onclick="openSalesCallModal()">
+            <span class="material-symbols-outlined text-[18px]">headphones</span> Log Sales Call
+          </button>
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="openDealModal()">
+            <span class="material-symbols-outlined text-[18px]">add</span> Add Deal
+          </button>
+        </div>
       </div>
-      <div class="pg-actions">
-        <button class="btn btn-secondary" onclick="openSalesCallModal()">🎧 Log Sales Call</button>
-        <button class="btn btn-primary" onclick="openDealModal()">+ Add Deal</button>
-      </div>
-    </div>
 
     <!-- Conversion OS Sub-Tab Navigation Bar -->
-    <div class="engine-tab-bar mb-18" style="display:flex;flex-wrap:wrap;gap:4px">
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'dashboard' ? 'active' : ''}" onclick="switchConversionSubTab('dashboard')">
-        🎯 Action Center
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'pipeline' ? 'active' : ''}" onclick="switchConversionSubTab('pipeline')">
-        📊 CRM Kanban
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'funnel' ? 'active' : ''}" onclick="switchConversionSubTab('funnel')">
-        📄 Profile Funnel
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'dm-qualifier' ? 'active' : ''}" onclick="switchConversionSubTab('dm-qualifier')">
-        💬 AI DM Qualifier
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'story-sequences' ? 'active' : ''}" onclick="switchConversionSubTab('story-sequences')">
-        📖 Story Sequences
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'coaching' ? 'active' : ''}" onclick="switchConversionSubTab('coaching')">
-        🎧 AI Coaching
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'objections' ? 'active' : ''}" onclick="switchConversionSubTab('objections')">
-        🛡 Objections
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'closer' ? 'active' : ''}" onclick="switchConversionSubTab('closer')">
-        📜 Closer Prep
-      </div>
-      <div class="engine-tab ${CONVERSION_SUB_TAB === 'handoff' ? 'active' : ''}" onclick="switchConversionSubTab('handoff')">
-        🚀 Handoffs
-      </div>
+    <div class="flex flex-wrap gap-2 mb-8 bg-slate-100/50 p-1.5 rounded-xl border border-slate-200/60 w-fit">
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'dashboard' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('dashboard')">
+        <span class="material-symbols-outlined text-[16px]">target</span> Action Center
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'pipeline' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('pipeline')">
+        <span class="material-symbols-outlined text-[16px]">view_kanban</span> CRM Kanban
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'funnel' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('funnel')">
+        <span class="material-symbols-outlined text-[16px]">filter_alt</span> Profile Funnel
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'dm-qualifier' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('dm-qualifier')">
+        <span class="material-symbols-outlined text-[16px]">chat</span> AI Qualifier
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'story-sequences' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('story-sequences')">
+        <span class="material-symbols-outlined text-[16px]">auto_stories</span> Stories
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'coaching' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('coaching')">
+        <span class="material-symbols-outlined text-[16px]">headphones</span> Coaching
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'objections' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('objections')">
+        <span class="material-symbols-outlined text-[16px]">shield</span> Objections
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'closer' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('closer')">
+        <span class="material-symbols-outlined text-[16px]">text_snippet</span> Closer Prep
+      </button>
+      <button class="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${CONVERSION_SUB_TAB === 'handoff' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}" onclick="switchConversionSubTab('handoff')">
+        <span class="material-symbols-outlined text-[16px]">rocket_launch</span> Handoffs
+      </button>
     </div>
 
     <!-- Sub-Tab Content View Container -->
-    <div id="conv-subtab-container">
+    <div id="conv-subtab-container" class="relative z-10 w-full mb-16">
       ${getConversionSubTabHtml()}
     </div>
+  </div>
   `;
 }
 
@@ -4409,29 +4558,35 @@ async function handleConfirmNormalizedObjection(dealId) {
 // ── 4. ENGINE 3 — DELIVERY OS ──────────────────────────────────────────────
 function renderDelivery() {
   const ca = document.getElementById('content-area');
+  
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Engine 3 — Delivery OS (Client Success)</h1>
-        <p class="pg-sub">Deliver consistent, scalable client outcomes without ERP complexity.</p>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Delivery OS (Client Success)</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Deliver consistent, scalable client outcomes without ERP complexity.</p>
+        </div>
       </div>
-    </div>
 
-    <div class="dash-card">
-      <div class="dash-card-title">Active Client Onboarding & Milestones</div>
-      <div class="flex-col gap-12 mt-12">
-        ${CLIENTS.map(c => `
-          <div class="flex-col gap-8" style="padding:16px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
-            <div class="flex-between">
-              <div class="txt-heading-sm">${c.name}</div>
-              <span class="sb-badge green">${c.status}</span>
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <h3 class="text-lg font-bold text-slate-900 tracking-tight">Active Client Onboarding & Milestones</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-slate-50">
+          ${CLIENTS.map(c => `
+            <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex justify-between items-center mb-3">
+                <h4 class="text-base font-bold text-slate-900 tracking-tight">${c.name}</h4>
+                <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[10px] font-bold uppercase tracking-widest border border-emerald-200">${c.status}</span>
+              </div>
+              <div class="text-xs font-medium text-slate-500 mb-3">Current Milestone: <span class="font-bold text-slate-900">${c.milestone}</span></div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 transition-all" style="width:${c.progress}%"></div>
+              </div>
             </div>
-            <div class="txt-body-sm text-muted">Current Milestone: <strong style="color:#0F172A">${c.milestone}</strong></div>
-            <div class="mt-4" style="width:100%;height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden">
-              <div style="width:${c.progress}%;height:100%;background:#10B981"></div>
-            </div>
-          </div>
-        `).join('')}
+          `).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -4441,27 +4596,35 @@ function renderDelivery() {
 function renderIntelligence() {
   const ca = document.getElementById('content-area');
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Engine 4 — Intelligence OS (Decision Layer)</h1>
-        <p class="pg-sub">Observation → Why it matters → Recommended action → Apply.</p>
-      </div>
-      <div class="pg-actions">
-        <button class="btn btn-primary" onclick="showToast('Recalculating Weekly Directives...')"><span class="material-symbols-outlined" style="font-size:inherit; vertical-align:middle;">bolt</span> Refresh Directives</button>
-      </div>
-    </div>
-
-    <div class="flex-col gap-12">
-      ${DIRECTIVES.map(d => `
-        <div class="decision-card">
-          <div class="dc-obs">🔍 ${d.obs}</div>
-          <div class="dc-why">${d.why}</div>
-          <div class="dc-act">
-            <span class="dc-conf">Confidence: ${d.conf}</span>
-            <button class="btn btn-primary btn-sm" onclick="showToast('Applied directive: ${d.act}')">Apply Decision Action</button>
-          </div>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Intelligence OS (Decision Layer)</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Observation → Why it matters → Recommended action → Apply.</p>
         </div>
-      `).join('')}
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="showToast('Recalculating Weekly Directives...')">
+            <span class="material-symbols-outlined text-[18px]">bolt</span> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="grid gap-4 mt-6">
+        ${DIRECTIVES.map(d => `
+          <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] p-6 relative overflow-hidden group hover:border-slate-300 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-all">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-500"></div>
+            <div class="pl-2">
+              <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2"><span class="material-symbols-outlined text-indigo-500 text-[20px]">search</span> ${d.obs}</h3>
+              <p class="text-sm font-medium text-slate-600 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-100">${d.why}</p>
+              <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                <span class="text-xs font-bold text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100 uppercase tracking-widest">Confidence: ${d.conf}</span>
+                <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[10px] text-xs font-bold transition-all shadow-sm" onclick="showToast('Applied directive: ${d.act}')">Apply Decision</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     </div>
   `;
 }
@@ -4470,30 +4633,35 @@ function renderIntelligence() {
 function renderOperator() {
   const ca = document.getElementById('content-area');
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Engine 5 — Operator OS (Capability & SOPs)</h1>
-        <p class="pg-sub">Train the founder into an independent Growth Operator with versioned SOP playbooks.</p>
-      </div>
-      <div class="pg-actions">
-        <button class="btn btn-primary" onclick="openSopModal()">+ Create SOP</button>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:16px">
-      ${SOPS.map(s => `
-        <div class="dash-card">
-          <div class="flex-between">
-            <span class="sb-badge green">${s.engine} Engine</span>
-            <span style="font-size:11px;color:#94A3B8">v1.2</span>
-          </div>
-          <div class="txt-heading-sm mt-6">${s.title}</div>
-          <div class="flex-col gap-6 mt-12">
-            ${s.steps.map(step => `<div class="txt-body-sm text-muted" style="background:#F8FAFC;padding:6px 10px;border-radius:6px;border:1px solid #E2E8F0">• ${step}</div>`).join('')}
-          </div>
-          <button class="btn btn-secondary btn-sm mt-12" onclick="showToast('Executing ${s.title}...')">Execute SOP</button>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Operator OS (Capability)</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Train the founder into an independent Growth Operator with versioned SOP playbooks.</p>
         </div>
-      `).join('')}
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="openSopModal()">
+            <span class="material-symbols-outlined text-[18px]">add</span> Create SOP
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        ${SOPS.map(s => `
+          <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] p-6 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:border-slate-300 transition-all flex flex-col h-full">
+            <div class="flex justify-between items-center mb-4">
+              <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-widest border border-slate-200/60">${s.engine} Engine</span>
+              <span class="text-xs font-bold text-slate-400">v1.2</span>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-900 tracking-tight mb-4">${s.title}</h3>
+            <div class="flex flex-col gap-3 mb-6 flex-1">
+              ${s.steps.map(step => `<div class="text-sm font-medium text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">${step}</div>`).join('')}
+            </div>
+            <button class="w-full text-center px-4 py-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:text-slate-900 text-slate-700 rounded-[12px] text-sm font-bold transition-all" onclick="showToast('Executing ${s.title}...')">Execute SOP</button>
+          </div>
+        `).join('')}
+      </div>
     </div>
   `;
 }
@@ -4502,36 +4670,42 @@ function renderOperator() {
 function renderCalendar() {
   const ca = document.getElementById('content-area');
   ca.innerHTML = `
-    <div class="pg-header">
-      <div>
-        <h1 class="pg-title">Growth Calendar</h1>
-        <p class="pg-sub">Site work, live calls, VSL launches & sprints</p>
+    <div class="p-6 max-w-[1600px] mx-auto space-y-5 pb-32">
+      <!-- HERO HEADER -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200/60 pb-6 mb-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Growth Schedule</h1>
+          <p class="text-slate-500 text-base leading-relaxed">Site work, live calls, VSL launches & sprints</p>
+        </div>
+        <div class="flex items-center gap-3 mt-6 md:mt-0">
+          <button class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[14px] text-sm font-semibold transition-all shadow-[0_8px_16px_-4px_rgba(0,0,0,0.15)] flex items-center gap-2" onclick="openEventModal()">
+            <span class="material-symbols-outlined text-[18px]">add</span> Add Event
+          </button>
+        </div>
       </div>
-      <div class="pg-actions">
-        <button class="btn btn-primary" onclick="openEventModal()">+ Add Event</button>
-      </div>
-    </div>
 
-    <div class="calendar-wrap">
-      <div class="cal-header">Week of 13–19 July</div>
-      
-      <div class="cal-grid">
-        ${CALENDAR_EVENTS.map(d => `
-          <div class="cal-day-col">
-            <div class="cal-day-head">
-              <div class="cal-day-name">${d.day}</div>
-              <div class="cal-day-num">${d.date}</div>
+      <div class="rounded-[24px] bg-white border border-slate-200/60 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.05)] overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <h3 class="text-lg font-bold text-slate-900 tracking-tight">Week of 13–19 July</h3>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 xl:grid-cols-7 border-t border-slate-100 min-h-[500px]">
+          ${CALENDAR_EVENTS.map(d => `
+            <div class="border-r border-slate-100 last:border-r-0 flex flex-col pt-3 bg-white">
+              <div class="px-4 text-center border-b border-slate-100 pb-3">
+                <div class="text-[10px] uppercase tracking-widest font-bold text-slate-400">${d.day}</div>
+                <div class="text-2xl font-black text-slate-900 mt-1">${d.date}</div>
+              </div>
+              <div class="p-2 flex flex-col gap-2 bg-slate-50/30 flex-1">
+                ${d.events.map(e => `
+                  <div class="rounded-xl border ${e.type === 'call' ? 'bg-orange-50/80 border-orange-200/80 text-orange-900' : e.type === 'sprint' ? 'bg-blue-50/80 border-blue-200/80 text-blue-900' : 'bg-slate-50 border-slate-200 text-slate-700'} p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                    ${e.time ? `<div class="text-[10px] font-extrabold uppercase tracking-widest mb-1.5 opacity-70">${e.time}</div>` : ''}
+                    <div class="text-xs font-bold leading-tight">${e.text}</div>
+                  </div>
+                `).join('')}
+              </div>
             </div>
-            <div class="cal-events">
-              ${d.events.map(e => `
-                <div class="cal-event-pill ${e.type}">
-                  ${e.time ? `<div class="mb-2" style="font-size:10px;font-weight:700">${e.time}</div>` : ''}
-                  <div>${e.text}</div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')}
+          `).join('')}
+        </div>
       </div>
     </div>
   `;
