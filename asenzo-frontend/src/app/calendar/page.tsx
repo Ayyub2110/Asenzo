@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
   getCalendar, 
@@ -8,7 +8,6 @@ import {
   completeCalendarEvent
 } from "@/lib/adapters";
 import { 
-  CalendarData, 
   CalendarEvent,
   CalendarEventStatus,
   CalendarPriority
@@ -46,7 +45,7 @@ function getStatusBadgeVariant(status: CalendarEventStatus) {
 export default function CalendarWorkspace() {
   const router = useRouter();
 
-  const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getCalendar);
+  const { setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getCalendar);
   
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);

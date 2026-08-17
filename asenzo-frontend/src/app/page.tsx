@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getCommandCenter, executeAction } from "@/lib/adapters";
-import { CommandCenterData, ActionItem } from "@/lib/types";
+import { ActionItem } from "@/lib/types";
 import { useAdapter } from "@/hooks/useAdapter";
 
 // UI Primitives
@@ -66,7 +66,7 @@ export default function CommandCenterPage() {
     return (
       <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto">
         <Alert variant="danger" title={error || "Unexpected Error"}>
-          We couldn't connect to the backend foundation.
+          We couldn&apos;t connect to the backend foundation.
           <div className="mt-4">
             <Button variant="secondary" size="sm" onClick={loadData}>Retry Connection</Button>
           </div>
@@ -153,7 +153,7 @@ export default function CommandCenterPage() {
             
             {data.actionQueue.length === 0 ? (
               <div className="p-8 border border-dashed border-outline-variant bg-surface rounded-xl text-center text-on-surface-variant text-sm">
-                No pending actions. You're clear for deep work.
+                No pending actions. You&apos;re clear for deep work.
               </div>
             ) : (
               <div className="flex flex-col gap-3">

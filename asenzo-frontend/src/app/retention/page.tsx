@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { 
   getRetention, 
   updateRetentionEngagement, 
@@ -9,15 +9,13 @@ import {
   updateRetentionAction
 } from "@/lib/adapters";
 import { 
-  RetentionData, 
   RetentionEngagement, 
-  RetentionStatus, 
   RetentionInteraction,
   RetentionRisk,
   RetentionNextAction
 } from "@/lib/types";
 
-import { Card, CardTitle, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
@@ -37,7 +35,7 @@ function getHealthBadgeProps(health: string) {
 }
 
 export default function RetentionWorkspace() {
-  const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getRetention);
+  const { setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getRetention);
   
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -115,6 +113,7 @@ export default function RetentionWorkspace() {
     setIsSaving(true);
     try {
       const payload: RetentionInteraction = {
+        // eslint-disable-next-line react-hooks/purity
         id: `i${Date.now()}`,
         date: new Date().toISOString(),
         type: (interactionDraft.type || "OTHER") as RetentionInteraction["type"],
@@ -392,7 +391,7 @@ export default function RetentionWorkspace() {
                         <FormField label="Health Indicator">
                           <Select
                             value={engagementDraft?.health || "HEALTHY"}
-                            onChange={(e) => setEngagementDraft(prev => prev ? {...prev, health: e.target.value as any} : null)}
+                            onChange={(e) => setEngagementDraft(prev => prev ? {...prev, health: e.target.value as import("@/lib/types").RetentionHealth} : null)}
                           >
                             <option value="HEALTHY">HEALTHY</option>
                             <option value="WATCH">WATCH</option>
@@ -402,7 +401,7 @@ export default function RetentionWorkspace() {
                         <FormField label="Retention Status">
                           <Select
                             value={engagementDraft?.status || "HEALTHY"}
-                            onChange={(e) => setEngagementDraft(prev => prev ? {...prev, status: e.target.value as any} : null)}
+                            onChange={(e) => setEngagementDraft(prev => prev ? {...prev, status: e.target.value as import("@/lib/types").RetentionStatus} : null)}
                           >
                             <option value="NOT_STARTED">NOT STARTED</option>
                             <option value="HEALTHY">HEALTHY</option>
@@ -512,7 +511,7 @@ export default function RetentionWorkspace() {
                        <FormField label="Event Type">
                          <Select 
                            value={interactionDraft?.type || "CHECK_IN"}
-                           onChange={(e) => setInteractionDraft(prev => prev ? {...prev, type: e.target.value as any} : null)}
+                           onChange={(e) => setInteractionDraft(prev => prev ? {...prev, type: e.target.value as import("@/lib/types").RetentionInteraction["type"]} : null)}
                          >
                            <option value="CALL">Call</option>
                            <option value="EMAIL">Email</option>

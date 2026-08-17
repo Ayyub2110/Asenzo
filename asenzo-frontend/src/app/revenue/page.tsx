@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { 
   getRevenue, 
   updateRevenueEngagement, 
@@ -9,7 +9,6 @@ import {
   updateRevenueNextAction
 } from "@/lib/adapters";
 import { 
-  RevenueData, 
   RevenueEngagement,
   RevenueItem,
   RevenueStatus

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getDelivery, updateDeliveryEngagement, completeDeliveryMilestone, resolveDeliveryBlocker } from "@/lib/adapters";
-import { DeliveryData, DeliveryEngagement, DeliveryMilestone, DeliveryBlocker, DeliveryStatus } from "@/lib/types";
+import { DeliveryEngagement, DeliveryMilestone, DeliveryBlocker, DeliveryStatus } from "@/lib/types";
 
-import { Card, CardTitle, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { Input, Textarea, Select, FormField } from "@/components/ui/Forms";
+import { Input, Select, FormField } from "@/components/ui/Forms";
 import { Skeleton, CardSkeleton, EmptyState } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -134,7 +134,7 @@ export default function DeliveryWorkspace() {
 
   // Derived Health Data
   const blockers = localData.engagements.flatMap(e => e.blockers.filter(b => b.status === "active").map(b => ({...b, engagementClient: e.clientName})));
-  const pendingMilestones = localData.engagements.flatMap(e => e.milestones.filter(m => m.status !== "completed"));
+
 
   return (
     <div className="max-w-[1400px] mx-auto p-6 md:p-8 space-y-8 animate-in fade-in duration-500">

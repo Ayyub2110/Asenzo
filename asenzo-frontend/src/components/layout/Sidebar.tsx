@@ -10,10 +10,13 @@ const navItems = [
   { href: "/foundation", icon: "architecture", label: "Foundation", sub: "Business DNA" },
   { href: "/attention", icon: "campaign", label: "Attention", sub: "Content Engine" },
   { href: "/conversion", icon: "query_stats", label: "Conversion", sub: "Pipeline" },
+  { href: "/revenue", icon: "payments", label: "Revenue", sub: "Financial Health" },
   { divider: "Execution" },
   { href: "/delivery", icon: "check_circle", label: "Delivery", sub: "Fulfillment" },
   { href: "/retention", icon: "autorenew", label: "Retention", sub: "Compound Value" },
-  { divider: "System" },
+  { divider: "Operating System" },
+  { href: "/operator", icon: "terminal", label: "Operator", sub: "Control Surface" },
+  { href: "/calendar", icon: "event", label: "Calendar", sub: "Time Management" },
   { href: "/settings", icon: "settings", label: "Settings", sub: "Preferences" },
 ];
 

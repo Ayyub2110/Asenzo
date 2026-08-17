@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
   getOperator, 
@@ -8,7 +8,6 @@ import {
   completeOperatorItem
 } from "@/lib/adapters";
 import { 
-  OperatorData, 
   OperatorItem,
   OperatorItemStatus,
   OperatorPriority
@@ -19,7 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input, Select, FormField } from "@/components/ui/Forms";
-import { Skeleton, CardSkeleton, EmptyState } from "@/components/ui/States";
+import { Skeleton, CardSkeleton } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useAdapter } from "@/hooks/useAdapter";
@@ -56,7 +55,7 @@ function getStatusBadgeVariant(status: OperatorItemStatus) {
 export default function OperatorWorkspace() {
   const router = useRouter();
 
-  const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getOperator);
+  const { setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getOperator);
   
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);

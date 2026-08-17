@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getAttention, updateAttention } from "@/lib/adapters";
 import { useAdapter } from "@/hooks/useAdapter";
-import { AttentionData, ContentIdea, MarketSignal } from "@/lib/types";
+import { ContentIdea } from "@/lib/types";
 
 import { Card, CardTitle, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -308,7 +308,7 @@ Please edit this mock context strictly before approving it for the production pi
 
                       <div className="grid grid-cols-2 gap-4">
                         <FormField label="Funnel Vector">
-                          <Select value={activeIdea.stage} onChange={(e) => handleIdeaFieldChange(activeIdea.id, "stage", e.target.value as any)}>
+                          <Select value={activeIdea.stage} onChange={(e) => handleIdeaFieldChange(activeIdea.id, "stage", e.target.value as import("@/lib/types").ContentIdea["stage"])}>
                             <option value="TOF">Top of Funnel (Awareness)</option>
                             <option value="MOF">Mid Funnel (Trust)</option>
                             <option value="BOF">Bottom Funnel (Conversion)</option>
@@ -318,7 +318,7 @@ Please edit this mock context strictly before approving it for the production pi
                           <Select value={activeIdea.framework} onChange={(e) => handleIdeaFieldChange(activeIdea.id, "framework", e.target.value)}>
                             <option value="Contrarian Truth">Contrarian Truth</option>
                             <option value="Listicle">Listicle / Steps</option>
-                            <option value="Hero's Journey">Hero's Journey</option>
+                            <option value="Hero's Journey">Hero&apos;s Journey</option>
                             <option value="AIDA">AIDA Standard</option>
                           </Select>
                         </FormField>

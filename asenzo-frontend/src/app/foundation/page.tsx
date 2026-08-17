@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getFoundation, updateFoundation } from "@/lib/adapters";
-import { FoundationData } from "@/lib/types";
 import { useAdapter } from "@/hooks/useAdapter";
 
 import { Card, CardTitle, CardHeader } from "@/components/ui/Card";

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { getConversion, updateOpportunity, updateFollowUp, updateQualification } from "@/lib/adapters";
-import { ConversionData, Opportunity, FollowUp, OpportunityStage, Qualification } from "@/lib/types";
+import { Opportunity, FollowUp, OpportunityStage, Qualification } from "@/lib/types";
 
 import { Card, CardTitle, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
