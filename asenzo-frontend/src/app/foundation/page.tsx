@@ -4,19 +4,14 @@ import React, { useState } from "react";
 import { getFoundation, updateFoundation } from "@/lib/adapters";
 import { useAdapter } from "@/hooks/useAdapter";
 
-import { Card, CardTitle, CardHeader } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { FormField, Input, Textarea } from "@/components/ui/Forms";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton, CardSkeleton } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
-import { Tabs } from "@/components/ui/Tabs";
+import { Button } from "@/components/ui/Button";
 
 export default function FoundationPage() {
   const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getFoundation);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("core_dna");
 
   function handleCancel() {
     setLocalData(data); // revert to canonical explicitly
@@ -40,7 +35,7 @@ export default function FoundationPage() {
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto animate-in fade-in duration-300">
+      <div className="p-10 max-w-[1440px] mx-auto w-full space-y-8 animate-in fade-in duration-300">
         <Skeleton className="h-8 w-64 mb-2" />
         <Skeleton className="h-4 w-48 mb-8" />
         <CardSkeleton />
@@ -53,7 +48,7 @@ export default function FoundationPage() {
 
   if (error || !data || !localData) {
     return (
-      <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto">
+      <div className="p-10 max-w-[1440px] mx-auto w-full space-y-8">
         <Alert variant="danger" title="Load Error">
           {error || "Foundation context could not be loaded."}
           <div className="mt-4">
@@ -64,395 +59,333 @@ export default function FoundationPage() {
     );
   }
 
-  // Value bindings for edit vs read
   const handleDNAChange = (field: keyof typeof localData.coreDna, value: string) => {
-    setLocalData(prev => prev ? { ...prev, coreDna: { ...prev.coreDna, [field]: value } } : prev);
+    setLocalData((prev) => prev ? { ...prev, coreDna: { ...prev.coreDna, [field]: value } } : prev);
   };
-  
   const handleICPChange = (field: keyof typeof localData.icp, value: string | string[]) => {
-    setLocalData(prev => prev ? { ...prev, icp: { ...prev.icp, [field]: value } } : prev);
+    setLocalData((prev) => prev ? { ...prev, icp: { ...prev.icp, [field]: value } } : prev);
   };
-  
   const handleOfferChange = (field: keyof typeof localData.offer, value: string | string[]) => {
-    setLocalData(prev => prev ? { ...prev, offer: { ...prev.offer, [field]: value } } : prev);
+    setLocalData((prev) => prev ? { ...prev, offer: { ...prev.offer, [field]: value } } : prev);
   };
-
   const handleBrandVoiceChange = (field: keyof typeof localData.brandVoice, value: string | string[]) => {
-    setLocalData(prev => prev ? { ...prev, brandVoice: { ...prev.brandVoice, [field]: value } } : prev);
+    setLocalData((prev) => prev ? { ...prev, brandVoice: { ...prev.brandVoice, [field]: value } } : prev);
   };
-
   const handleFounderVoiceChange = (field: keyof typeof localData.founderVoice, value: string | string[] | boolean) => {
-    setLocalData(prev => prev ? { ...prev, founderVoice: { ...prev.founderVoice, [field]: value } } : prev);
+    setLocalData((prev) => prev ? { ...prev, founderVoice: { ...prev.founderVoice, [field]: value } } : prev);
   };
-
-  const tabs = [
-    { id: "core_dna", label: "Core DNA" },
-    { id: "icp", label: "ICP" },
-    { id: "offer", label: "Offer Builder" },
-    { id: "brand_voice", label: "Brand Voice" },
-    { id: "founder_voice", label: "Founder Voice" }
-  ];
-
-  const readinessStatusColor = 
-    data.readiness.percentage >= 90 ? "success" :
-    data.readiness.percentage >= 50 ? "primary" : "warning";
 
   return (
-    <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto">
-      
-      {/* HEADER SECTION */}
-      <header className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
-        <div>
-          <h1 className="text-3xl lg:text-[40px] font-display font-bold text-on-surface tracking-tight leading-tight uppercase relative">
-            Foundation
-          </h1>
-          <h2 className="text-xl font-display font-semibold text-on-surface-variant mt-2 tracking-tight">Business Truth</h2>
-          <p className="text-on-surface-variant text-[14.5px] mt-1.5 font-medium max-w-2xl leading-relaxed">
-            The canonical source of truth defining your business model, positioning, audience, and voice. ASENZO requires this context to operate intelligently without your intervention.
-          </p>
-        </div>
-        
-        {/* READINESS INDICATOR */}
-        <Card variant="outlined" className="min-w-[280px]">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display font-medium text-[13px] text-on-surface-variant tracking-widest uppercase">Data Readiness</h3>
-            <Badge variant={readinessStatusColor} size="sm">{data.readiness.status}</Badge>
+    <div className="flex-1 p-container-padding max-w-[1440px] mx-auto w-full flex flex-col lg:flex-row gap-card-gap">
+      <div className="flex-1 flex flex-col space-y-card-gap">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
+          <div>
+            <h3 className="font-headline-md-lg text-display-lg text-on-surface tracking-tight">Foundation DNA</h3>
+            <p className="font-body-lg text-body-lg text-on-surface-variant mt-1">Configure the core parameters driving your Growth OS.</p>
           </div>
-          <div className="flex items-baseline gap-1.5 mb-3">
-            <span className="font-display font-bold text-3xl tracking-tighter text-on-surface">{data.readiness.percentage}%</span>
-            <span className="text-sm font-medium text-on-surface-variant">Complete</span>
-          </div>
-          {data.readiness.missingItems.length > 0 && (
-            <div className="text-[12px] text-on-surface-variant font-medium mt-2 pt-3 border-t border-outline-variant">
-              <span className="text-error uppercase tracking-wider block mb-1.5">Action Needed:</span>
-              <ul className="list-disc pl-4 space-y-1">
-                {data.readiness.missingItems.map((item, idx) => (
-                  <li key={idx} className="mb-1 leading-snug">{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </Card>
-      </header>
-
-      {/* EDITING CONTROLS */}
-      <div className="flex items-center justify-between py-4 border-b border-outline-variant mb-6 min-h-[64px]">
-        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-        
-        <div className="flex items-center gap-3">
           {isEditing ? (
-            <>
-              <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>Cancel</Button>
-              <Button variant="primary" onClick={handleSave} isLoading={isSaving}>Save Context</Button>
-            </>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleCancel}
+                disabled={isSaving}
+                className="inline-flex items-center justify-center px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl font-headline-sm text-headline-sm text-on-surface shadow-sm hover:bg-surface-container-low transition-colors gap-2"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="inline-flex items-center justify-center px-4 py-2 bg-primary text-on-primary border border-outline-variant rounded-xl font-headline-sm text-headline-sm shadow-sm hover:bg-primary/90 transition-colors gap-2"
+              >
+                Save Context
+              </button>
+            </div>
           ) : (
-            <Button variant="secondary" onClick={() => setIsEditing(true)}>Edit Configuration</Button>
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="inline-flex items-center justify-center px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl font-headline-sm text-headline-sm text-on-surface shadow-sm hover:bg-surface-container-low transition-colors gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit_note</span>
+              Edit Context
+            </button>
           )}
         </div>
+
+        <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
+          <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">fingerprint</span>
+            Core DNA
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Business Name</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                type="text" 
+                readOnly={!isEditing}
+                value={localData.coreDna.businessName}
+                onChange={(e) => handleDNAChange('businessName', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Business Model</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors appearance-none"
+                value={localData.coreDna.businessModel}
+                readOnly={!isEditing}
+                onChange={(e) => handleDNAChange('businessModel', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Core Description</label>
+              <textarea 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors resize-none" 
+                rows={2}
+                readOnly={!isEditing}
+                value={localData.coreDna.businessDescription}
+                onChange={(e) => handleDNAChange('businessDescription', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Primary Problem Solved</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                type="text" 
+                readOnly={!isEditing}
+                value={localData.coreDna.coreProblemSolved}
+                onChange={(e) => handleDNAChange('coreProblemSolved', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Primary Transformation</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                type="text" 
+                readOnly={!isEditing}
+                value={localData.coreDna.primaryTransformation}
+                onChange={(e) => handleDNAChange('primaryTransformation', e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
+          <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">group</span>
+            Ideal Customer Profile (ICP)
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 md:col-span-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Profile Description</label>
+              <textarea 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors resize-none" 
+                rows={2}
+                readOnly={!isEditing}
+                value={localData.icp.description}
+                onChange={(e) => handleICPChange('description', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Target Industry</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                type="text" 
+                readOnly={!isEditing}
+                value={localData.icp.industry}
+                onChange={(e) => handleICPChange('industry', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Key Disqualifiers</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                type="text" 
+                readOnly={!isEditing}
+                value={localData.icp.disqualifiers.join(', ')}
+                onChange={(e) => handleICPChange('disqualifiers', e.target.value.split(','))}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
+          <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">view_in_ar</span>
+            Offer Builder
+          </h4>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Core Deliverables</label>
+              <div className="flex flex-wrap gap-2">
+                {localData.offer.deliverables.map((item, idx) => (
+                    <span key={idx} className="px-3 py-1.5 bg-surface-container border border-outline-variant/30 rounded-md font-body-sm text-body-sm text-on-surface flex items-center gap-1">
+                        {item} {isEditing && <span className="material-symbols-outlined text-[14px] cursor-pointer hover:text-error">close</span>}
+                    </span>
+                ))}
+                {isEditing && (
+                    <button className="px-3 py-1.5 border border-dashed border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary transition-colors rounded-md font-body-sm text-body-sm flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[16px]">add</span> Add Item
+                    </button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="font-label-caps text-label-caps text-on-surface-variant block">Proof Mechanism</label>
+              <input 
+                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                type="text" 
+                readOnly={!isEditing}
+                value={localData.offer.proof}
+                onChange={(e) => handleOfferChange('proof', e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-card-gap">
+          <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
+            <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">record_voice_over</span>
+              Brand Voice
+            </h4>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="font-label-caps text-label-caps text-on-surface-variant block">Primary Tone</label>
+                <input 
+                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors"
+                    value={localData.brandVoice.tone}
+                    readOnly={!isEditing}
+                    onChange={(e) => handleBrandVoiceChange('tone', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="font-label-caps text-label-caps text-on-surface-variant block">Constrained Words (Avoid)</label>
+                <input 
+                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                  type="text" 
+                  readOnly={!isEditing}
+                  value={localData.brandVoice.avoidWords.join(', ')}
+                  onChange={(e) => handleBrandVoiceChange('avoidWords', e.target.value.split(','))}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">person_check</span>
+                Founder Voice
+              </h4>
+              <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                <input 
+                  checked={localData.founderVoice.configured} 
+                  onChange={(e) => handleFounderVoiceChange('configured', e.target.checked)}
+                  disabled={!isEditing}
+                  className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-surface-container-lowest border-4 appearance-none cursor-pointer border-primary bg-primary right-0" 
+                  id="toggle1" name="toggle" type="checkbox"
+                />
+                <label className="toggle-label block overflow-hidden h-5 rounded-full bg-primary cursor-pointer" htmlFor="toggle1"></label>
+              </div>
+            </div>
+            <div className={`space-y-4 ${!localData.founderVoice.configured ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="space-y-2">
+                <label className="font-label-caps text-label-caps text-on-surface-variant block">Content Cadence</label>
+                <input 
+                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
+                  type="text" 
+                  readOnly={!isEditing}
+                  value={localData.founderVoice.cadence}
+                  onChange={(e) => handleFounderVoiceChange('cadence', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="font-label-caps text-label-caps text-on-surface-variant block">Common Expressions</label>
+                <textarea 
+                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors resize-none" 
+                  rows={2}
+                  readOnly={!isEditing}
+                  value={localData.founderVoice.phrases.join(', ')}
+                  onChange={(e) => handleFounderVoiceChange('phrases', e.target.value.split(','))}
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {isEditing && (
+          <div className="flex justify-end gap-4 pt-4 pb-8">
+            <button onClick={handleCancel} className="px-6 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-xl font-headline-sm text-headline-sm text-on-surface hover:bg-surface-container transition-colors shadow-sm">
+                Cancel
+            </button>
+            <button onClick={handleSave} className="px-6 py-2.5 bg-primary rounded-xl font-headline-sm text-headline-sm text-on-primary hover:bg-primary/90 transition-colors shadow-md">
+                Save DNA
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* TAB PANELS */}
-      <div className="animate-in fade-in duration-300">
-        
-        {activeTab === "core_dna" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Identity</CardTitle>
-              </CardHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <FormField label="Business Name">
-                  <Input 
-                    value={localData.coreDna.businessName} 
-                    onChange={(e) => handleDNAChange("businessName", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <FormField label="Business Model">
-                  <Input 
-                    value={localData.coreDna.businessModel} 
-                    onChange={(e) => handleDNAChange("businessModel", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <div className="md:col-span-2">
-                  <FormField label="Business Description">
-                    <Textarea 
-                      value={localData.coreDna.businessDescription} 
-                      onChange={(e) => handleDNAChange("businessDescription", e.target.value)}
-                      readOnly={!isEditing}
-                      rows={3}
-                    />
-                  </FormField>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Positioning</CardTitle>
-              </CardHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <FormField label="Core Problem Solved">
-                  <Textarea 
-                    value={localData.coreDna.coreProblemSolved} 
-                    onChange={(e) => handleDNAChange("coreProblemSolved", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <FormField label="Primary Transformation">
-                  <Textarea 
-                    value={localData.coreDna.primaryTransformation} 
-                    onChange={(e) => handleDNAChange("primaryTransformation", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <FormField label="Contextual Differentiation">
-                  <Textarea 
-                    value={localData.coreDna.differentiation} 
-                    onChange={(e) => handleDNAChange("differentiation", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <FormField label="Market Positioning">
-                  <Textarea 
-                    value={localData.coreDna.positioning} 
-                    onChange={(e) => handleDNAChange("positioning", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-              </div>
-            </Card>
+      <aside className="w-full lg:w-80 flex-shrink-0 flex flex-col space-y-card-gap">
+        <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/10 sticky top-[88px]">
+          <div className="flex items-center justify-between mb-6">
+            <h4 className="font-headline-sm text-headline-sm text-on-surface">Data Readiness</h4>
+            <span className="material-symbols-outlined text-on-surface-variant">info</span>
           </div>
-        )}
-
-        {activeTab === "icp" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ideal Customer Profile</CardTitle>
-              </CardHeader>
-              <div className="grid grid-cols-1 gap-6 mt-4">
-                <FormField label="Profile Description">
-                  <Textarea 
-                    value={localData.icp.description} 
-                    onChange={(e) => handleICPChange("description", e.target.value)}
-                    readOnly={!isEditing}
-                    rows={2}
-                  />
-                </FormField>
-                <FormField label="Target Industry & Context">
-                  <Input 
-                    value={localData.icp.industry} 
-                    onChange={(e) => handleICPChange("industry", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField label="Active Pain Points (One per line)">
-                    <Textarea 
-                      value={localData.icp.painPoints.join("\n")} 
-                      onChange={(e) => handleICPChange("painPoints", e.target.value.split("\n"))}
-                      readOnly={!isEditing}
-                      rows={4}
-                    />
-                  </FormField>
-                  <FormField label="Desired Outcomes (One per line)">
-                    <Textarea 
-                      value={localData.icp.desiredOutcomes.join("\n")} 
-                      onChange={(e) => handleICPChange("desiredOutcomes", e.target.value.split("\n"))}
-                      readOnly={!isEditing}
-                      rows={4}
-                    />
-                  </FormField>
-                </div>
-                <div className="border border-error/20 bg-[#FEF2F2] p-4 rounded-xl mt-2 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-error" />
-                  <FormField label="Operational Disqualifiers" className="text-error uppercase tracking-wider text-[11px] font-bold">
-                    <Textarea 
-                      value={localData.icp.disqualifiers.join("\n")} 
-                      onChange={(e) => handleICPChange("disqualifiers", e.target.value.split("\n"))}
-                      readOnly={!isEditing}
-                      rows={3}
-                    />
-                  </FormField>
-                </div>
+          <div className="flex flex-col items-center justify-center py-6">
+            <div className="relative w-32 h-32 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                <circle className="stroke-surface-container-highest" cx="18" cy="18" fill="none" r="16" strokeWidth="3"></circle>
+                <circle className="stroke-primary" cx="18" cy="18" fill="none" r="16" strokeDasharray="100 100" strokeDashoffset={100 - data.readiness.percentage} strokeWidth="3"></circle>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-headline-md-lg text-display-lg text-primary tracking-tight">{data.readiness.percentage}%</span>
               </div>
-            </Card>
+            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-4 text-center">System is {data.readiness.status.toLowerCase()} and awaiting final DNA inputs.</p>
           </div>
-        )}
-
-        {activeTab === "offer" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Offer Architecture</CardTitle>
-              </CardHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <div className="md:col-span-2">
-                  <FormField label="Offer Overview">
-                    <Input 
-                      value={localData.offer.overview} 
-                      onChange={(e) => handleOfferChange("overview", e.target.value)}
-                      readOnly={!isEditing}
-                    />
-                  </FormField>
-                </div>
-                <FormField label="The Problem">
-                  <Textarea 
-                    value={localData.offer.problem} 
-                    onChange={(e) => handleOfferChange("problem", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <FormField label="The Transformation">
-                  <Textarea 
-                    value={localData.offer.transformation} 
-                    onChange={(e) => handleOfferChange("transformation", e.target.value)}
-                    readOnly={!isEditing}
-                  />
-                </FormField>
-                <div className="md:col-span-2">
-                  <FormField label="Core Deliverables (One per line)">
-                    <Textarea 
-                      value={localData.offer.deliverables.join("\n")} 
-                      onChange={(e) => handleOfferChange("deliverables", e.target.value.split("\n"))}
-                      readOnly={!isEditing}
-                      rows={3}
-                    />
-                  </FormField>
-                </div>
-                <div className="md:col-span-2 bg-surface p-4 border border-outline-variant rounded-xl">
-                  <FormField label="Proof & Evidence Mechanism">
-                    <Textarea 
-                      value={localData.offer.proof} 
-                      onChange={(e) => handleOfferChange("proof", e.target.value)}
-                      readOnly={!isEditing}
-                    />
-                  </FormField>
-                </div>
+          
+          <hr className="border-outline-variant/20 my-6" />
+          
+          <ul className="space-y-4">
+            <li className="flex items-start gap-3">
+              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.coreDna.businessName ? 'text-primary' : 'text-outline-variant opacity-60'}`}>
+                {localData.coreDna.businessName ? 'check_circle' : 'radio_button_unchecked'}
+              </span>
+              <div>
+                <p className="font-headline-sm text-body-sm text-on-surface">Core DNA Defined</p>
+                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">Basic parameters set.</p>
               </div>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "brand_voice" && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Brand Identity</CardTitle>
-                <p className="text-[13px] text-on-surface-variant mt-1 max-w-2xl">
-                  How the business communicates strategically to the market. Used contextually for generic market collateral.
-                </p>
-              </CardHeader>
-              <div className="grid grid-cols-1 gap-6 mt-4">
-                <FormField label="Core Tone">
-                  <Textarea 
-                    value={localData.brandVoice.tone} 
-                    onChange={(e) => handleBrandVoiceChange("tone", e.target.value)}
-                    readOnly={!isEditing}
-                    rows={2}
-                  />
-                </FormField>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField label="Brand Terminology (One per line)">
-                    <Textarea 
-                      value={localData.brandVoice.terminology.join("\n")} 
-                      onChange={(e) => handleBrandVoiceChange("terminology", e.target.value.split("\n"))}
-                      readOnly={!isEditing}
-                      rows={4}
-                    />
-                  </FormField>
-                  <div className="border border-error/20 bg-[#FEF2F2] p-4 rounded-xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-error" />
-                    <FormField label="Constrained Words (Do Not Use)" className="text-error uppercase tracking-wider text-[11px] font-bold">
-                      <Textarea 
-                        value={localData.brandVoice.avoidWords.join("\n")} 
-                        onChange={(e) => handleBrandVoiceChange("avoidWords", e.target.value.split("\n"))}
-                        readOnly={!isEditing}
-                        rows={4}
-                      />
-                    </FormField>
-                  </div>
-                </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.icp.description ? 'text-primary' : 'text-outline-variant opacity-60'}`}>
+                {localData.icp.description ? 'check_circle' : 'radio_button_unchecked'}
+              </span>
+              <div>
+                <p className="font-headline-sm text-body-sm text-on-surface">ICP Mapped</p>
+                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">Audience constraints locked.</p>
               </div>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "founder_voice" && (
-          <div className="space-y-6">
-            {!localData.founderVoice.configured && !isEditing ? (
-              <Alert variant="warning" title="Founder Voice Unconfigured">
-                Your personal communication cadence is not mapped. System intelligence will fall back to general Brand Voice for content generation. Edit configuration to establish your baseline.
-              </Alert>
-            ) : null}
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Founder Voice</CardTitle>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <span className="text-[13px] font-bold text-on-surface">Configured Active</span>
-                    <input 
-                      type="checkbox" 
-                      className="accent-primary w-4 h-4 cursor-pointer"
-                      checked={localData.founderVoice.configured}
-                      onChange={(e) => handleFounderVoiceChange("configured", e.target.checked)}
-                      disabled={!isEditing}
-                    />
-                  </label>
-                </div>
-                <p className="text-[13px] text-on-surface-variant mt-1 max-w-2xl">
-                  Your distinct personal writing pattern. Crucial for authentic Attention generation.
-                </p>
-              </CardHeader>
-              
-              <div className={`grid grid-cols-1 gap-6 mt-4 ${!localData.founderVoice.configured ? 'opacity-50 pointer-events-none' : ''}`}>
-                <FormField label="Writing Cadence & Personality">
-                  <Textarea 
-                    value={localData.founderVoice.cadence} 
-                    onChange={(e) => handleFounderVoiceChange("cadence", e.target.value)}
-                    readOnly={!isEditing}
-                    rows={2}
-                  />
-                </FormField>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField label="Common Expressions (One per line)">
-                    <Textarea 
-                      value={localData.founderVoice.phrases.join("\n")} 
-                      onChange={(e) => handleFounderVoiceChange("phrases", e.target.value.split("\n"))}
-                      readOnly={!isEditing}
-                      rows={4}
-                    />
-                  </FormField>
-                  <div className="border border-error/20 bg-[#FEF2F2] p-4 rounded-xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-error" />
-                    <FormField label="Uncharacteristic Phrases (Never say)" className="text-error uppercase tracking-wider text-[11px] font-bold">
-                      <Textarea 
-                        value={localData.founderVoice.neverSay.join("\n")} 
-                        onChange={(e) => handleFounderVoiceChange("neverSay", e.target.value.split("\n"))}
-                        readOnly={!isEditing}
-                        rows={4}
-                      />
-                    </FormField>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-outline-variant">
-                  <h4 className="text-sm font-semibold text-on-surface mb-2">Information Ingestion (Mock Boundary)</h4>
-                  <p className="text-[12px] text-on-surface-variant font-medium mb-3">
-                    In the future, this interface will allow uploading raw email strings or audio transcripts to train the founder voice logic. Currently restricted in this tier.
-                  </p>
-                  <Button variant="secondary" size="sm" disabled>Upload Training Data (Coming Soon)</Button>
-                </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.offer.proof ? 'text-primary' : 'text-outline-variant opacity-60'}`}>
+                {localData.offer.proof ? 'check_circle' : 'radio_button_unchecked'}
+              </span>
+              <div>
+                <p className="font-headline-sm text-body-sm text-on-surface">Offer Architecture</p>
+                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">Deliverables structured.</p>
               </div>
-            </Card>
-          </div>
-        )}
-
-      </div>
+            </li>
+            <li className={`flex items-start gap-3 ${!localData.founderVoice.configured ? 'opacity-60' : ''}`}>
+              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.founderVoice.configured ? 'text-primary' : 'text-outline-variant'}`}>
+                {localData.founderVoice.configured ? 'check_circle' : 'radio_button_unchecked'}
+              </span>
+              <div>
+                <p className="font-headline-sm text-body-sm text-on-surface">Voice Calibration</p>
+                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">{localData.founderVoice.configured ? 'Configured.' : 'Awaiting final founder input.'}</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </aside>
     </div>
   );
 }

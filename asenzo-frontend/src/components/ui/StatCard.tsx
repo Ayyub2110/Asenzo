@@ -20,37 +20,45 @@ export function StatCard({
   value,
   subValue,
   icon,
-  iconColorClass = "bg-purple-bg text-purple-accent",
+  iconColorClass = "bg-electric-blue shadow-electric-blue/20",
   deltaText,
   deltaTrend,
   interactive = false,
   onClick,
   className = "",
 }: StatCardProps) {
+  
+  // Default icon fallback if none provided (squircle + soft shadow)
+  const iconMarkup = icon ? (
+    <div className={`w-12 h-12 rounded-md flex items-center justify-center shadow-md bg-primary`}>
+      <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+    </div>
+  ) : <div />;
+
   return (
-    <Card interactive={interactive} onClick={onClick} className={`flex flex-col justify-between ${className}`}>
-      <div className="flex items-start justify-between mb-4">
-        {icon && (
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconColorClass}`}>
-            <span className="material-symbols-outlined">{icon}</span>
-          </div>
-        )}
+    <Card variant="metric" interactive={interactive} onClick={onClick} className={`flex flex-col justify-between ${className}`}>
+      <div className="flex justify-between items-start mb-6">
+        {iconMarkup}
         {deltaText && (
-          <Badge 
-            variant={deltaTrend === "up" ? "success" : deltaTrend === "down" ? "danger" : "neutral"} 
-            size="sm"
-          >
-            {deltaTrend === "up" ? "â†‘ " : deltaTrend === "down" ? "â†“ " : ""}{deltaText}
-          </Badge>
+          <span className={`px-2 py-0.5 rounded-full text-label-sm uppercase tracking-wider flex items-center gap-1 shadow-sm ${
+             deltaTrend === "up" ? "bg-emerald text-white" : 
+             deltaTrend === "down" ? "bg-red text-white" : 
+             "bg-surface-container-high text-on-surface-variant"
+          }`}>
+            {deltaTrend === "up" ? "+" : deltaTrend === "down" ? "-" : ""}{deltaText}
+            <span className="material-symbols-outlined text-[14px]">
+              {deltaTrend === "up" ? "trending_up" : deltaTrend === "down" ? "arrow_forward" : "horizontal_rule"}
+            </span>
+          </span>
         )}
       </div>
       
       <div>
-        <h4 className="text-on-surface-variant text-[12.5px] font-semibold mb-1 uppercase tracking-wider">{title}</h4>
-        <div className="flex items-baseline gap-2">
-          <span className="font-display font-bold text-on-surface text-[28px] tracking-[-0.03em] leading-8">{value}</span>
-          {subValue && <span className="text-on-surface-variant text-[13px] font-medium">{subValue}</span>}
-        </div>
+        <p className="font-label-md text-on-surface-variant uppercase tracking-wider mb-2">{title}</p>
+        <h3 className="font-headline text-display-lg text-on-surface tracking-tight tabular-nums mt-1">
+          {value}
+          {subValue && <span className="text-on-surface-variant font-headline-md font-normal ml-2">{subValue}</span>}
+        </h3>
       </div>
     </Card>
   );

@@ -4,108 +4,18 @@ import React, { useState } from "react";
 import { getDelivery, updateDeliveryEngagement, completeDeliveryMilestone, resolveDeliveryBlocker } from "@/lib/adapters";
 import { DeliveryEngagement, DeliveryMilestone, DeliveryBlocker, DeliveryStatus } from "@/lib/types";
 
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Modal } from "@/components/ui/Modal";
-import { Input, Select, FormField } from "@/components/ui/Forms";
-import { Skeleton, CardSkeleton, EmptyState } from "@/components/ui/States";
+import { Skeleton, CardSkeleton } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
-import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useAdapter } from "@/hooks/useAdapter";
-
-function getStatusBadgeProps(status: string) {
-  switch (status) {
-    case "ON_TRACK": return { variant: "success" as const };
-    case "AT_RISK": return { variant: "warning" as const };
-    case "BLOCKED": return { variant: "danger" as const };
-    case "COMPLETED": return { variant: "neutral" as const };
-    default: return { variant: "neutral" as const };
-  }
-}
 
 export default function DeliveryWorkspace() {
   const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getDelivery);
   
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
   const [selectedEngagementId, setSelectedEngagementId] = useState<string | null>(null);
-  
-  const [confirmMilestone, setConfirmMilestone] = useState<{engagementId: string, milestoneId: string} | null>(null);
-  const [confirmBlocker, setConfirmBlocker] = useState<{engagementId: string, blockerId: string} | null>(null);
-
-  // Edit Engagement Draft
-  const [isEditingEngagement, setIsEditingEngagement] = useState(false);
-  const [engagementDraft, setEngagementDraft] = useState<DeliveryEngagement | null>(null);
-
-  const activeEngagement = localData?.engagements.find(e => e.id === selectedEngagementId);
-
-  async function handleCompleteMilestone() {
-    if (!confirmMilestone || !localData) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const res = await completeDeliveryMilestone(confirmMilestone.engagementId, confirmMilestone.milestoneId);
-      setLocalData(res);
-      setData(res);
-      setConfirmMilestone(null);
-    } catch (err: unknown) {
-      setMutationError("Failed to complete milestone: " + (err as Error).message);
-      // Keep confirm state open so they can retry, or they can cancel it if they want
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function handleResolveBlocker() {
-    if (!confirmBlocker || !localData) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const res = await resolveDeliveryBlocker(confirmBlocker.engagementId, confirmBlocker.blockerId);
-      setLocalData(res);
-      setData(res);
-      setConfirmBlocker(null);
-    } catch (err: unknown) {
-      setMutationError("Failed to resolve blocker: " + (err as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  function handleEditEngagement() {
-    if (!activeEngagement) return;
-    setMutationError(null);
-    setEngagementDraft({ ...activeEngagement });
-    setIsEditingEngagement(true);
-  }
-
-  function handleCancelEdit() {
-    setMutationError(null);
-    setEngagementDraft(null);
-    setIsEditingEngagement(false);
-  }
-
-  async function handleSaveEngagement() {
-    if (!engagementDraft) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const res = await updateDeliveryEngagement(engagementDraft);
-      setLocalData(res);
-      setData(res);
-      setIsEditingEngagement(false);
-    } catch (err: unknown) {
-      setMutationError("Failed to save delivery engagement: " + (err as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   if (loading) {
     return (
-      <div className="max-w-[1400px] mx-auto p-6 md:p-8 animate-in fade-in duration-500 space-y-8">
+      <div className="p-container-padding max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-500">
         <header className="mb-6">
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
@@ -125,280 +35,262 @@ export default function DeliveryWorkspace() {
         <Alert variant="danger" title="Failed to load Delivery Data">
           {error}
           <div className="mt-4">
-            <Button variant="secondary" onClick={loadData}>Retry</Button>
+            <button className="bg-primary text-white px-4 py-2 rounded-lg" onClick={loadData}>Retry</button>
           </div>
         </Alert>
       </div>
     );
   }
 
-  // Derived Health Data
-  const blockers = localData.engagements.flatMap(e => e.blockers.filter(b => b.status === "active").map(b => ({...b, engagementClient: e.clientName})));
+  // Set default selection
+  if (!selectedEngagementId && localData.engagements.length > 0) {
+      setSelectedEngagementId(localData.engagements[0].id);
+  }
 
+  const activeEngagement = localData.engagements.find(e => e.id === selectedEngagementId);
+
+  // Derived Health Data
+  const blockers = localData.engagements.flatMap(e => e.blockers.filter(b => b.status === "active").map(b => ({...b, engagementClient: e.clientName}))).slice(0, 3);
 
   return (
-    <div className="max-w-[1400px] mx-auto p-6 md:p-8 space-y-8 animate-in fade-in duration-500">
-      
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-[28px] font-display font-medium text-on-surface tracking-tight">Delivery & Fulfillment</h1>
-          <p className="text-on-surface-variant text-[15px] mt-1">Operational execution and milestone tracking.</p>
+    <>
+      <header className="h-16 flex justify-between items-center px-container-padding w-full bg-surface/80 backdrop-blur-md border-b border-outline-variant/50 sticky top-0 z-40">
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-surface-container-high rounded font-label-caps text-[10px] tracking-wider text-on-surface-variant">ENGINE 3</span>
+                <h3 className="font-headline-sm text-headline-sm text-on-surface">Delivery Command</h3>
+            </div>
         </div>
-        <div className="flex bg-surface-container-low border border-outline-variant rounded-[var(--radius-lg)] p-1">
-          <div className="px-4 py-1.5 flex flex-col items-center border-r border-outline-variant last:border-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Active</span>
-            <span className="text-[17px] font-display font-bold text-on-surface">{localData.engagements.filter(e => e.status !== "COMPLETED").length}</span>
-          </div>
-          <div className="px-4 py-1.5 flex flex-col items-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Blockers</span>
-            <span className="text-[17px] font-display font-bold text-error">{blockers.length}</span>
-          </div>
+        <div className="flex items-center gap-4">
+            <div className="relative hidden md:block w-64">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+                <input className="w-full bg-surface-container-low border border-outline-variant/30 rounded-full pl-9 pr-4 py-1.5 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-on-surface-variant/50" placeholder="Search deliveries..." type="text"/>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-label-caps text-[10px] text-on-surface-variant bg-surface-container py-0.5 px-1.5 rounded">⌘K</span>
+            </div>
+            <button className="relative p-2 text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100 rounded-full hover:bg-surface-container-highest">
+                <span className="material-symbols-outlined">notifications</span>
+                {blockers.length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border border-surface"></span>}
+            </button>
         </div>
-      </header>
+    </header>
 
-      {/* Primary Constraint / Blockers */}
-      <section>
-        <div className="flex items-center gap-2 mb-3">
-           <span className="material-symbols-outlined text-error text-[20px]">warning</span>
-           <h2 className="text-[13.5px] uppercase font-bold tracking-wider text-on-surface-variant">Active Delivery Blockers</h2>
-        </div>
+      <div className="flex-1 overflow-y-auto p-container-padding space-y-card-gap pb-32">
         
-        {blockers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {blockers.map(b => (
-              <div key={b.id} className="bg-error/5 border border-error/20 p-4 rounded-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="danger" size="sm">Blocker</Badge>
-                    <span className="text-[11px] font-bold text-on-surface-variant">{b.engagementClient}</span>
-                  </div>
-                  <p className="text-[14px] font-medium text-on-surface mb-2">{b.description}</p>
-                  {b.recommendedAction && (
-                    <p className="text-[12px] text-on-surface-variant bg-surface-container p-2 rounded border border-outline-variant">
-                      Recommendation: {b.recommendedAction}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-4 text-right">
-                   <Button variant="secondary" size="sm" onClick={() => setConfirmBlocker({ engagementId: b.engagementId, blockerId: b.id })}>
-                     Resolve Blocker
-                   </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-surface-container rounded-xl border border-outline-variant text-on-surface-variant">
-            <span className="material-symbols-outlined text-[32px] mb-2">check_circle</span>
-            <p className="font-semibold text-on-surface text-[14.5px] mb-1">Clear</p>
-            <p className="text-[13px]">No delivery blockers require attention.</p>
-          </div>
-        )}
-      </section>
-
-      {/* Engagements List */}
-      <section>
-        <h2 className="text-[13.5px] uppercase font-bold tracking-wider text-on-surface-variant mb-4">Active Engagements</h2>
-        
-        {localData.engagements.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {localData.engagements.map(engagement => (
-              <Card 
-                key={engagement.id} 
-                className={`cursor-pointer transition-shadow hover:shadow-md ${engagement.status === "BLOCKED" ? "border-error/40 ring-1 ring-error/20" : ""}`}
-                onClick={() => setSelectedEngagementId(engagement.id)}
-              >
-                <div className="p-5 flex flex-col h-full">
-                  <div className="flex justify-between items-start mb-3">
-                    <Badge {...getStatusBadgeProps(engagement.status)} size="sm">{engagement.status}</Badge>
-                    <span className="text-[11.5px] text-on-surface-variant font-medium bg-surface-container px-2 py-0.5 rounded-full">
-                      {engagement.milestones.filter(m => m.status === "completed").length} / {engagement.milestones.length} Milestones
-                    </span>
-                  </div>
-                  <h3 className="text-[17px] font-bold text-on-surface mb-1 truncate">{engagement.clientName}</h3>
-                  <p className="text-[14px] text-on-surface-variant mb-4 line-clamp-2">{engagement.engagementType}</p>
-                  
-                  <div className="mt-auto space-y-2">
-                    {engagement.intelligenceSignal && (
-                      <div className="flex items-start gap-2 bg-primary/5 p-2 rounded-lg text-[12px]">
-                        <span className="material-symbols-outlined text-[14px] text-primary mt-0.5">insights</span>
-                        <span className="text-on-surface-variant leading-snug break-words">
-                          {engagement.intelligenceSignal}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 text-[12.5px] text-on-surface-variant">
-                      <span className="material-symbols-outlined text-[14px]">person</span>
-                      {engagement.owner}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <EmptyState 
-            icon="handshake"
-            title="No Active Engagements"
-            description="The delivery pipeline is currently empty. Closed-Won opportunities will appear here for fulfillment."
-          />
-        )}
-      </section>
-
-
-      {/* ENGAGEMENT DETAIL MODAL */}
-      <Modal isOpen={!!selectedEngagementId} onClose={() => setSelectedEngagementId(null)} title="Delivery Detail" size="lg">
-        {activeEngagement ? (
-          <div className="flex flex-col gap-6 pb-4">
+        {/* Primary Constraint / Blockers */}
+        <section>
+            <div className="flex items-center justify-between mb-4">
+                <h4 className="font-headline-sm text-headline-sm text-primary flex items-center gap-2">
+                    <span className="material-symbols-outlined text-error" data-icon="warning">warning</span>
+                    Active Delivery Blockers
+                </h4>
+                <button className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">View All</button>
+            </div>
             
-            {mutationError && (
-               <Alert variant="danger" title="Mutation Failure">
-                 {mutationError}
-                 <div className="mt-3">
-                   <Button variant="secondary" size="sm" onClick={() => setMutationError(null)}>Dismiss</Button>
-                 </div>
-               </Alert>
-            )}
+            {blockers.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-card-gap">
+                {blockers.map((b, idx) => {
+                    // Match the color styling from Stitch based on idx or random logic logic
+                    let bgGradient = "from-error to-error/20";
+                    let borderColor = "border-error-container/50";
+                    let tagBg = "bg-error-container/50 text-on-error-container";
+                    let btnColor = "bg-surface-container-high text-on-surface";
+                    let icon = "mail";
+                    let action = "Resolve Block";
+                    
+                    if (idx === 1) {
+                        bgGradient = "from-orange-400 to-orange-200";
+                        borderColor = "border-orange-100";
+                        tagBg = "bg-orange-50 text-orange-800";
+                        icon = "group_add";
+                    } else if (idx === 2) {
+                        bgGradient = "from-red-500 to-red-300";
+                        borderColor = "border-red-100";
+                        tagBg = "bg-red-50 text-red-800";
+                        icon = "terminal";
+                    }
 
-            {/* Top Info Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-container/50 border border-outline-variant p-5 rounded-xl">
-               <div>
-                 <div className="flex gap-2 items-center mb-1">
-                   <Badge {...getStatusBadgeProps(activeEngagement.status)} size="sm">{activeEngagement.status}</Badge>
-                 </div>
-                 <h2 className="text-[22px] font-display font-bold text-on-surface">{activeEngagement.clientName}</h2>
-                 <p className="text-[14px] text-on-surface-variant">{activeEngagement.engagementType}</p>
-               </div>
-               
-               <div className="flex flex-col md:items-end gap-1 text-[13px]">
-                  <div className="flex items-center gap-2 text-on-surface-variant">
-                    <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-                    <span className="font-medium">Target: {new Date(activeEngagement.targetCompletion).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-on-surface-variant">
-                    <span className="material-symbols-outlined text-[16px]">person</span>
-                    <span className="font-medium">Owner: {activeEngagement.owner}</span>
-                  </div>
-               </div>
+                    return (
+                    <div key={b.id} className={`bg-surface-container-lowest rounded-[24px] p-6 ambient-shadow card-hover border ${borderColor} relative overflow-hidden`}>
+                        <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${bgGradient}`}></div>
+                        <div className="flex justify-between items-start mb-4">
+                            <span className={`px-2 py-1 rounded font-label-caps text-[10px] ${tagBg}`}>BLOCKER</span>
+                            <span className="text-xs text-on-surface-variant">Active</span>
+                        </div>
+                        <h5 className="font-headline-sm text-headline-sm text-primary mb-1 line-clamp-1">{b.description}</h5>
+                        <p className="text-sm text-on-surface-variant mb-4">{b.engagementClient}</p>
+                        <button className={`w-full py-2 ${btnColor} rounded-lg text-sm font-medium hover:bg-surface-dim transition-colors flex items-center justify-center gap-2`}>
+                            <span className="material-symbols-outlined text-[18px]">{icon}</span> {action}
+                        </button>
+                    </div>
+                )})}
+            </div>
+            ) : (
+            <div className="text-center p-8 bg-surface-bright rounded-2xl border border-outline-variant/20 text-on-surface-variant">
+                <span className="material-symbols-outlined text-[32px] mb-2 text-success">check_circle</span>
+                <p className="font-semibold text-on-surface text-[14.5px] mb-1">Clear</p>
+                <p className="text-[13px]">No delivery blockers require immediate attention.</p>
+            </div>
+            )}
+        </section>
+
+        {/* Engagements Split Pane */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-card-gap h-[calc(100vh-320px)] min-h-[500px]">
+            
+            {/* Sidebar Active Engagements */}
+            <div className="lg:col-span-4 bg-surface-container-lowest rounded-[24px] ambient-shadow flex flex-col overflow-hidden border border-outline-variant/30">
+                <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-white z-10">
+                    <h4 className="font-headline-sm text-headline-sm text-primary">Active Engagements</h4>
+                    <div className="flex gap-2">
+                        <button className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-lg"><span className="material-symbols-outlined text-[18px]">filter_list</span></button>
+                        <button className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-lg"><span className="material-symbols-outlined text-[18px]">sort</span></button>
+                    </div>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto">
+                    {localData.engagements.map((engagement, i) => {
+                        const completed = engagement.milestones.filter(m => m.status === 'completed').length;
+                        const total = engagement.milestones.length;
+                        const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+                        
+                        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-emerald-500'];
+                        const accentColor = colors[i % colors.length];
+
+                        return (
+                        <div 
+                            key={engagement.id}
+                            onClick={() => setSelectedEngagementId(engagement.id)}
+                            className={`p-4 border-l-4 cursor-pointer transition-colors border-b border-outline-variant/20 flex justify-between items-center ${selectedEngagementId === engagement.id ? 'border-primary bg-surface-container/30' : 'border-transparent hover:bg-surface-container/30'}`}
+                        >
+                            <div>
+                                <h5 className={`font-medium mb-1 ${selectedEngagementId === engagement.id ? 'text-primary' : 'text-on-surface'}`}>{engagement.clientName}</h5>
+                                <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${accentColor}`}></span>
+                                    <span className="text-xs text-on-surface-variant">{engagement.engagementType}</span>
+                                </div>
+                            </div>
+                            <div className={`text-right ${selectedEngagementId === engagement.id ? '' : 'opacity-60'}`}>
+                                <span className={`text-sm font-semibold ${selectedEngagementId === engagement.id ? 'text-primary' : 'text-on-surface'}`}>{progress}%</span>
+                                <div className="w-16 h-1 bg-surface-variant rounded-full mt-1">
+                                    <div className={`h-1 ${accentColor} rounded-full`} style={{ width: `${progress}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )})}
+                </div>
             </div>
 
-            {/* Engagement Edit Form */}
-            <section className="border border-outline-variant rounded-xl p-5 bg-surface">
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-bold text-[15px] uppercase tracking-wider h-6 flex items-center">Engagement Info</h3>
-                 {!isEditingEngagement ? (
-                   <Button variant="secondary" size="sm" onClick={handleEditEngagement}>Edit</Button>
-                 ) : (
-                   <div className="flex gap-2">
-                     <Button variant="secondary" size="sm" onClick={handleCancelEdit} disabled={isSaving}>Cancel</Button>
-                     <Button variant="primary" size="sm" onClick={handleSaveEngagement} isLoading={isSaving}>Save</Button>
-                   </div>
-                 )}
-              </div>
-              
-              {!isEditingEngagement ? (
-                <div className="grid grid-cols-2 gap-4 text-[13.5px]">
-                  <div>
-                    <span className="block text-on-surface-variant text-[11px] uppercase mb-1 font-bold">Type</span>
-                    <span className="font-medium text-on-surface">{activeEngagement.engagementType}</span>
-                  </div>
-                  <div>
-                    <span className="block text-on-surface-variant text-[11px] uppercase mb-1 font-bold">Owner</span>
-                    <span className="font-medium text-on-surface">{activeEngagement.owner}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <FormField label="Engagement Status">
-                    <Select 
-                      value={engagementDraft?.status || "NOT_STARTED"} 
-                      onChange={(e) => setEngagementDraft(prev => prev ? {...prev, status: e.target.value as DeliveryStatus} : null)}
-                    >
-                      <option value="NOT_STARTED">NOT STARTED</option>
-                      <option value="ON_TRACK">ON TRACK</option>
-                      <option value="AT_RISK">AT RISK</option>
-                      <option value="BLOCKED">BLOCKED</option>
-                      <option value="COMPLETED">COMPLETED</option>
-                    </Select>
-                  </FormField>
-                  <FormField label="Owner">
-                    <Input 
-                      value={engagementDraft?.owner || ""} 
-                      onChange={(e) => setEngagementDraft(prev => prev ? {...prev, owner: e.target.value} : null)}
-                    />
-                  </FormField>
-                </div>
-              )}
-            </section>
+            {/* Main Detail Content */}
+            <div className="lg:col-span-8 bg-surface-container-lowest rounded-[24px] ambient-shadow flex flex-col overflow-hidden border border-outline-variant/30">
+                {activeEngagement ? (() => {
+                    const completedCount = activeEngagement.milestones.filter(m => m.status === 'completed').length;
+                    const totalCount = activeEngagement.milestones.length;
+                    const progressVal = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+                    
+                    return (
+                        <>
+                        <div className="p-8 border-b border-outline-variant/30 bg-white">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h3 className="font-display-lg text-display-lg text-primary">{activeEngagement.clientName}</h3>
+                                        <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full font-label-caps text-[10px] border border-blue-100">{activeEngagement.engagementType.toUpperCase()}</span>
+                                    </div>
+                                    <p className="text-sm text-on-surface-variant flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[16px]">calendar_today</span> Target {new Date(activeEngagement.targetCompletion).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <button className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-medium hover:bg-surface-container-lowest transition-colors flex items-center gap-2">
+                                    Options <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                                </button>
+                            </div>
 
-            {/* Milestones */}
-            <section>
-              <h3 className="font-bold text-[15px] uppercase tracking-wider mb-4 border-b border-outline-variant pb-2">Milestones</h3>
-              {activeEngagement.milestones.length > 0 ? (
-                <div className="space-y-3">
-                  {activeEngagement.milestones.map(m => (
-                    <div key={m.id} className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between p-4 bg-surface rounded-xl border border-outline-variant hover:border-primary/30 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`w-2 h-2 rounded-full ${m.status === 'completed' ? 'bg-success' : m.status === 'in_progress' ? 'bg-primary' : 'bg-outline'}`}></span>
-                          <h4 className="font-bold text-[14.5px] text-on-surface">{m.title}</h4>
-                          {m.status === 'completed' && <Badge variant="success" size="sm">Done</Badge>}
+                            <div className="mt-4">
+                                <div className="flex justify-between items-end mb-2">
+                                    <span className="text-sm font-medium text-on-surface-variant">Overall Progress</span>
+                                    <span className="font-headline-sm text-headline-sm text-primary">{progressVal}% <span className="text-sm font-normal text-on-surface-variant">Complete</span></span>
+                                </div>
+                                <div className="w-full bg-surface-variant rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-primary h-full rounded-full relative" style={{ width: `${progressVal}%` }}>
+                                        <div className="absolute inset-0 bg-white/20 w-full" style={{ backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px)" }}></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-[13px] text-on-surface-variant line-clamp-2">{m.description}</p>
-                      </div>
-                      <div className="flex flex-col items-start md:items-end gap-2 md:min-w-[140px]">
-                        <span className="text-[12px] font-medium text-on-surface-variant flex items-center gap-1">
-                           <span className="material-symbols-outlined text-[14px]">event</span>
-                           {new Date(m.dueDate).toLocaleDateString()}
-                        </span>
-                        {m.status !== "completed" && (
-                          <Button variant="secondary" size="sm" onClick={() => setConfirmMilestone({ engagementId: activeEngagement.id, milestoneId: m.id })}>
-                            Complete
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-6 bg-surface-container rounded-xl border border-outline-variant text-on-surface-variant text-[14px]">
-                  No milestones are attached to this engagement.
-                </div>
-              )}
-            </section>
-            
-          </div>
-        ) : <Skeleton className="h-64 w-full" />}
-      </Modal>
 
-      {/* Confirmation Dialogs */}
-      <ConfirmationDialog
-        isOpen={!!confirmMilestone}
-        onClose={() => {
-          if (!isSaving) setConfirmMilestone(null);
-        }}
-        onConfirm={handleCompleteMilestone}
-        title="Complete Milestone"
-        description="Are you sure you want to mark this milestone as complete? This will instantly resolve it in the delivery pipeline."
-        confirmText="Confirm Completion"
-        isDestructive={false}
-        isLoading={isSaving}
-      />
+                        <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+                            {/* Detailed Milestones */}
+                            <div className="flex-1 p-8 border-r border-outline-variant/30 overflow-y-auto bg-surface-bright/30">
+                                <h4 className="font-headline-sm text-headline-sm text-primary mb-6">Milestones</h4>
+                                <div className="relative pl-4 border-l-2 border-surface-variant space-y-8">
+                                    {activeEngagement.milestones.map((m, idx) => (
+                                        <div key={m.id} className="relative">
+                                            {m.status === 'completed' ? (
+                                                <span className="absolute -left-[21px] p-0.5 bg-primary text-white rounded-full material-symbols-outlined text-[14px]">check</span>
+                                            ) : m.status === 'in_progress' ? (
+                                                <span className="absolute -left-[21px] w-[18px] h-[18px] bg-white border-2 border-primary rounded-full flex items-center justify-center">
+                                                    <span className="w-2 h-2 bg-primary rounded-full"></span>
+                                                </span>
+                                            ) : (
+                                                <span className="absolute -left-[21px] w-[18px] h-[18px] bg-surface border-2 border-outline-variant rounded-full"></span>
+                                            )}
+                                            
+                                            <div className={`pl-4 ${m.status === 'pending' ? 'opacity-50' : ''}`}>
+                                                <h5 className={`text-sm mb-1 ${m.status === 'completed' ? 'font-semibold text-primary' : m.status === 'in_progress' ? 'font-bold text-primary' : 'font-semibold text-on-surface'}`}>{m.title}</h5>
+                                                {m.status === 'in_progress' && (
+                                                    <p className="text-xs text-error font-medium mb-2 flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-[14px]">autorenew</span> Active
+                                                    </p>
+                                                )}
+                                                <p className="text-xs text-on-surface-variant">{m.description}</p>
+                                                <p className="text-[11px] text-on-surface-variant mt-1">Due {new Date(m.dueDate).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {activeEngagement.milestones.length === 0 && (
+                                        <div className="text-sm text-on-surface-variant">No milestones defined.</div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Next Steps (Mocked derived) */}
+                            <div className="w-full md:w-[320px] p-8 overflow-y-auto bg-white">
+                                <h4 className="font-headline-sm text-headline-sm text-primary mb-6 flex items-center justify-between">
+                                    Next Steps
+                                    <button className="text-primary hover:bg-surface-container p-1 rounded-full"><span className="material-symbols-outlined text-[20px]">add</span></button>
+                                </h4>
+                                <div className="space-y-3">
+                                    {activeEngagement.milestones.filter(m => m.status === "in_progress").map(m => (
+                                        <label key={m.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-container/50 cursor-pointer transition-colors border border-transparent hover:border-outline-variant/30">
+                                            <input className="mt-1 w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container-lowest" type="checkbox"/>
+                                            <div>
+                                                <p className="text-sm font-medium text-primary leading-tight">Complete {m.title}</p>
+                                                <p className="text-xs text-error mt-1 font-medium">Due {new Date(m.dueDate).toLocaleDateString()}</p>
+                                            </div>
+                                        </label>
+                                    ))}
+                                    {activeEngagement.milestones.filter(m => m.status === "completed").map(m => (
+                                         <label key={m.id} className="flex items-start gap-3 p-3 opacity-50 rounded-lg hover:bg-surface-container/50 cursor-pointer transition-colors border border-transparent hover:border-outline-variant/30">
+                                            <input checked className="mt-1 w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container-lowest" disabled type="checkbox"/>
+                                            <div className="line-through">
+                                                <p className="text-sm font-medium text-on-surface leading-tight">Completed {m.title}</p>
+                                            </div>
+                                         </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
 
-      <ConfirmationDialog
-        isOpen={!!confirmBlocker}
-        onClose={() => {
-          if (!isSaving) setConfirmBlocker(null);
-        }}
-        onConfirm={handleResolveBlocker}
-        title="Resolve Blocker"
-        description="Are you sure you want to manually resolve this blocker? Verify that the dependency has genuinely been unblocked before continuing."
-        confirmText="Resolve Blocker"
-        isDestructive={false}
-        isLoading={isSaving}
-      />
+                        </>
+                    )
+                })() : (
+                    <div className="p-8 text-center text-on-surface-variant self-center justify-self-center my-auto">Select a delivery engagement.</div>
+                )}
+            </div>
 
-    </div>
+        </section>
+
+      </div>
+
+    </>
   );
 }

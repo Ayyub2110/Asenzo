@@ -24,8 +24,8 @@ export function ActionRow({
   return (
     <div 
       onClick={onClick}
-      className={`flex items-center gap-3 p-3 bg-surface rounded-xl border border-transparent shadow-[var(--shadow-card)] transition-all duration-200
-        ${onClick ? "cursor-pointer hover:border-outline-variant hover:shadow-[var(--shadow-hover)] hover:-translate-y-[1px]" : ""} 
+      className={`flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm transition-all duration-200
+        ${onClick ? "cursor-pointer hover:border-slate-300 hover:shadow-md hover:-translate-y-[1px]" : ""} 
         ${className}
       `}
     >

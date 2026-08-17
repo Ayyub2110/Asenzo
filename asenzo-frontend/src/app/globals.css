@@ -1,69 +1,86 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Geist', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Inter', sans-serif;
 
-  /* Ambient OS Colors */
-  --color-background: #F4F5F7;
-  --color-surface: #FFFFFF;
-  --color-surface-dim: #E9EAEC;
-  --color-surface-container-low: #F4F5F7;
-  --color-surface-container: #ECEEF1;
-  --color-surface-container-high: #E4E6E9;
-  --color-surface-container-lowest: #FFFFFF;
-  --color-surface-container-highest: #DBDDE0;
-
-  --color-sidebar-bg: #18181B;
-  --color-sidebar-hover: rgba(255,255,255,0.07);
-
-  --color-on-surface: #111114;
-  --color-on-surface-variant: #6B7280;
-  --color-on-background: #111114;
-  --color-outline: #9CA3AF;
-  --color-outline-variant: #E5E7EB;
-
-  --color-primary: #3B82F6;
-  --color-primary-container: #2563EB;
-  --color-on-primary: #FFFFFF;
-  --color-on-primary-container: #DBEAFE;
-  --color-primary-fixed: #EFF6FF;
-  --color-electric-blue: #3B82F6;
-
-  --color-secondary: #10B981;
-  --color-secondary-container: #D1FAE5;
-  --color-on-secondary: #FFFFFF;
-  --color-on-secondary-container: #065F46;
-  --color-emerald: #10B981;
-
-  --color-error: #EF4444;
-  --color-error-container: #FEE2E2;
-  --color-on-error: #FFFFFF;
-  --color-on-error-container: #7F1D1D;
-
-  --color-apple-black: #0B0C0E;
-  --color-apple-metal: #1D1D1F;
-  --color-amber: #F59E0B;
+  /* Executive Obsidian Colors */
+  --color-canvas: #f8f9ff;
+  --color-surface: #ffffff;
+  --color-surface-dim: #f3f4f6;
+  --color-surface-container-low: #f8f9ff;
+  --color-surface-container: #ffffff;
+  --color-surface-container-high: #f1f5f9;
+  --color-surface-container-highest: #e2e8f0;
+  --color-surface-container-lowest: #ffffff;
   
-  --radius-sm: 0.375rem;
-  --radius-DEFAULT: 0.75rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 2rem;
-  --radius-3xl: 3rem;
+  --color-primary: #0058be;
+  --color-primary-container: #eff6ff;
+  --color-on-primary: #ffffff;
+  --color-electric-blue: #3b82f6;
+
+  --color-success: #006947;
+  --color-emerald: #006947;
   
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-base: 4px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --spacing-gutter: 24px;
-  --spacing-margin: 40px;
-  --spacing-sidebar-width: 260px;
-  --spacing-card-gap: 16px;
+  --color-warning: #f59e0b;
+  --color-amber: #f59e0b;
+  
+  --color-info: #22d3ee;
+  --color-cyan: #22d3ee;
+  
+  --color-critical: #ef4444;
+  --color-red: #ef4444;
+
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #64748b;
+  --color-outline: #94a3b8;
+  --color-outline-variant: #cbd5e1;
+  
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 52px;
+  --text-display-lg--letter-spacing: -0.022em;
+
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 38px;
+  --text-headline-lg--letter-spacing: -0.015em;
+
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 30px;
+  --text-headline-md--letter-spacing: -0.011em;
+
+  --text-body-lg: 17px;
+  --text-body-lg--line-height: 24px;
+
+  --text-body-md: 15px;
+  --text-body-md--line-height: 22px;
+
+  --text-label-md: 13px;
+  --text-label-md--line-height: 18px;
+  --text-label-md--font-weight: 600;
+
+  --text-label-sm: 11px;
+  --text-label-sm--line-height: 16px;
+  --text-label-sm--font-weight: 600;
+  --text-label-sm--letter-spacing: 0.05em;
+
+  --radius-sm: 8px;   /* squircle / button */
+  --radius-md: 12px;  /* icon containers */
+  --radius-lg: 16px;
+  --radius-xl: 24px;  /* cards / panels */
+  --radius-full: 9999px; /* pills */
+
+  --shadow-ambient: 0px 8px 32px rgba(0, 0, 0, 0.04);
+}
+
+@layer base {
+  body {
+    background-color: theme('colors.canvas');
+    color: theme('colors.on.surface');
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 
@@ -1923,3 +1940,17 @@ input, select, textarea {
 .ambient-shadow {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
 }
+
+/* STITCH TYPOGRAPHY CLASSES */
+.text-headline-lg, .font-headline-lg { font-family: 'Inter', sans-serif; font-size: 32px; line-height: 38px; letter-spacing: -0.019em; font-weight: 600; }
+.text-label-sm, .font-label-sm { font-family: 'Inter', sans-serif; font-size: 11px; line-height: 16px; letter-spacing: 0.02em; font-weight: 600; }
+.text-headline-md, .font-headline-md { font-family: 'Inter', sans-serif; font-size: 24px; line-height: 30px; letter-spacing: -0.019em; font-weight: 600; }
+.text-body-md, .font-body-md { font-family: 'Inter', sans-serif; font-size: 15px; line-height: 22px; letter-spacing: -0.009em; font-weight: 400; }
+.text-label-md, .font-label-md { font-family: 'Inter', sans-serif; font-size: 13px; line-height: 18px; letter-spacing: 0.01em; font-weight: 500; }
+.text-display-lg, .font-display-lg { font-family: 'Inter', sans-serif; font-size: 48px; line-height: 52px; letter-spacing: -0.022em; font-weight: 700; }
+.text-display-lg-mobile, .font-display-lg-mobile { font-family: 'Inter', sans-serif; font-size: 34px; line-height: 40px; letter-spacing: -0.022em; font-weight: 700; }
+.text-body-lg, .font-body-lg { font-family: 'Inter', sans-serif; font-size: 17px; line-height: 26px; letter-spacing: -0.011em; font-weight: 400; }
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.ambient-shadow { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04); }

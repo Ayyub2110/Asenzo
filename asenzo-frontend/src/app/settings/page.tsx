@@ -10,12 +10,8 @@ import {
   NotificationPriorityThreshold
 } from "@/lib/types";
 
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input, Select, FormField } from "@/components/ui/Forms";
 import { Skeleton, CardSkeleton } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
-import { Badge } from "@/components/ui/Badge";
 import { useAdapter } from "@/hooks/useAdapter";
 
 export default function SettingsWorkspace() {
@@ -24,15 +20,17 @@ export default function SettingsWorkspace() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Nav state
+  const [activeTab, setActiveTab] = useState<"Profile" | "Notifications" | "System">("Profile");
+
   // Edit Buffer
   const [isEditing, setIsEditing] = useState(false);
   const [draftSettings, setDraftSettings] = useState<SettingsData | null>(null);
 
-  // --------------- EDIT BOUNDARY ---------------
   function handleEdit() {
     if (!localData) return;
     setMutationError(null);
-    setDraftSettings(JSON.parse(JSON.stringify(localData))); // Deep isolated copy
+    setDraftSettings(JSON.parse(JSON.stringify(localData))); 
     setIsEditing(true);
   }
 
@@ -61,14 +59,14 @@ export default function SettingsWorkspace() {
 
   if (loading) {
     return (
-      <div className="max-w-[1000px] mx-auto p-6 md:p-8 animate-in fade-in duration-500 space-y-8">
-        <header className="mb-6">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-64" />
-        </header>
-        <div className="space-y-6">
-          <CardSkeleton />
-          <CardSkeleton />
+      <div className="p-container-padding max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-500 flex h-[calc(100vh-80px)]">
+        <div className="w-[280px]">
+            <Skeleton className="h-8 w-48 mb-6" />
+            <Skeleton className="h-12 w-full mb-2" />
+            <Skeleton className="h-12 w-full mb-2" />
+            <Skeleton className="h-12 w-full" />
+        </div>
+        <div className="flex-1 max-w-4xl space-y-6">
           <CardSkeleton />
         </div>
       </div>
@@ -83,7 +81,7 @@ export default function SettingsWorkspace() {
           <Alert variant="danger" title="System Synchronization Failure">
             {error}
             <div className="mt-4">
-              <Button variant="secondary" onClick={loadData}>Retry Connection</Button>
+              <button className="bg-primary text-white px-4 py-2 rounded-lg" onClick={loadData}>Retry Connection</button>
             </div>
           </Alert>
         </section>
@@ -91,261 +89,308 @@ export default function SettingsWorkspace() {
     );
   }
 
-  // Active render state is strictly draft if editing, otherwise canonical localData.
   const renderData = isEditing && draftSettings ? draftSettings : localData;
 
+
+
   return (
-    <div className="max-w-[1000px] mx-auto p-6 md:p-8 space-y-10 animate-in fade-in duration-500">
-      
-      {/* -------------------- HEADER -------------------- */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-outline-variant pb-6">
-        <div>
-          <h1 className="text-[28px] font-display font-medium text-on-surface tracking-tight">System Preferences</h1>
-          <p className="text-on-surface-variant text-[15px] mt-1">Configure global application boundaries and operator profile.</p>
-        </div>
+    <>
+
+
+      <div className="flex-1 overflow-y-auto p-container-padding pt-8 flex flex-col lg:flex-row gap-card-gap max-w-[1440px] mx-auto pb-32">
         
-        <div className="flex gap-2">
-          {!isEditing ? (
-            <Button variant="secondary" onClick={handleEdit}>Edit Preferences</Button>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={handleCancelEdit} disabled={isSaving}>Cancel</Button>
-              <Button variant="primary" onClick={handleSaveSettings} isLoading={isSaving}>Save Preferences</Button>
-            </>
-          )}
-        </div>
-      </header>
+        {/* Navigation Sidebar */}
+        <div className="w-full lg:w-[280px] flex-shrink-0">
+            <h2 className="font-headline-sm text-headline-sm mb-6 px-4 text-primary">Configuration</h2>
+            <nav className="flex flex-col gap-2">
+                {[
+                    {label: "Operator Profile", id: "Profile"},
+                    {label: "Notifications", id: "Notifications"},
+                    {label: "System Behaviors", id: "System"}
+                ].map(item => {
+                    const isActive = activeTab === item.id;
+                    if (isActive) {
+                        return (
+                            <button 
+                                key={item.id}
+                                className="px-4 py-3 rounded-xl font-body-sm text-body-sm text-on-surface font-semibold bg-surface-container-low border border-outline-variant/30 flex justify-between items-center relative overflow-hidden transition-all shadow-sm w-full text-left"
+                            >
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl"></div>
+                                {item.label}
+                                <span className="material-symbols-outlined text-sm">chevron_right</span>
+                            </button>
+                        )
+                    }
+                    return (
+                        <button 
+                            key={item.id}
+                            onClick={() => { setActiveTab(item.id as "Profile" | "Notifications" | "System"); setIsEditing(false); }}
+                            className="px-4 py-3 rounded-xl font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container/50 transition-colors flex justify-between items-center w-full text-left"
+                        >
+                            {item.label}
+                        </button>
+                    )
+                })}
+            </nav>
 
-      {/* Surface Mutation Error globally below header */}
-      {mutationError && (
-        <Alert variant="danger" title="Persistence Failure">
-          {mutationError}
-        </Alert>
-      )}
+            <div className="mt-8 px-4">
+                <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 ambient-shadow">
+                    <h4 className="text-[11px] font-bold text-on-surface-variant uppercase mb-2">Diagnostics</h4>
+                    <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                        {localData.intelligenceSignal || "All systems operating optimally. No manual intervention required."}
+                    </p>
+                </div>
+            </div>
+        </div>
 
-      {/* -------------------- DIAGNOSTICS (Read Only) -------------------- */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-           <span className="material-symbols-outlined text-primary text-[20px]">insights</span>
-           <h2 className="text-[14px] uppercase font-bold tracking-wider text-on-surface-variant">System Diagnostics</h2>
-        </div>
-        <div className="bg-primary/5 text-[14px] font-medium text-primary-dark px-4 py-3 rounded-lg border border-primary/20 leading-relaxed shadow-sm">
-           {localData.intelligenceSignal || "All systems operating optimally. No configuration adjustments recommended at this time."}
-        </div>
-      </section>
-
-      {/* -------------------- USER PROFILE -------------------- */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-           <span className="material-symbols-outlined text-on-surface-variant text-[20px]">person</span>
-           <h2 className="text-[14px] uppercase font-bold tracking-wider text-on-surface-variant">Operator Profile</h2>
-        </div>
-        <Card className="p-6 md:p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {!isEditing ? (
-              <>
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Display Name</span>
-                  <p className="font-medium text-on-surface text-[15px]">{renderData.profile.displayName}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Role / Title</span>
-                  <p className="font-medium text-on-surface text-[15px]">{renderData.profile.role}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Email Contact</span>
-                  <p className="font-medium text-on-surface text-[15px]">{renderData.profile.email}</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <FormField label="Display Name">
-                  <Input 
-                    value={renderData.profile.displayName} 
-                    onChange={e => setDraftSettings(prev => prev ? {...prev, profile: {...prev.profile, displayName: e.target.value}} : null)}
-                  />
-                </FormField>
-                <FormField label="Role / Title">
-                  <Input 
-                    value={renderData.profile.role} 
-                    onChange={e => setDraftSettings(prev => prev ? {...prev, profile: {...prev.profile, role: e.target.value}} : null)}
-                  />
-                </FormField>
-                <FormField label="Email Contact">
-                  <Input 
-                    value={renderData.profile.email} 
-                    type="email"
-                    onChange={e => setDraftSettings(prev => prev ? {...prev, profile: {...prev.profile, email: e.target.value}} : null)}
-                  />
-                </FormField>
-              </>
+        {/* Main Content Area */}
+        <div className="flex-1 max-w-4xl">
+            {mutationError && (
+                <Alert variant="danger" title="Persistence Failure" className="mb-6">
+                {mutationError}
+                </Alert>
             )}
-          </div>
-        </Card>
-      </section>
 
-      {/* -------------------- NOTIFICATIONS -------------------- */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-           <span className="material-symbols-outlined text-on-surface-variant text-[20px]">notifications</span>
-           <h2 className="text-[14px] uppercase font-bold tracking-wider text-on-surface-variant">Notification Architecture</h2>
-        </div>
-        <Card className="p-6 md:p-8">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             
-             {!isEditing ? (
+            <div className="mb-8 flex justify-between items-end">
+                <div>
+                    <h1 className="font-display-lg text-display-lg text-primary mb-2">
+                        {activeTab === "Profile" && "Operator Profile"}
+                        {activeTab === "Notifications" && "Notification Architecture"}
+                        {activeTab === "System" && "System Behaviors"}
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-secondary">
+                        {activeTab === "Profile" && "Configure global application boundaries and operator identity."}
+                        {activeTab === "Notifications" && "Direct alert routing, priority thresholds, and signal delivery."}
+                        {activeTab === "System" && "Establish environment rendering and automation protocols."}
+                    </p>
+                </div>
+                
+                <div className="flex gap-3">
+                    {!isEditing ? (
+                        <button 
+                            onClick={handleEdit} 
+                            className="bg-surface-container text-on-surface font-body-sm font-medium px-4 py-2 rounded-lg border border-outline-variant/50 hover:bg-surface-container-high transition-colors"
+                        >
+                            Edit Configuration
+                        </button>
+                    ) : (
+                        <>
+                            <button 
+                                onClick={handleCancelEdit} disabled={isSaving}
+                                className="bg-surface-container text-on-surface font-body-sm font-medium px-4 py-2 rounded-lg border border-outline-variant/50 hover:bg-surface-container-high transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveSettings} disabled={isSaving}
+                                className="bg-primary text-white font-body-sm font-medium px-6 py-2 rounded-lg shadow-sm border border-primary hover:bg-primary-dark transition-colors flex items-center justify-center min-w-[120px]"
+                            >
+                                {isSaving ? "Saving..." : "Save Edits"}
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Content Switcher */}
+            {activeTab === "Profile" && (
+                <div className="bg-surface-container-lowest rounded-2xl p-8 mb-8 border border-outline-variant/30 ambient-shadow">
+                    <h3 className="font-headline-sm text-headline-sm text-primary mb-6 border-b border-outline-variant/20 pb-4">Identity Specification</h3>
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">DISPLAY NAME</label>
+                            {isEditing ? (
+                                <input 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    type="text" 
+                                    value={renderData.profile.displayName} 
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, profile: {...prev.profile, displayName: e.target.value}} : null)}
+                                />
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.profile.displayName}</div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">ROLE / TITLE</label>
+                            {isEditing ? (
+                                <input 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    type="text" 
+                                    value={renderData.profile.role}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, profile: {...prev.profile, role: e.target.value}} : null)}
+                                />
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.profile.role}</div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">EMAIL CONTACT</label>
+                            {isEditing ? (
+                                <input 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    type="email" 
+                                    value={renderData.profile.email}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, profile: {...prev.profile, email: e.target.value}} : null)}
+                                />
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.profile.email}</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === "Notifications" && (
                 <>
-                  <div className="space-y-4">
-                    <h4 className="text-[12px] font-bold text-on-surface-variant uppercase border-b border-outline-variant pb-2">Channels Enabled</h4>
-                    <div className="flex justify-between items-center bg-surface-container px-4 py-2.5 rounded-md border border-outline-variant">
-                      <span className="text-[14px]">Email Alerts</span>
-                      <Badge variant={renderData.notifications.emailAlertsEnabled ? "success" : "neutral"}>{renderData.notifications.emailAlertsEnabled ? "ACTIVE" : "OFF"}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center bg-surface-container px-4 py-2.5 rounded-md border border-outline-variant">
-                      <span className="text-[14px]">In-App Surface Alerts</span>
-                      <Badge variant={renderData.notifications.inAppAlertsEnabled ? "success" : "neutral"}>{renderData.notifications.inAppAlertsEnabled ? "ACTIVE" : "OFF"}</Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h4 className="text-[12px] font-bold text-on-surface-variant uppercase border-b border-outline-variant pb-2">Delivery Thresholds</h4>
-                    <div className="space-y-1 mt-2">
-                       <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Digest Frequency</span>
-                       <p className="font-medium text-on-surface">{renderData.notifications.digestFrequency}</p>
-                    </div>
-                    <div className="space-y-1 mt-4">
-                       <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Priority Threshold</span>
-                       <p className="font-medium text-on-surface">{renderData.notifications.priorityThreshold.replace("_", " ")}</p>
-                    </div>
-                  </div>
-                </>
-             ) : (
-                <>
-                  <div className="space-y-4">
-                    <h4 className="text-[12px] font-bold text-on-surface-variant uppercase border-b border-outline-variant pb-2 mb-4">Channels Enabled</h4>
-                    <FormField label="Email Alerts">
-                       <Select 
-                          value={renderData.notifications.emailAlertsEnabled ? "ON" : "OFF"}
-                          onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, emailAlertsEnabled: e.target.value === "ON"}} : null)}
-                       >
-                          <option value="ON">Enabled</option>
-                          <option value="OFF">Disabled</option>
-                       </Select>
-                    </FormField>
-                    <FormField label="In-App Surface Alerts">
-                       <Select 
-                          value={renderData.notifications.inAppAlertsEnabled ? "ON" : "OFF"}
-                          onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, inAppAlertsEnabled: e.target.value === "ON"}} : null)}
-                       >
-                          <option value="ON">Enabled</option>
-                          <option value="OFF">Disabled</option>
-                       </Select>
-                    </FormField>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <h4 className="text-[12px] font-bold text-on-surface-variant uppercase border-b border-outline-variant pb-2 mb-4">Delivery Thresholds</h4>
-                    <FormField label="Digest Frequency">
-                       <Select 
-                          value={renderData.notifications.digestFrequency}
-                          onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, digestFrequency: e.target.value as "DAILY"|"WEEKLY"|"NEVER"}} : null)}
-                       >
-                          <option value="DAILY">Daily Digest</option>
-                          <option value="WEEKLY">Weekly Rollup</option>
-                          <option value="NEVER">Never / Realtime Only</option>
-                       </Select>
-                    </FormField>
-                    <FormField label="Priority Threshold (Minimum to Alert)">
-                       <Select 
-                          value={renderData.notifications.priorityThreshold}
-                          onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, priorityThreshold: e.target.value as NotificationPriorityThreshold}} : null)}
-                       >
-                          <option value="ALL">All Activity</option>
-                          <option value="IMPORTANT">Important & Critical</option>
-                          <option value="CRITICAL_ONLY">Critical Only</option>
-                          <option value="NONE">Muted Completely</option>
-                       </Select>
-                    </FormField>
-                  </div>
-                </>
-             )}
+                <div className="bg-surface-container-lowest rounded-2xl p-8 mb-8 border border-outline-variant/30 ambient-shadow">
+                    <h3 className="font-headline-sm text-headline-sm text-primary mb-6 border-b border-outline-variant/20 pb-4">Channels</h3>
+                    
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                            <div>
+                                <h4 className="font-body-lg text-body-lg text-on-surface font-medium">Email Alerts</h4>
+                                <p className="font-body-sm text-body-sm text-on-surface-variant">Critical state changes pushed to external inbox.</p>
+                            </div>
+                            <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                <input 
+                                    disabled={!isEditing}
+                                    type="checkbox" id="emailAlerts" 
+                                    checked={renderData.notifications.emailAlertsEnabled}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, emailAlertsEnabled: e.target.checked}} : null)}
+                                    className={`absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none z-10 transition-transform duration-300 ease-in-out ${renderData.notifications.emailAlertsEnabled ? 'transform translate-x-6 border-success' : 'border-outline-variant'} ${isEditing? 'cursor-pointer' : 'opacity-80'}`}
+                                />
+                                <label htmlFor="emailAlerts" className={`block overflow-hidden h-6 rounded-full transition-colors duration-300 ease-in-out ${renderData.notifications.emailAlertsEnabled ? 'bg-success' : 'bg-surface-variant bg-surface-variant'} ${isEditing? 'cursor-pointer' : ''}`}></label>
+                            </div>
+                        </div>
 
-           </div>
-        </Card>
-      </section>
+                        <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                            <div>
+                                <h4 className="font-body-lg text-body-lg text-on-surface font-medium">In-App Indicators</h4>
+                                <p className="font-body-sm text-body-sm text-on-surface-variant">Global navigation badges and toast alerts.</p>
+                            </div>
+                            <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                <input 
+                                    disabled={!isEditing}
+                                    type="checkbox" id="inAppAlerts" 
+                                    checked={renderData.notifications.inAppAlertsEnabled}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, inAppAlertsEnabled: e.target.checked}} : null)}
+                                    className={`absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none z-10 transition-transform duration-300 ease-in-out ${renderData.notifications.inAppAlertsEnabled ? 'transform translate-x-6 border-success' : 'border-outline-variant'} ${isEditing? 'cursor-pointer' : 'opacity-80'}`}
+                                />
+                                <label htmlFor="inAppAlerts" className={`block overflow-hidden h-6 rounded-full transition-colors duration-300 ease-in-out ${renderData.notifications.inAppAlertsEnabled ? 'bg-success' : 'bg-surface-variant bg-surface-variant'} ${isEditing? 'cursor-pointer' : ''}`}></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-      {/* -------------------- SYSTEM BEHAVIORS -------------------- */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-           <span className="material-symbols-outlined text-on-surface-variant text-[20px]">lan</span>
-           <h2 className="text-[14px] uppercase font-bold tracking-wider text-on-surface-variant">System Behaviors</h2>
+                <div className="bg-surface-container-lowest rounded-2xl p-8 mb-8 border border-outline-variant/30 ambient-shadow">
+                    <h3 className="font-headline-sm text-headline-sm text-primary mb-6 border-b border-outline-variant/20 pb-4">Delivery Thresholds</h3>
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">DIGEST FREQUENCY</label>
+                            {isEditing ? (
+                                <select 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    value={renderData.notifications.digestFrequency}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, digestFrequency: e.target.value as "DAILY" | "WEEKLY" | "NEVER"}} : null)}
+                                >
+                                    <option value="DAILY">Daily Digest</option>
+                                    <option value="WEEKLY">Weekly Rollup</option>
+                                    <option value="NEVER">Never / Realtime Only</option>
+                                </select>
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.notifications.digestFrequency}</div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">PRIORITY THRESHOLD</label>
+                            {isEditing ? (
+                                <select 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    value={renderData.notifications.priorityThreshold}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, notifications: {...prev.notifications, priorityThreshold: e.target.value as NotificationPriorityThreshold}} : null)}
+                                >
+                                    <option value="ALL">All Activity</option>
+                                    <option value="IMPORTANT">Important & Critical</option>
+                                    <option value="CRITICAL_ONLY">Critical Only</option>
+                                    <option value="NONE">Muted Completely</option>
+                                </select>
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.notifications.priorityThreshold.replace("_", " ")}</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                </>
+            )}
+
+            {activeTab === "System" && (
+                <div className="bg-surface-container-lowest rounded-2xl p-8 mb-8 border border-outline-variant/30 ambient-shadow">
+                    <h3 className="font-headline-sm text-headline-sm text-primary mb-6 border-b border-outline-variant/20 pb-4">Global Parameters</h3>
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">RENDER TIMEZONE</label>
+                            {isEditing ? (
+                                <select 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    value={renderData.system.defaultTimezone}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, system: {...prev.system, defaultTimezone: e.target.value}} : null)}
+                                >
+                                    <option value="America/New_York">America/New_York (EST)</option>
+                                    <option value="America/Chicago">America/Chicago (CST)</option>
+                                    <option value="America/Denver">America/Denver (MST)</option>
+                                    <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+                                    <option value="Europe/London">Europe/London (GMT)</option>
+                                    <option value="UTC">Coordinated Universal Time (UTC)</option>
+                                </select>
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.system.defaultTimezone}</div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant/30">
+                            <div>
+                                <h4 className="font-body-lg text-body-lg text-on-surface font-medium">Auto-Delegation Routing</h4>
+                                <p className="font-body-sm text-body-sm text-on-surface-variant">Enact automated task handoffs without manual approval.</p>
+                            </div>
+                            <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                <input 
+                                    disabled={!isEditing}
+                                    type="checkbox" id="autoDelegation" 
+                                    checked={renderData.system.enableAutoDelegationRouting}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, system: {...prev.system, enableAutoDelegationRouting: e.target.checked}} : null)}
+                                    className={`absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none z-10 transition-transform duration-300 ease-in-out ${renderData.system.enableAutoDelegationRouting ? 'transform translate-x-6 border-primary' : 'border-outline-variant'} ${isEditing? 'cursor-pointer' : 'opacity-80'}`}
+                                />
+                                <label htmlFor="autoDelegation" className={`block overflow-hidden h-6 rounded-full transition-colors duration-300 ease-in-out ${renderData.system.enableAutoDelegationRouting ? 'bg-primary' : 'bg-surface-variant bg-surface-variant'} ${isEditing? 'cursor-pointer' : ''}`}></label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block font-label-caps text-label-caps text-on-surface-variant mb-2">INTELLIGENCE AGGRESSIVENESS</label>
+                            {isEditing ? (
+                                <select 
+                                    className="w-full bg-white border border-outline-variant/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface font-body-lg text-body-lg" 
+                                    value={renderData.system.intelligenceAggressiveness}
+                                    onChange={e => setDraftSettings(prev => prev ? {...prev, system: {...prev.system, intelligenceAggressiveness: e.target.value as "CONSERVATIVE" | "BALANCED" | "PROACTIVE"}} : null)}
+                                >
+                                    <option value="CONSERVATIVE">Conservative</option>
+                                    <option value="BALANCED">Balanced</option>
+                                    <option value="PROACTIVE">Proactive</option>
+                                </select>
+                            ) : (
+                                <div className="font-body-lg text-body-lg text-on-surface font-medium border border-transparent px-4 py-3">{renderData.system.intelligenceAggressiveness}</div>
+                            )}
+                            <p className="text-[13px] text-on-surface-variant px-4 mt-1">Controls how proactive the system is at generating read-only intelligence signals across operational modules.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
-        <Card className="p-6 md:p-8">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {!isEditing ? (
-                 <>
-                   <div className="space-y-1">
-                     <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Timezone Rendering</span>
-                     <p className="font-medium text-on-surface text-[14.5px]">{renderData.system.defaultTimezone}</p>
-                   </div>
-                   <div className="space-y-1">
-                     <span className="block text-[11px] font-bold text-on-surface-variant uppercase">Auto-Delegation Routing</span>
-                     <p className="font-medium text-on-surface flex items-center gap-2 text-[14.5px]">
-                       {renderData.system.enableAutoDelegationRouting ? (
-                          <><span className="w-2 h-2 rounded-full bg-success"></span> Enabled</>
-                       ) : (
-                          <><span className="w-2 h-2 rounded-full bg-outline"></span> Disabled</>
-                       )}
-                     </p>
-                   </div>
-                   <div className="space-y-1 md:col-span-2 mt-2">
-                     <span className="block text-[11px] font-bold text-on-surface-variant uppercase">AI Intelligence Aggressiveness</span>
-                     <p className="font-medium text-on-surface text-[14.5px]">{renderData.system.intelligenceAggressiveness}</p>
-                     <p className="text-[13px] text-on-surface-variant mt-1.5 max-w-[600px]">Controls how proactive the system is at generating read-only intelligence signals across operational modules regarding risks and required actions.</p>
-                   </div>
-                 </>
-              ) : (
-                 <>
-                   <FormField label="Timezone Rendering">
-                     <Select 
-                        value={renderData.system.defaultTimezone}
-                        onChange={e => setDraftSettings(prev => prev ? {...prev, system: {...prev.system, defaultTimezone: e.target.value}} : null)}
-                     >
-                        <option value="America/New_York">America/New_York (EST)</option>
-                        <option value="America/Chicago">America/Chicago (CST)</option>
-                        <option value="America/Denver">America/Denver (MST)</option>
-                        <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
-                        <option value="Europe/London">Europe/London (GMT)</option>
-                        <option value="UTC">Coordinated Universal Time (UTC)</option>
-                     </Select>
-                   </FormField>
-                   <FormField label="Auto-Delegation Routing">
-                     <Select 
-                        value={renderData.system.enableAutoDelegationRouting ? "ON" : "OFF"}
-                        onChange={e => setDraftSettings(prev => prev ? {...prev, system: {...prev.system, enableAutoDelegationRouting: e.target.value === "ON"}} : null)}
-                     >
-                        <option value="ON">Enabled - Enact automated task handoffs</option>
-                        <option value="OFF">Disabled - Strictly manual task routing</option>
-                     </Select>
-                   </FormField>
-                   <div className="md:col-span-2">
-                     <FormField label="AI Intelligence Aggressiveness">
-                       <Select 
-                          value={renderData.system.intelligenceAggressiveness}
-                          onChange={e => setDraftSettings(prev => prev ? {...prev, system: {...prev.system, intelligenceAggressiveness: e.target.value as "CONSERVATIVE"|"BALANCED"|"PROACTIVE"}} : null)}
-                       >
-                          <option value="CONSERVATIVE">CONSERVATIVE - Only critical risk flags generated</option>
-                          <option value="BALANCED">BALANCED - Standard recommendations and context signals</option>
-                          <option value="PROACTIVE">PROACTIVE - Aggressively identifies pipeline optimizations</option>
-                       </Select>
-                     </FormField>
-                   </div>
-                 </>
-              )}
-           </div>
-        </Card>
-      </section>
+      </div>
 
-    </div>
+    </>
   );
 }

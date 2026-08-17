@@ -25,7 +25,7 @@ export function Badge({
   ...props 
 }: BadgeProps) {
   
-  const baseClasses = "inline-flex items-center justify-center font-bold whitespace-nowrap rounded-full";
+  const baseClasses = "inline-flex items-center justify-center font-bold whitespace-nowrap rounded-md";
   
   const sizeClasses = {
     sm: "px-2 py-0.5 text-[10px] uppercase tracking-wide",
@@ -33,21 +33,21 @@ export function Badge({
   };
 
   const variantClasses = {
-    neutral: "bg-surface-container-high text-on-surface-variant",
-    primary: "bg-primary-container text-on-primary-container",
-    success: "bg-secondary-container text-on-secondary-container",
-    warning: "bg-orange-100 text-orange-800",
-    danger: "bg-error-container text-on-error-container",
-    dark: "bg-[#121214] text-white",
+    neutral: "bg-slate-100 text-slate-600",
+    primary: "bg-electric-blue/10 text-electric-blue",
+    success: "bg-emerald/10 text-emerald",
+    warning: "bg-amber-100 text-amber-600",
+    danger: "bg-red-50 text-red-600",
+    dark: "bg-slate-900 text-white",
   };
 
   // Maps the variant to its corresponding dot color
   const dotColorClasses = {
-    neutral: "bg-on-surface-variant",
-    primary: "bg-primary",
-    success: "bg-secondary",
-    warning: "bg-orange-500",
-    danger: "bg-error",
+    neutral: "bg-slate-500",
+    primary: "bg-electric-blue",
+    success: "bg-emerald",
+    warning: "bg-amber-500",
+    danger: "bg-red-500",
     dark: "bg-white",
   };
 

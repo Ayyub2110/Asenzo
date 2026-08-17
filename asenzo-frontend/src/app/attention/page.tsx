@@ -95,7 +95,7 @@ Please edit this mock context strictly before approving it for the production pi
 
   if (loading) {
     return (
-      <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto animate-in fade-in duration-300">
+      <div className="p-container-padding max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-300">
         <Skeleton className="h-8 w-64 mb-2" />
         <Skeleton className="h-4 w-48 mb-8" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -110,7 +110,7 @@ Please edit this mock context strictly before approving it for the production pi
 
   if (error || !data || !localData) {
     return (
-      <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto">
+      <div className="p-container-padding max-w-[1440px] mx-auto space-y-8">
         <Alert variant="danger" title="Engine Offline">
           {error || "Attention engine could not initialize."}
           <div className="mt-4">
@@ -142,14 +142,14 @@ Please edit this mock context strictly before approving it for the production pi
   };
 
   return (
-    <div className="p-6 md:p-8 lg:p-12 max-w-[1240px] mx-auto">
+    <div className="p-container-padding max-w-[1440px] mx-auto space-y-8">
       
       {/* HEADER */}
       <header className="mb-8">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl lg:text-[40px] font-display font-bold text-on-surface tracking-tight uppercase">
+              <h1 className="text-3xl lg:text-[40px] font-headline-md font-bold text-on-surface tracking-tight uppercase">
                 Attention
               </h1>
               <Badge variant="primary" size="sm">Organic Growth</Badge>
@@ -160,7 +160,7 @@ Please edit this mock context strictly before approving it for the production pi
           </div>
           <Card variant="outlined" className="min-w-[200px]">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-display font-medium text-[12px] text-on-surface-variant uppercase tracking-widest">Pending Review</h3>
+              <h3 className="font-headline-md font-medium text-[12px] text-on-surface-variant uppercase tracking-widest">Pending Review</h3>
               <Badge variant={reviewCount > 0 ? "warning" : "neutral"} size="sm">{reviewCount}</Badge>
             </div>
             <Button variant="primary" size="sm" className="w-full mt-2" onClick={() => setActiveTab("script_builder")} disabled={reviewCount === 0}>
@@ -171,7 +171,7 @@ Please edit this mock context strictly before approving it for the production pi
       </header>
       
       {/* NAVIGATION TABS */}
-      <div className="mb-6 border-b border-outline-variant">
+      <div className="mb-6 border-b border-outline-variant/20">
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       </div>
 
@@ -189,18 +189,18 @@ Please edit this mock context strictly before approving it for the production pi
                   <CardTitle>Content Lifecycle</CardTitle>
                 </CardHeader>
                 <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="p-4 border border-outline-variant rounded-xl bg-surface-container">
+                  <div className="p-4 border border-outline-variant/20 rounded-xl bg-surface-bright">
                     <h4 className="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Ideas Logged</h4>
-                    <span className="text-3xl font-display font-bold text-on-surface">{ideaCount}</span>
+                    <span className="text-3xl font-headline-md font-bold text-on-surface">{ideaCount}</span>
                   </div>
-                  <div className="p-4 border border-outline-variant rounded-xl bg-surface-container">
+                  <div className="p-4 border border-outline-variant/20 rounded-xl bg-surface-bright">
                     <h4 className="text-[12px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">Drafting</h4>
-                    <span className="text-3xl font-display font-bold text-on-surface">{draftCount}</span>
+                    <span className="text-3xl font-headline-md font-bold text-on-surface">{draftCount}</span>
                   </div>
-                  <div className="p-4 border-2 border-warning/50 rounded-xl bg-surface relative overflow-hidden">
+                  <div className="p-4 border-2 border-warning/50 rounded-xl bg-surface-container-lowest relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
                     <h4 className="text-[12px] font-bold uppercase tracking-wider text-warning mb-1">Requires Approval</h4>
-                    <span className="text-3xl font-display font-bold text-on-surface">{reviewCount}</span>
+                    <span className="text-3xl font-headline-md font-bold text-on-surface">{reviewCount}</span>
                   </div>
                 </div>
               </Card>
@@ -215,7 +215,7 @@ Please edit this mock context strictly before approving it for the production pi
                 </CardHeader>
                 <div className="flex flex-col gap-2 mt-4">
                   {localData.ideas.map(idea => (
-                    <div key={idea.id} className="flex items-center justify-between p-3.5 border border-outline-variant rounded-xl bg-surface hover:border-primary/30 transition-colors cursor-pointer" onClick={() => { setActiveIdeaId(idea.id); setActiveTab("script_builder"); }}>
+                    <div key={idea.id} className="flex items-center justify-between p-3.5 border border-outline-variant/20 rounded-xl bg-surface-container-lowest hover:border-primary/30 transition-colors cursor-pointer" onClick={() => { setActiveIdeaId(idea.id); setActiveTab("script_builder"); }}>
                       <div className="flex items-center gap-4">
                         <Badge variant={getStageColor(idea.stage)} size="sm">{idea.stage}</Badge>
                         <span className="text-[13.5px] font-semibold text-on-surface">{idea.title}</span>
@@ -243,7 +243,7 @@ Please edit this mock context strictly before approving it for the production pi
                 </CardHeader>
                 <div className="space-y-4 mt-4">
                   {localData.marketSignals.map(sig => (
-                    <div key={sig.id} className="p-3 border border-primary/20 bg-[#F0FDF4] rounded-lg">
+                    <div key={sig.id} className="p-3 border border-primary/20 bg-[#F0FDF4] rounded-xl">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[11px] font-bold text-primary uppercase tracking-wider">{sig.topic}</span>
                         <span className="text-[11px] font-medium text-on-surface-variant">{sig.source}</span>
@@ -267,7 +267,7 @@ Please edit this mock context strictly before approving it for the production pi
              </CardHeader>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {localData.marketSignals.map(sig => (
-                  <div key={sig.id} className="p-4 border border-outline-variant bg-surface rounded-xl flex flex-col justify-between">
+                  <div key={sig.id} className="p-4 border border-outline-variant/20 bg-surface-container-lowest rounded-xl flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-[12px] font-bold text-on-surface uppercase tracking-wider">{sig.topic}</span>
@@ -275,8 +275,8 @@ Please edit this mock context strictly before approving it for the production pi
                       </div>
                       <p className="text-[13.5px] text-on-surface-variant font-medium leading-relaxed">{sig.signalText}</p>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-outline-variant flex justify-between items-center">
-                       <span className="text-[11px] text-outline font-semibold uppercase">{sig.source}</span>
+                    <div className="mt-4 pt-4 border-t border-outline-variant/20 flex justify-between items-center">
+                       <span className="text-[11px] text-on-surface-variant font-semibold uppercase">{sig.source}</span>
                        <Button variant="secondary" size="sm">Target Submarket</Button>
                     </div>
                   </div>
@@ -342,7 +342,7 @@ Please edit this mock context strictly before approving it for the production pi
                         />
                       </FormField>
 
-                      <div className="mt-6 pt-4 border-t border-outline-variant">
+                      <div className="mt-6 pt-4 border-t border-outline-variant/20">
                          <Button 
                            variant="primary" 
                            onClick={() => handleAIBuildTrigger(activeIdea.id)} 
@@ -358,12 +358,12 @@ Please edit this mock context strictly before approving it for the production pi
             </div>
 
             {/* Right Canvas */}
-            <div className="lg:col-span-8 flex flex-col h-full bg-surface-container rounded-2xl border border-outline-variant overflow-hidden shadow-sm">
+            <div className="lg:col-span-8 flex flex-col h-full bg-surface-bright rounded-xl border border-outline-variant/20 overflow-hidden shadow-sm">
                 {/* Header status bar */}
-                <div className="h-14 border-b border-outline-variant bg-surface px-6 flex items-center justify-between sticky top-0 z-10">
+                <div className="h-14 border-b border-outline-variant/20 bg-surface-container-lowest px-6 flex items-center justify-between sticky top-0 z-10">
                   <div className="flex items-center gap-3">
-                     <span className="material-symbols-outlined text-[18px] text-outline">description</span>
-                     <span className="font-display font-semibold text-[13.5px] text-on-surface">Asset Canvas</span>
+                     <span className="material-symbols-outlined text-[18px] text-on-surface-variant">description</span>
+                     <span className="font-headline-md font-semibold text-[13.5px] text-on-surface">Asset Canvas</span>
                   </div>
                   {activeIdea && (
                     <div className="flex items-center gap-3">
@@ -382,13 +382,13 @@ Please edit this mock context strictly before approving it for the production pi
                 </div>
 
                 {/* Editor Surface */}
-                <div className="p-8 flex-grow relative bg-surface">
+                <div className="p-8 flex-grow relative bg-surface-container-lowest">
                    {!activeIdeaId ? (
                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                        <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4 border border-outline-variant">
-                          <span className="material-symbols-outlined text-outline text-[24px]">edit_document</span>
+                        <div className="w-16 h-16 rounded-full bg-surface-bright flex items-center justify-center mb-4 border border-outline-variant/20">
+                          <span className="material-symbols-outlined text-on-surface-variant text-[24px]">edit_document</span>
                         </div>
-                        <h4 className="font-display font-bold text-on-surface text-lg">No Active Canvas</h4>
+                        <h4 className="font-headline-md font-bold text-on-surface text-lg">No Active Canvas</h4>
                         <p className="text-[13px] text-on-surface-variant mt-1.5 max-w-sm">
                           Select an idea from the Workload Overview on the left to edit script configurations and view generated assets.
                         </p>
@@ -403,7 +403,7 @@ Please edit this mock context strictly before approving it for the production pi
                        ) : activeIdea?.contentDraft ? (
                          <div className="max-w-[700px] mx-auto">
                             {activeIdea.status === "requires_review" && (
-                              <div className="mb-4 bg-[#EFF6FF] border border-blue-200 text-blue-800 text-[12px] font-semibold p-2.5 rounded-lg flex items-start gap-2">
+                              <div className="mb-4 bg-[#EFF6FF] border border-blue-200 text-blue-800 text-[12px] font-semibold p-2.5 rounded-xl flex items-start gap-2">
                                 <span className="material-symbols-outlined text-[16px] mt-0.5">info</span>
                                 <div>This asset was generated natively holding Founder Voice logic constraints. Manual edits required before final approval.</div>
                               </div>
@@ -415,9 +415,9 @@ Please edit this mock context strictly before approving it for the production pi
                             />
                          </div>
                        ) : (
-                         <div className="flex flex-col items-center justify-center h-[400px] text-center border-2 border-dashed border-outline-variant rounded-xl bg-surface/50">
-                           <span className="material-symbols-outlined text-outline text-[32px] mb-3">auto_awesome</span>
-                           <h4 className="font-display font-bold text-on-surface text-[15px]">Canvas Blank</h4>
+                         <div className="flex flex-col items-center justify-center h-[400px] text-center border-2 border-dashed border-outline-variant/20 rounded-xl bg-surface-container-lowest/50">
+                           <span className="material-symbols-outlined text-on-surface-variant text-[32px] mb-3">auto_awesome</span>
+                           <h4 className="font-headline-md font-bold text-on-surface text-[15px]">Canvas Blank</h4>
                            <p className="text-[13px] text-on-surface-variant mt-1 max-w-[280px]">
                              Configure parameters strictly on the left and run Asset Generation to inject contextual DNA into an output format.
                            </p>

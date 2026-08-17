@@ -14,143 +14,21 @@ import {
   RevenueStatus
 } from "@/lib/types";
 
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Modal } from "@/components/ui/Modal";
-import { Input, Select, FormField } from "@/components/ui/Forms";
 import { Skeleton, CardSkeleton } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
-import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useAdapter } from "@/hooks/useAdapter";
 
 function formatCurrency(amount: number, currency: string) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 }
 
-function getStatusBadgeContext(status: string) {
-  switch (status) {
-    case "COLLECTED":
-    case "PAID":
-      return { variant: "success" as const };
-    case "AT_RISK":
-    case "OVERDUE":
-      return { variant: "danger" as const };
-    case "INVOICED":
-    case "DUE":
-    case "ON_TRACK":
-    case "PARTIAL":
-      return { variant: "warning" as const };
-    default:
-      return { variant: "neutral" as const };
-  }
-}
-
 export default function RevenueWorkspace() {
-  const { setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getRevenue);
-  
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Detail Modal setup
+  const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getRevenue);
   const [selectedEngagementId, setSelectedEngagementId] = useState<string | null>(null);
-  const activeEngagement = localData?.engagements.find(e => e.id === selectedEngagementId);
-
-  // Edit Context buffer
-  const [isEditingRevenue, setIsEditingRevenue] = useState(false);
-  const [revenueDraft, setRevenueDraft] = useState<RevenueEngagement | null>(null);
-
-  // Confirmation actions
-  const [confirmRiskResolve, setConfirmRiskResolve] = useState<{ engagementId: string, riskId: string } | null>(null);
-  const [confirmActionComplete, setConfirmActionComplete] = useState<{ engagementId: string, actionId: string } | null>(null);
-  const [confirmItemCollect, setConfirmItemCollect] = useState<{ engagementId: string, item: RevenueItem } | null>(null);
-
-  // --------------- CONTEXT EDIT PIPELINE ---------------
-  function handleEditRevenue() {
-    if (!activeEngagement) return;
-    setMutationError(null);
-    setRevenueDraft({ ...activeEngagement });
-    setIsEditingRevenue(true);
-  }
-
-  function handleCancelEdit() {
-    setMutationError(null);
-    setRevenueDraft(null);
-    setIsEditingRevenue(false);
-  }
-
-  async function handleSaveRevenue() {
-    if (!revenueDraft) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const res = await updateRevenueEngagement(revenueDraft);
-      setLocalData(res);
-      setData(res);
-      setIsEditingRevenue(false);
-      setRevenueDraft(null);
-    } catch (err: unknown) {
-      setMutationError("Failed to save operational context: " + (err as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  // --------------- ITEM COLLECTION PIPELINE ---------------
-  async function executeItemCollection() {
-    if (!confirmItemCollect || !localData) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const payload: RevenueItem = { ...confirmItemCollect.item, status: "COLLECTED" };
-      const res = await updateRevenueItem(confirmItemCollect.engagementId, payload);
-      setLocalData(res);
-      setData(res);
-      setConfirmItemCollect(null);
-    } catch (err: unknown) {
-      setMutationError("Failed to update item state: " + (err as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  // --------------- RISK RESOLUTION PIPELINE ---------------
-  async function executeRiskResolution() {
-    if (!confirmRiskResolve || !localData) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const res = await resolveRevenueRisk(confirmRiskResolve.engagementId, confirmRiskResolve.riskId);
-      setLocalData(res);
-      setData(res);
-      setConfirmRiskResolve(null);
-    } catch(err: unknown) {
-      setMutationError("Failed to resolve risk: " + (err as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  // --------------- ACTION COMPLETION PIPELINE ---------------
-  async function executeActionCompletion() {
-    if (!confirmActionComplete || !localData) return;
-    setMutationError(null);
-    setIsSaving(true);
-    try {
-      const res = await updateRevenueNextAction(confirmActionComplete.engagementId, confirmActionComplete.actionId);
-      setLocalData(res);
-      setData(res);
-      setConfirmActionComplete(null);
-    } catch(err: unknown) {
-      setMutationError("Failed to complete action: " + (err as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   if (loading) {
     return (
-      <div className="max-w-[1400px] mx-auto p-6 md:p-8 animate-in fade-in duration-500 space-y-8">
+      <div className="p-container-padding max-w-[1440px] mx-auto space-y-8 animate-in fade-in duration-500">
         <header className="mb-6">
           <Skeleton className="h-8 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
@@ -170,427 +48,294 @@ export default function RevenueWorkspace() {
         <Alert variant="danger" title="Failed to load Revenue Data">
           {error}
           <div className="mt-4">
-            <Button variant="secondary" onClick={loadData}>Retry</Button>
+            <button className="bg-primary text-white px-4 py-2 rounded-lg" onClick={loadData}>Retry</button>
           </div>
         </Alert>
       </div>
     );
   }
 
-  const needingAttention = localData.engagements.filter(e => 
-    e.status === "AT_RISK" || 
-    e.status === "OVERDUE" || 
-    e.risks.some(r => r.status === "OPEN")
-  );
+  // Set default selection
+  if (!selectedEngagementId && localData.engagements.length > 0) {
+      setSelectedEngagementId(localData.engagements[0].id);
+  }
 
-  const activeRevenue = localData.engagements.filter(e => 
-    e.status === "ON_TRACK" || e.status === "NOT_STARTED"
-  );
-  
-  const completedRevenue = localData.engagements.filter(e => e.status === "COLLECTED");
+  const activeEngagement = localData.engagements.find(e => e.id === selectedEngagementId);
+
+  // Derive blockers
+  const overdueItems = localData.engagements.filter(e => e.status === "OVERDUE").slice(0,2);
+  const riskItems = localData.engagements.filter(e => e.risks.some(r => r.status === "OPEN")).slice(0,2);
+  const onTrackItems = localData.engagements.filter(e => e.status === "ON_TRACK").slice(0,2);
+
+  const activeRevenueTotal = localData.engagements.reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
-    <div className="max-w-[1400px] mx-auto p-6 md:p-8 space-y-10 animate-in fade-in duration-500">
-      
-      {/* -------------------- HEADER -------------------- */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-[28px] font-display font-medium text-on-surface tracking-tight">Revenue Operations</h1>
-          <p className="text-on-surface-variant text-[15px] mt-1">Operational view of billing, active collections, and revenue risks.</p>
-        </div>
-        <div className="flex bg-surface border border-outline-variant rounded-[var(--radius-lg)] p-1 text-center shadow-sm">
-           <div className="px-5 py-2 border-r border-outline-variant uppercase">
-             <span className="block text-[11px] font-bold text-error tracking-wider mb-0.5">At Risk / Overdue</span>
-             <span className="text-[17px] font-display font-bold text-on-surface">{needingAttention.length}</span>
-           </div>
-           <div className="px-5 py-2 uppercase">
-             <span className="block text-[11px] font-bold text-on-surface-variant tracking-wider mb-0.5">Active</span>
-             <span className="text-[17px] font-display font-bold text-on-surface">{activeRevenue.length}</span>
-           </div>
-        </div>
+    <>
+      <header className="flex justify-between items-center w-full px-container-padding py-4 top-0 bg-surface/80 backdrop-blur-md border-b border-outline-variant/20 z-40 sticky">
+          <div className="flex items-center gap-8">
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">Revenue Command</h2>
+          </div>
+          <div className="flex items-center gap-6">
+              <div className="relative hidden md:block w-64">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+                  <input className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg pl-9 pr-4 py-1.5 font-body-sm text-body-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all placeholder:text-on-surface-variant/50" placeholder="Search ASENZO engines..." type="text"/>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 font-label-muted text-[10px] text-on-surface-variant bg-surface border border-outline-variant/30 px-1.5 rounded">⌘K</span>
+              </div>
+              <div className="flex items-center gap-3 border-l border-outline-variant/30 pl-6">
+                  <button className="relative p-2 text-on-surface-variant hover:text-primary transition-colors opacity-80 hover:opacity-100 rounded-full hover:bg-surface-container-highest">
+                      <span className="material-symbols-outlined">notifications</span>
+                  </button>
+              </div>
+          </div>
       </header>
 
-      {/* -------------------- ATTENTION REQUIRED -------------------- */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-           <span className="material-symbols-outlined text-error text-[20px]">warning</span>
-           <h2 className="text-[13.5px] uppercase font-bold tracking-wider text-on-surface-variant">Attention Required</h2>
-        </div>
+      <div className="flex-1 overflow-y-auto p-container-padding pb-32 space-y-6">
         
-        {needingAttention.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {needingAttention.map(engagement => (
-               <Card 
-                key={`urgent-${engagement.id}`} 
-                className="cursor-pointer transition-shadow hover:shadow-md border-error/30 ring-1 ring-error/20 bg-error/5"
-                onClick={() => setSelectedEngagementId(engagement.id)}
-               >
-                 <div className="p-5 flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-2">
-                       <Badge {...getStatusBadgeContext(engagement.status)} size="sm">{engagement.status.replace("_", " ")}</Badge>
-                       <span className="text-[14.5px] font-display font-bold text-on-surface">
-                         {formatCurrency(engagement.amount, engagement.currency)}
-                       </span>
+        {/* TOP SCROLLERS - High Priority Notifications */}
+        <section className="flex gap-4 overflow-x-auto pb-2">
+            {overdueItems.map(item => (
+                <div key={`overdue-${item.id}`} className="bg-surface-container-lowest border border-rose-100 rounded-2xl p-5 min-w-[300px] flex-shrink-0 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-rose-500 text-[18px]">warning</span>
+                            <span className="font-label-caps text-label-caps text-rose-900">Overdue Payment</span>
+                        </div>
                     </div>
-                    <h3 className="text-[16px] font-bold text-on-surface mb-1 truncate">{engagement.customerName}</h3>
-                    <p className="text-[13px] text-on-surface-variant mb-4">{engagement.description}</p>
-                    
-                    {engagement.intelligenceSignal && (
-                      <div className="mb-3 bg-error/10 text-[12px] font-medium text-error p-2 rounded flex items-start gap-1">
-                        <span className="material-symbols-outlined text-[14px]">insights</span>
-                        <span className="leading-tight">{engagement.intelligenceSignal}</span>
-                      </div>
-                    )}
-
-                    <div className="mt-auto pt-3 border-t border-error/20 text-[12px] text-on-surface flex justify-between items-center">
-                       <span className="flex items-center gap-1 font-medium"><span className="material-symbols-outlined text-[14px]">event</span> Due: {new Date(engagement.dueDate).toLocaleDateString()}</span>
-                       <span className="flex items-center gap-1 font-bold text-on-surface-variant">{engagement.owner}</span>
-                    </div>
-                 </div>
-               </Card>
+                    <h3 className="font-headline-sm text-headline-sm text-on-surface mb-1">{item.customerName}</h3>
+                    <p className="font-body-lg text-body-lg font-bold text-on-surface mb-4">{formatCurrency(item.amount, item.currency)}</p>
+                    <button className="w-full bg-rose-50 text-rose-700 py-1.5 rounded-lg text-sm font-medium hover:bg-rose-100 transition-colors">Send Reminder</button>
+                </div>
             ))}
-          </div>
-        ) : (
-          <div className="text-center p-8 bg-surface-container rounded-xl border border-outline-variant text-on-surface-variant flex flex-col items-center">
-            <span className="material-symbols-outlined text-[32px] mb-2 text-success">verified</span>
-            <p className="font-semibold text-on-surface text-[14.5px] mb-1">Clear</p>
-            <p className="text-[13px]">No revenue items require attention.</p>
-          </div>
-        )}
-      </section>
 
-      {/* -------------------- ACTIVE REVENUE -------------------- */}
-      <section>
-         <h2 className="text-[13.5px] uppercase font-bold tracking-wider text-on-surface-variant mb-4">Active Revenue (On Track)</h2>
-         {activeRevenue.length > 0 ? (
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             {activeRevenue.map(engagement => (
-               <div 
-                 key={`active-${engagement.id}`}
-                 onClick={() => setSelectedEngagementId(engagement.id)}
-                 className="cursor-pointer border border-outline-variant bg-surface rounded-xl p-5 transition-colors hover:border-primary shrink-0 flex flex-col"
-               >
-                 <div className="flex justify-between items-start mb-2">
-                   <h4 className="font-bold text-[16px] truncate text-on-surface">{engagement.customerName}</h4>
-                   <span className="text-[14px] font-display font-medium text-on-surface-variant">{formatCurrency(engagement.amount, engagement.currency)}</span>
-                 </div>
-                 <div className="flex gap-2 items-center mb-3">
-                   <Badge {...getStatusBadgeContext(engagement.status)} size="sm">{engagement.status.replace("_", " ")}</Badge>
-                   <span className="text-[11px] font-bold text-on-surface-variant uppercase">{engagement.paymentState}</span>
-                 </div>
-                 <div className="mt-3 pt-3 border-t border-outline-variant flex items-center justify-between text-[11.5px] text-on-surface-variant uppercase tracking-wide">
-                    <span>Due: {new Date(engagement.dueDate).toLocaleDateString()}</span>
-                    <span>{engagement.items.filter(i => i.status !== "COLLECTED").length} Pending Items</span>
-                 </div>
-               </div>
-             ))}
-           </div>
-         ) : (
-           <div className="text-center p-8 bg-surface-container rounded-xl border border-outline-variant text-on-surface-variant">
-             <p className="text-[13px]">No active revenue items.</p>
-           </div>
-         )}
-      </section>
-
-      {/* -------------------- COMPLETED / COLLECTED -------------------- */}
-      <section>
-         <h2 className="text-[13.5px] uppercase font-bold tracking-wider text-on-surface-variant mb-4">Recently Collected</h2>
-         {completedRevenue.length > 0 ? (
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-             {completedRevenue.map(eng => (
-                <div key={`comp-${eng.id}`} onClick={() => setSelectedEngagementId(eng.id)} className="cursor-pointer bg-surface-container border border-outline-variant rounded-lg p-3 flex justify-between items-center transition-colors hover:bg-surface-container-high">
-                  <div>
-                    <h5 className="font-bold text-[13.5px] text-on-surface">{eng.customerName}</h5>
-                    <p className="text-[11.5px] text-on-surface-variant">{eng.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="block font-medium text-[13px] text-success">{formatCurrency(eng.amount, eng.currency)}</span>
-                  </div>
-                </div>
-             ))}
-           </div>
-         ) : (
-           <div className="text-center p-6 bg-surface-container rounded-lg border border-outline-variant text-on-surface-variant text-[13px]">
-             No recently completed revenue cycles.
-           </div>
-         )}
-      </section>
-
-      {/* -------------------- DETAIL MODAL -------------------- */}
-      <Modal isOpen={!!selectedEngagementId} onClose={() => { setSelectedEngagementId(null); setIsEditingRevenue(false); }} title="Revenue Detail" size="lg">
-         {activeEngagement ? (
-           <div className="flex flex-col gap-8 pb-4">
-              
-              {/* Alert Render */}
-              {mutationError && (
-                 <Alert variant="danger" title="Action Failed">
-                   {mutationError}
-                   <div className="mt-3">
-                     <Button variant="secondary" size="sm" onClick={() => setMutationError(null)}>Dismiss</Button>
-                   </div>
-                 </Alert>
-              )}
-
-              {/* Header Context */}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-outline-variant pb-5">
-                 <div>
-                   <h2 className="text-[26px] font-display font-bold text-on-surface">{activeEngagement.customerName}</h2>
-                   <p className="text-[15px] font-medium text-on-surface-variant mt-1">{activeEngagement.description}</p>
-                   {activeEngagement.linkedContext && (
-                     <p className="mt-2 text-[12.5px] text-on-surface bg-surface-container-low px-2 py-1 rounded inline-flex items-center gap-1 border border-outline-variant"><span className="material-symbols-outlined text-[14px]">link</span> {activeEngagement.linkedContext}</p>
-                   )}
-                 </div>
-                 
-                 <div className="text-left md:text-right">
-                    <p className="text-[28px] font-display font-bold text-on-surface">{formatCurrency(activeEngagement.amount, activeEngagement.currency)}</p>
-                    <div className="flex items-center md:justify-end gap-2 mt-1">
-                      <Badge {...getStatusBadgeContext(activeEngagement.status)} size="sm">{activeEngagement.status.replace("_", " ")}</Badge>
-                      <Badge variant="neutral" size="sm">{activeEngagement.paymentState}</Badge>
+            {riskItems.map(item => {
+                const openRisk = item.risks.find(r => r.status === "OPEN");
+                return (
+                <div key={`risk-${item.id}`} className="bg-surface-container-lowest border border-amber-100 rounded-2xl p-5 min-w-[300px] flex-shrink-0 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[18px]">error</span>
+                            <span className="font-label-caps text-label-caps text-amber-900">Risk Blocker</span>
+                        </div>
                     </div>
-                 </div>
-              </div>
-
-              {/* Intelligence/Error Signal Context */}
-              {activeEngagement.intelligenceSignal && (
-                <div className="bg-primary/5 text-primary text-[13.5px] font-medium px-4 py-3 rounded-lg flex items-start gap-2 border border-primary/20">
-                    <span className="material-symbols-outlined mt-0.5">insights</span>
-                    <span className="leading-relaxed">System Intelligence: {activeEngagement.intelligenceSignal}</span>
+                    <h3 className="font-headline-sm text-headline-sm text-on-surface mb-1">{item.customerName}</h3>
+                    <p className="text-sm text-on-surface-variant mb-4 line-clamp-1">{openRisk?.title || "Operational Compliance Risk"}</p>
+                    <button className="w-full bg-amber-50 text-amber-700 py-1.5 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors">Resolve Action</button>
                 </div>
-              )}
+            )})}
 
-              {/* Read / Edit Boundary */}
-              <section className="bg-surface border border-outline-variant rounded-xl p-5 shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                   <h3 className="font-bold text-[15px] uppercase tracking-wider flex items-center gap-2 text-on-surface-variant">
-                     <span className="material-symbols-outlined text-[18px]">tune</span> Revenue Context
-                   </h3>
-                   {!isEditingRevenue ? (
-                     <Button variant="secondary" size="sm" onClick={handleEditRevenue}>Edit Context</Button>
-                   ) : (
-                     <div className="flex gap-2">
-                       <Button variant="secondary" size="sm" onClick={handleCancelEdit} disabled={isSaving}>Cancel</Button>
-                       <Button variant="primary" size="sm" onClick={handleSaveRevenue} isLoading={isSaving}>Save Context</Button>
-                     </div>
-                   )}
+            {onTrackItems.map(item => (
+                <div key={`track-${item.id}`} className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-5 min-w-[300px] flex-shrink-0 shadow-sm">
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span>
+                            <span className="font-label-caps text-label-caps text-on-surface-variant">Upcoming</span>
+                        </div>
+                    </div>
+                    <h3 className="font-headline-sm text-headline-sm text-on-surface mb-1">{item.customerName}</h3>
+                    <p className="font-body-lg text-body-lg font-bold text-on-surface mb-4">{formatCurrency(item.amount, item.currency)}</p>
+                    <button 
+                        onClick={() => setSelectedEngagementId(item.id)}
+                        className="w-full bg-surface-container text-on-surface py-1.5 rounded-lg text-sm font-medium hover:bg-surface-container-high transition-colors">
+                            View Details
+                    </button>
                 </div>
+            ))}
+            
+            {localData.engagements.length === 0 && (
+                <div className="p-8 text-center text-on-surface-variant w-full bg-surface-bright rounded-2xl border border-outline-variant/20">
+                    No active revenue alerts.
+                </div>
+            )}
+        </section>
 
-                {!isEditingRevenue ? (
-                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[13.5px]">
-                     <div>
-                       <span className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">Owner</span>
-                       <span className="font-medium text-on-surface">{activeEngagement.owner}</span>
-                     </div>
-                     <div>
-                       <span className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">Expected Date</span>
-                       <span className="font-medium text-on-surface">{new Date(activeEngagement.dueDate).toLocaleDateString()}</span>
-                     </div>
-                     <div>
-                       <span className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">Status</span>
-                       <span className="font-medium text-on-surface">{activeEngagement.status.replace("_", " ")}</span>
-                     </div>
-                     <div>
-                       <span className="block text-[11px] font-bold text-on-surface-variant uppercase mb-1">Payment State</span>
-                       <span className="font-medium text-on-surface">{activeEngagement.paymentState}</span>
-                     </div>
-                   </div>
-                ) : (
-                   <div className="space-y-4">
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField label="Owner">
-                           <Input 
-                            value={revenueDraft?.owner || ""} 
-                            onChange={(e) => setRevenueDraft(prev => prev ? {...prev, owner: e.target.value} : null)}
-                           />
-                        </FormField>
-                        <FormField label="Payment State">
-                          <Select
-                            value={revenueDraft?.paymentState || "UNINVOICED"}
-                            onChange={(e) => setRevenueDraft(prev => prev ? {...prev, paymentState: e.target.value as RevenueEngagement['paymentState']} : null)}
-                          >
-                            <option value="UNINVOICED">UNINVOICED</option>
-                            <option value="INVOICED">INVOICED</option>
-                            <option value="PARTIAL">PARTIAL</option>
-                            <option value="PAID">PAID</option>
-                          </Select>
-                        </FormField>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField label="Internal Status">
-                          <Select
-                            value={revenueDraft?.status || "ON_TRACK"}
-                            onChange={(e) => setRevenueDraft(prev => prev ? {...prev, status: e.target.value as RevenueStatus} : null)}
-                          >
-                            <option value="NOT_STARTED">NOT STARTED</option>
-                            <option value="ON_TRACK">ON TRACK</option>
-                            <option value="AT_RISK">AT RISK</option>
-                            <option value="OVERDUE">OVERDUE</option>
-                            <option value="COLLECTED">COLLECTED</option>
-                          </Select>
-                        </FormField>
-                        <FormField label="Due Date (YYYY-MM-DD)">
-                           <Input 
-                            value={revenueDraft ? new Date(revenueDraft.dueDate).toISOString().split('T')[0] : ""} 
-                            type="date"
-                            onChange={(e) => setRevenueDraft(prev => prev ? {...prev, dueDate: new Date(e.target.value).toISOString()} : null)}
-                           />
-                        </FormField>
-                      </div>
-
-                   </div>
-                )}
-              </section>
-
-              {/* Outstanding / Collected Items Workflow */}
-              <section>
-                 <h3 className="font-bold text-[15px] uppercase tracking-wider mb-4 border-b border-outline-variant pb-2 flex items-center gap-2">
-                   <span className="material-symbols-outlined text-[18px]">receipt_long</span> Revenue Records / Tranches
-                 </h3>
-                 
-                 {activeEngagement.items.length > 0 ? (
-                   <div className="space-y-3">
-                     {activeEngagement.items.map(item => (
-                       <div key={item.id} className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${item.status === 'COLLECTED' ? 'bg-success/5 border-success/30' : 'bg-surface border-outline-variant'}`}>
-                          <div className="flex-1">
-                             <div className="flex items-center gap-2 mb-1">
-                               <Badge {...getStatusBadgeContext(item.status)} size="sm">{item.status.replace("_", " ")}</Badge>
-                               <span className="text-[12px] font-bold text-on-surface-variant tracking-wider uppercase border text-[10px] px-1 rounded-sm border-outline-variant">{item.id}</span>
-                             </div>
-                             <h4 className="font-bold text-[15px] text-on-surface mb-1 flex justify-between w-full pr-4">
-                               {item.title} <span className="font-display ml-auto tracking-wide">{formatCurrency(item.amount, activeEngagement.currency)}</span>
-                             </h4>
-                             <p className="text-[13px] text-on-surface-variant mb-2">{item.description}</p>
-                             <p className="text-[11.5px] font-medium text-on-surface flex items-center gap-1 opacity-70">
-                               <span className="material-symbols-outlined text-[13px]">event</span> {item.status === 'COLLECTED' ? 'Collected on' : 'Due'}: {new Date(item.dueDate).toLocaleDateString()}
-                             </p>
-                          </div>
-                          <div className="w-full md:w-auto text-right border-t md:border-t-0 md:border-l border-outline-variant pt-3 md:pt-0 md:pl-4 mt-2 md:mt-0">
-                             {item.status !== "COLLECTED" && (
-                               <Button variant="secondary" size="sm" onClick={() => setConfirmItemCollect({ engagementId: activeEngagement.id, item })}>
-                                 Mark Collected
-                               </Button>
-                             )}
-                          </div>
-                       </div>
-                     ))}
-                   </div>
-                 ) : (
-                   <div className="text-center p-6 bg-surface-container rounded-xl border border-outline-variant text-[14px] text-on-surface-variant">
-                      No revenue records are available.
-                   </div>
-                 )}
-              </section>
-
-              {/* Active Risks */}
-              <section>
-                 <div className="flex items-center gap-2 mb-4 border-b border-outline-variant pb-2">
-                    <h3 className="font-bold text-[15px] uppercase tracking-wider">Revenue Risks</h3>
-                 </div>
-                 {activeEngagement.risks.length > 0 ? (
-                   <div className="space-y-3">
-                     {activeEngagement.risks.map(r => (
-                       <div key={r.id} className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start gap-4 ${r.status !== 'RESOLVED' ? 'bg-error/5 border-error/30' : 'bg-surface border-outline-variant'}`}>
-                          <div>
-                             <div className="flex gap-2 items-center mb-2">
-                               {r.status === 'RESOLVED' ? (
-                                 <Badge variant="success" size="sm">RESOLVED</Badge>
-                               ) : (
-                                 <Badge variant="danger" size="sm">ACTIVE RISK</Badge>
-                               )}
-                               <span className={`font-bold text-[14.5px] ${r.status === 'RESOLVED' ? 'line-through opacity-70' : 'text-on-surface'}`}>{r.title}</span>
-                             </div>
-                             <p className="text-[13.5px] text-on-surface-variant max-w-[500px]">{r.description}</p>
-                          </div>
-                          {r.status !== 'RESOLVED' && (
-                            <div className="self-end md:self-start shrink-0">
-                              <Button variant="secondary" size="sm" onClick={() => setConfirmRiskResolve({ engagementId: activeEngagement.id, riskId: r.id })}>
-                                Resolve Risk
-                              </Button>
+        {/* MAIN Revenue Workspace */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[calc(100vh-280px)] min-h-[600px]">
+            {/* Sidebar List */}
+            <div className="col-span-1 md:col-span-4 bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 flex flex-col overflow-hidden">
+                <div className="p-6 border-b border-outline-variant/20 bg-surface/50">
+                    <h2 className="font-headline-md text-headline-md font-semibold text-on-surface mb-1">Active Revenue</h2>
+                    <p className="text-sm text-on-surface-variant mb-4">Current collection cycle</p>
+                    <div className="bg-surface-container p-4 rounded-xl">
+                        <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">Total Expected</p>
+                        <p className="font-display-lg text-display-lg font-bold text-primary tracking-tight">{formatCurrency(activeRevenueTotal, "USD")}</p>
+                    </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {localData.engagements.map(engagement => (
+                        <button 
+                            key={engagement.id}
+                            onClick={() => setSelectedEngagementId(engagement.id)}
+                            className={`w-full text-left p-4 rounded-xl transition-colors flex items-center justify-between group relative ${selectedEngagementId === engagement.id ? 'bg-surface-container border border-outline-variant/30' : 'hover:bg-surface-container-low border border-transparent'}`}
+                        >
+                            {selectedEngagementId === engagement.id && <div className="absolute left-0 top-2 bottom-2 w-1 bg-primary rounded-r-full"></div>}
+                            <div className="flex items-center gap-3 ml-2">
+                                <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold text-sm">
+                                    {engagement.customerName.substring(0,2).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h4 className="font-headline-sm text-sm font-semibold text-on-surface">{engagement.customerName}</h4>
+                                    <p className="text-xs text-on-surface-variant">Due {new Date(engagement.dueDate).toLocaleDateString()}</p>
+                                </div>
                             </div>
-                          )}
-                       </div>
-                     ))}
-                   </div>
-                 ) : (
-                   <div className="text-center p-6 bg-surface-container rounded-xl border border-outline-variant text-[14px] text-on-surface-variant flex flex-col items-center">
-                      <span className="material-symbols-outlined text-[24px] mb-2 text-success">verified_user</span>
-                      No revenue risks require attention.
-                   </div>
-                 )}
-              </section>
+                            <div className="text-right">
+                                <p className={`font-body-sm text-body-sm font-semibold ${engagement.status === 'COLLECTED' ? 'text-on-surface-variant line-through opacity-70' : 'text-on-surface'}`}>{formatCurrency(engagement.amount, engagement.currency)}</p>
+                                {engagement.status === 'OVERDUE' ? (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 mt-1">Overdue</span>
+                                ) : engagement.status === 'AT_RISK' ? (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 mt-1">Action Req</span>
+                                ) : engagement.status === 'COLLECTED' ? (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-surface-container-high text-on-surface-variant mt-1">Cleared</span>
+                                ) : (
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 mt-1">On Track</span>
+                                )}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-              {/* Next Action Module */}
-              <section>
-                 <h3 className="font-bold text-[15px] uppercase tracking-wider mb-4 border-b border-outline-variant pb-2">Operational Next Action</h3>
-                 {activeEngagement.nextAction ? (
-                   <div className={`p-4 rounded-xl border flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${activeEngagement.nextAction.status === 'COMPLETED' ? 'bg-success/5 border-success/30' : 'bg-surface border-outline-variant'}`}>
-                      <div className="flex-1">
-                         <div className="flex items-center gap-2 mb-1">
-                           <Badge variant={activeEngagement.nextAction.status === 'COMPLETED' ? 'success' : 'neutral'} size="sm">
-                             {activeEngagement.nextAction.status}
-                           </Badge>
-                           <h4 className="font-bold text-[15px] text-on-surface">{activeEngagement.nextAction.title}</h4>
-                         </div>
-                         <p className="text-[14px] text-on-surface-variant mb-2">{activeEngagement.nextAction.description}</p>
-                         <div className="flex items-center gap-3 text-[12px] font-medium text-on-surface opacity-80">
-                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">event</span> Due: {new Date(activeEngagement.nextAction.dueDate).toLocaleDateString()}</span>
-                            <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">person</span> {activeEngagement.nextAction.owner}</span>
-                         </div>
-                      </div>
-                      <div className="shrink-0 mt-3 md:mt-0 text-right w-full md:w-auto">
-                         {activeEngagement.nextAction.status !== "COMPLETED" && (
-                           <Button variant="secondary" size="sm" onClick={() => setConfirmActionComplete({ engagementId: activeEngagement.id, actionId: activeEngagement.nextAction!.id })}>
-                             Mark Delivered
-                           </Button>
-                         )}
-                      </div>
-                   </div>
-                 ) : (
-                   <div className="text-center p-6 bg-surface-container rounded-xl border border-outline-variant text-[14px] text-on-surface-variant">
-                      No next actions are currently pending.
-                   </div>
-                 )}
-              </section>
+            {/* Main Content Area */}
+            <div className="col-span-1 md:col-span-8 bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 flex flex-col overflow-hidden glass-panel relative">
+                {activeEngagement ? (
+                    <>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-50 rounded-full blur-3xl opacity-50 -z-10 pointer-events-none"></div>
 
-           </div>
-         ) : <Skeleton className="h-64 w-full" />}
-      </Modal>
+                        <div className="p-8 border-b border-outline-variant/10">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface font-bold text-xl shadow-inner">
+                                        {activeEngagement.customerName.substring(0,2).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h2 className="font-display-lg text-display-lg-mobile font-bold text-on-surface">{activeEngagement.customerName}</h2>
+                                            {activeEngagement.status === 'AT_RISK' || activeEngagement.status === 'OVERDUE' ? (
+                                                <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Action Required</span>
+                                            ) : null}
+                                        </div>
+                                        <p className="text-sm text-on-surface-variant flex items-center gap-4">
+                                            <span>ID: {activeEngagement.id}</span>
+                                            <span className="w-1 h-1 rounded-full bg-outline-variant"></span>
+                                            <span>Status: {activeEngagement.paymentState}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">Total Outstanding</p>
+                                    <p className="font-display-lg text-display-lg font-bold text-primary tracking-tight">{formatCurrency(activeEngagement.amount, activeEngagement.currency)}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                            <button className="bg-primary text-on-primary px-5 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">Log Payment</button>
+                            <button className="bg-surface-container-lowest border border-outline-variant text-on-surface px-5 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors shadow-sm flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[18px]">mail</span> Email Client
+                            </button>
+                            <button className="bg-surface-container-lowest border border-outline-variant text-on-surface px-3 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors shadow-sm ml-auto">
+                                <span className="material-symbols-outlined text-[20px]">more_horiz</span>
+                            </button>
+                            </div>
+                        </div>
 
-      {/* -------------------- DESTRUCTIVE/IMPORTANT CONFIRMATIONS -------------------- */}
-      <ConfirmationDialog
-        isOpen={!!confirmItemCollect}
-        onClose={() => { if (!isSaving) setConfirmItemCollect(null); }}
-        onConfirm={executeItemCollection}
-        title="Confirm Revenue Collection"
-        description={`Are you confirming that you have successfully collected the funds for ${confirmItemCollect?.item.title}?`}
-        confirmText="Mark Collected"
-        isDestructive={false}
-        isLoading={isSaving}
-      />
+                        <div className="flex-1 overflow-y-auto p-8 flex flex-col xl:flex-row gap-8">
+                            <div className="flex-1 space-y-8">
+                                
+                                {activeEngagement.risks.filter(r => r.status === "OPEN").length > 0 && (
+                                    <div>
+                                        <h3 className="font-headline-sm text-headline-sm text-on-surface mb-4 flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-amber-500">warning</span>
+                                            Revenue Risks
+                                        </h3>
+                                        {activeEngagement.risks.filter(r => r.status === "OPEN").map(risk => (
+                                            <div key={risk.id} className="bg-amber-50/50 border border-amber-200/50 rounded-xl p-4 flex items-start gap-4 mb-3">
+                                                <div className="bg-amber-100 p-2 rounded-lg text-amber-700">
+                                                    <span className="material-symbols-outlined">description</span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="text-sm font-semibold text-amber-900 mb-1">{risk.title}</h4>
+                                                    <p className="text-xs text-amber-800/80 mb-3">{risk.description}</p>
+                                                    <button className="text-xs font-semibold bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded transition-colors">Resolve Issue</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
-      <ConfirmationDialog
-        isOpen={!!confirmRiskResolve}
-        onClose={() => { if (!isSaving) setConfirmRiskResolve(null); }}
-        onConfirm={executeRiskResolution}
-        title="Resolve Revenue Risk"
-        description="Are you sure you want to mark this revenue risk as resolved? This removes it from the attention workflow."
-        confirmText="Confirm Resolution"
-        isDestructive={false}
-        isLoading={isSaving}
-      />
+                                <div>
+                                    <h3 className="font-headline-sm text-headline-sm text-on-surface mb-4">Open Items</h3>
+                                    {activeEngagement.items.length > 0 ? (
+                                        <div className="border border-outline-variant/30 rounded-xl overflow-hidden bg-surface-container-lowest">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-surface-container-low border-b border-outline-variant/30">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-medium text-on-surface-variant">Item</th>
+                                                        <th className="px-4 py-3 font-medium text-on-surface-variant">Date Issued</th>
+                                                        <th className="px-4 py-3 font-medium text-on-surface-variant">Status</th>
+                                                        <th className="px-4 py-3 font-medium text-on-surface-variant text-right">Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-outline-variant/10">
+                                                    {activeEngagement.items.map(item => (
+                                                        <tr key={item.id} className="hover:bg-surface-container-lowest/50 transition-colors">
+                                                            <td className="px-4 py-3 font-medium text-primary">{item.title}</td>
+                                                            <td className="px-4 py-3 text-on-surface-variant">{new Date(item.dueDate).toLocaleDateString()}</td>
+                                                            <td className="px-4 py-3">
+                                                                {item.status === 'COLLECTED' ? (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant/30">Collected</span>
+                                                                ) : item.status === 'OVERDUE' ? (
+                                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-200/50">Overdue</span>
+                                                                ) : item.status === 'AT_RISK' ? (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/50">Blocked</span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/50">Pending</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 font-medium text-right text-primary">{formatCurrency(item.amount, activeEngagement.currency)}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 text-on-surface-variant border border-outline-variant/20 rounded-xl">No active invoices</div>
+                                    )}
+                                </div>
+                            </div>
 
-      <ConfirmationDialog
-        isOpen={!!confirmActionComplete}
-        onClose={() => { if (!isSaving) setConfirmActionComplete(null); }}
-        onConfirm={executeActionCompletion}
-        title="Complete Next Action"
-        description="Are you sure you want to mark the pending revenue action as delivered?"
-        confirmText="Mark Delivered"
-        isDestructive={false}
-        isLoading={isSaving}
-      />
+                            <div className="w-full xl:w-72 flex-shrink-0">
+                                <div className="bg-surface-container-low rounded-xl p-5 border border-outline-variant/20 sticky top-0">
+                                    <h3 className="font-label-caps text-label-caps text-on-surface-variant mb-4 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[16px]">task_alt</span> Next Actions
+                                    </h3>
+                                    <ul className="space-y-3">
+                                        {activeEngagement.nextAction ? (
+                                            <li className="flex items-start gap-3">
+                                                <input defaultChecked={activeEngagement.nextAction.status === 'COMPLETED'} className="mt-0.5 rounded border-outline-variant text-primary focus:ring-primary rounded-sm bg-surface-container-lowest cursor-pointer" type="checkbox"/>
+                                                <div>
+                                                    <p className={`text-sm font-medium ${activeEngagement.nextAction.status === 'COMPLETED' ? 'line-through opacity-70 text-on-surface-variant' : 'text-on-surface'}`}>{activeEngagement.nextAction.title}</p>
+                                                    <p className="text-xs text-on-surface-variant mt-0.5">{activeEngagement.nextAction.description}</p>
+                                                </div>
+                                            </li>
+                                        ) : (
+                                            <li className="text-sm text-on-surface-variant">No pending action.</li>
+                                        )}
+                                    </ul>
+                                    <button className="w-full mt-6 flex items-center justify-center gap-2 text-xs font-semibold text-primary hover:bg-surface-container py-2 rounded-lg transition-colors border border-dashed border-outline-variant/50">
+                                        <span className="material-symbols-outlined text-[16px]">add</span> Add Action Item
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-    </div>
+                    </>
+                ) : (
+                    <div className="p-8 text-center text-on-surface-variant">Select an active relationship to view details.</div>
+                )}
+            </div>
+            
+        </div>
+      </div>
+    </>
   );
 }

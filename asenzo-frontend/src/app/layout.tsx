@@ -22,16 +22,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
       </head>
-      <body>
-        <div id="content-area" className="app-shell flex w-full h-full overflow-hidden">
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <Topbar />
-            <main className="content-area">
-              {children}
-            </main>
-          </div>
-        </div>
+      <body className="bg-canvas text-on-surface font-sans h-screen overflow-hidden selection:bg-primary selection:text-on-primary antialiased">
+        <Sidebar />
+        <main className="ml-[256px] h-screen overflow-y-auto hide-scrollbar bg-canvas relative">
+          <Topbar />
+          {children}
+        </main>
       </body>
     </html>
   );
