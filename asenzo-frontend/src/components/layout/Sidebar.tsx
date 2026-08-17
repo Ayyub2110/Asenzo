@@ -4,18 +4,18 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// The navigation menu following frozen Phase 2 PRD
+// Asenzo Adaptation Phase 4 nav items
 const navItems = [
-  { href: "/", icon: "dashboard", label: "Dashboard" },
-  { href: "/foundation", icon: "architecture", label: "Foundation" },
+  { href: "/", icon: "dashboard", label: "Command Center" },
+  { href: "/foundation", icon: "foundation", label: "Foundation" },
   { href: "/attention", icon: "campaign", label: "Attention" },
   { href: "/conversion", icon: "query_stats", label: "Conversion" },
   { href: "/delivery", icon: "check_circle", label: "Delivery" },
   { href: "/retention", icon: "autorenew", label: "Retention" },
   { href: "/revenue", icon: "payments", label: "Revenue" },
-  { href: "/operator", icon: "terminal", label: "Operator" },
-  { href: "/calendar", icon: "event", label: "Calendar" },
-  { href: "/settings", icon: "settings", label: "Settings" },
+  { href: "/operator", icon: "precision_manufacturing", label: "Operator" },
+  { href: "/calendar", icon: "calendar_month", label: "Calendar" },
+  { href: "/settings", icon: "settings", label: "Settings" }
 ];
 
 export default function Sidebar() {
@@ -23,58 +23,64 @@ export default function Sidebar() {
 
   return (
     <aside 
-      className="fixed flex h-screen w-[256px] left-0 top-0 z-50 flex-col py-5 px-3"
-      style={{
-        background: "linear-gradient(180deg, #0B0C0E 0%, #1D1D1F 100%)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.1)"
-      }}
+      className="flex flex-shrink-0 h-screen w-[260px] z-50 flex-col pt-8 pb-5 px-3 rounded-r-none border-r border-sidebar-border bg-sidebar"
     >
-      <div className="mb-8 px-3 flex flex-col items-start gap-1">
-        <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">Founder Control</span>
-        <h1 className="text-xl font-bold text-white tracking-tight leading-none">Asenzo OS</h1>
+      <div className="mb-8 px-3 flex items-center gap-3">
+        <div className="w-[32px] h-[32px] rounded-lg bg-card/5 flex items-center justify-center border border-sidebar-border/50 shadow-sm shrink-0">
+            <span className="material-symbols-outlined text-sidebar-foreground text-[16px]" style={{ fontVariationSettings: "'FILL' 0" }}>terminal</span>
+        </div>
+        <div className="flex flex-col min-w-0">
+            <h1 className="text-[14px] font-bold text-sidebar-foreground tracking-tight leading-none mb-1">ASENZO OS</h1>
+            <span className="text-[11px] text-sidebar-muted font-medium leading-none">Founder Control</span>
+        </div>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto hide-scrollbar">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          
-          if (isActive) {
+      <nav className="flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden hide-scrollbar px-1 mt-4">
+        <ul className="flex flex-col gap-0.5">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (pathname === '/' && item.href === '/');
+            
+            if (isActive) {
+              return (
+                <li key={item.href}>
+                  <Link 
+                    href={item.href} 
+                    className="group flex items-center bg-muted text-foreground rounded-md px-2.5 h-[32px] transition-transform duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <span className="material-symbols-outlined text-[18px] mr-2.5" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
+                    <span className="text-[13px] font-semibold">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            }
+            
             return (
-              <Link 
-                key={item.href} 
-                href={item.href} 
-                className="group flex items-center bg-white text-slate-900 rounded-full px-3 py-2.5 scale-[1.01] shadow-md transition-transform duration-150 ease-out"
-              >
-                <span className="material-symbols-outlined text-[18px] mr-2.5" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-                <span className="text-[13px] font-semibold">{item.label}</span>
-              </Link>
+              <li key={item.href}>
+                <Link 
+                  href={item.href} 
+                  className="group flex items-center text-muted-foreground hover:bg-muted hover:text-foreground rounded-md px-2.5 h-[32px] transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="material-symbols-outlined text-muted-foreground text-[18px] mr-2.5 group-hover:text-muted-foreground transition-colors">{item.icon}</span>
+                  <span className="text-[13px] font-medium">{item.label}</span>
+                </Link>
+              </li>
             );
-          }
-          
-          return (
-            <Link 
-              key={item.href} 
-              href={item.href} 
-              className="group flex items-center text-slate-300 hover:bg-white/10 hover:text-white rounded-full px-3 py-2.5 transition-colors duration-150 ease-out"
-            >
-              <span className="material-symbols-outlined text-[18px] mr-2.5 opacity-80 group-hover:opacity-100 transition-opacity">{item.icon}</span>
-              <span className="text-[13px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
+          })}
+        </ul>
       </nav>
 
-      <div className="mt-8 px-1">
-        <div className="bg-white/5 backdrop-blur-md p-4 rounded-xl border border-white/5" style={{ WebkitBackdropFilter: "blur(12px)" }}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-widest">Plan</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald"></span>
-          </div>
-          <p className="text-[13px] font-semibold text-white mb-0.5">Growth OS Active</p>
-          <p className="text-[11px] text-slate-400 mb-3 line-clamp-1">32/100 Diagnostics</p>
-          <button className="w-full py-1.5 px-3 bg-white/10 hover:bg-white/20 text-white rounded-md text-[11px] font-semibold transition-colors duration-150">
-            View Details
-          </button>
+      <div className="mt-6 px-1">
+        <div className="bg-transparent border-t border-sidebar-border/50 pt-4 flex flex-col">
+            <div className="flex items-center gap-2 mb-2 px-2">
+              <span className="material-symbols-outlined text-cyan text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              <span className="text-[11px] font-bold text-sidebar-foreground tracking-widest uppercase">Pro Access</span>
+            </div>
+            <p className="px-2 text-[12px] text-sidebar-muted leading-relaxed font-medium mb-3">
+                Unlock advanced intelligence, automation and AI workforce.
+            </p>
+            <button className="h-[32px] border border-sidebar-border text-sidebar-foreground hover:bg-sidebar-hover hover:border-sidebar-muted rounded-md text-[12px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-muted w-[90%] mx-2 text-center">
+                Upgrade
+            </button>
         </div>
       </div>
     </aside>

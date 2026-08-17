@@ -8,43 +8,50 @@ export default function Topbar() {
 
   const getPageTitle = (path: string) => {
     switch (path) {
-      case "/": return "Dashboard";
+      case "/": return "Command Center";
       case "/foundation": return "Foundation";
-      case "/attention": return "Attention";
-      case "/conversion": return "Conversion";
-      case "/delivery": return "Delivery";
-      case "/retention": return "Retention";
-      case "/revenue": return "Revenue";
-      case "/operator": return "Operator";
-      case "/calendar": return "Calendar";
+      case "/attention": return "Attention OS";
+      case "/conversion": return "Conversion OS";
+      case "/delivery": return "Delivery OS";
+      case "/retention": return "Retention OS";
+      case "/revenue": return "Revenue OS";
+      case "/intelligence": return "Intelligence";
+      case "/ai-workforce": return "AI Workforce";
+      case "/resources": return "Resources";
       case "/settings": return "Settings";
       default: return "Asenzo OS";
     }
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-canvas/80 backdrop-blur-md px-8 h-16 flex justify-between items-center w-full shrink-0 border-b border-outline-variant/30">
-      <div>
-        <h2 className="text-[22px] font-bold tracking-tight text-on-surface">{getPageTitle(pathname)}</h2>
+    <header className="px-12 h-[72px] flex justify-between items-center w-full shrink-0 border-b border-border/50">
+      <div className="flex flex-col justify-center">
+        <h2 className="text-[14px] font-semibold tracking-wide text-foreground uppercase mb-[2px]">{getPageTitle(pathname)}</h2>
+        <span className="text-[12px] text-muted-foreground">Monday, August 17 · Business Overview</span>
       </div>
+      
       <div className="flex items-center gap-6">
-        <div className="relative w-64 md:w-80">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+        <div className="relative w-[340px]">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 text-[16px]" style={{ fontVariationSettings: "'FILL' 0" }}>search</span>
           <input 
-            className="w-full h-10 pl-10 pr-4 rounded-full bg-surface border border-outline-variant focus:outline-none focus:ring-2 focus:ring-electric-blue text-on-surface text-[13px] shadow-sm transition-shadow" 
+            className="w-full h-[32px] pl-[34px] pr-10 rounded-md bg-muted/60 border border-transparent focus:bg-card focus:outline-none focus:ring-1 focus:ring-border focus:border-border text-foreground text-[13px] shadow-sm transition-all placeholder:text-muted-foreground/70" 
             placeholder="Search anything..." 
             type="text"
             readOnly 
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-card border border-border shadow-sm rounded flex items-center justify-center px-1.5 h-[20px]">
+            <span className="text-[10px] font-semibold text-muted-foreground leading-none">⌘ K</span>
+          </div>
         </div>
+
         <div className="flex items-center gap-4">
-          <button className="w-8 h-8 flex items-center justify-center text-outline hover:text-on-surface transition-colors relative">
+          <button className="w-[32px] h-[32px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-ring">
             <span className="material-symbols-outlined text-[20px]">notifications</span>
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-electric-blue rounded-full"></span>
+            <span className="absolute top-[6px] right-[6px] w-[6px] h-[6px] bg-destructive rounded-full border border-card shadow-sm"></span>
           </button>
           
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <div className="w-8 h-8 rounded-full bg-surface border border-outline-variant shadow-sm overflow-hidden flex items-center justify-center relative">
+          <div className="flex items-center cursor-pointer group rounded-full overflow-hidden focus-within:ring-1 focus-within:ring-ring">
+            <div className="w-[32px] h-[32px] bg-card border border-border shadow-sm flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 alt="Profile" 
