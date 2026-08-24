@@ -7,13 +7,12 @@ import { usePathname } from "next/navigation";
 // Asenzo Adaptation Phase 4 nav items
 const navItems = [
   { href: "/", icon: "dashboard", label: "Command Center" },
-  { href: "/foundation", icon: "foundation", label: "Foundation" },
-  { href: "/attention", icon: "campaign", label: "Attention" },
+  { href: "/intelligence", icon: "neurology", label: "Intelligence" },
+  { href: "/acquisition", icon: "radar", label: "Acquisition" },
   { href: "/conversion", icon: "query_stats", label: "Conversion" },
-  { href: "/delivery", icon: "check_circle", label: "Delivery" },
-  { href: "/retention", icon: "autorenew", label: "Retention" },
   { href: "/revenue", icon: "payments", label: "Revenue" },
-  { href: "/operator", icon: "precision_manufacturing", label: "Operator" },
+  { href: "/delivery", icon: "check_circle", label: "Delivery" },
+  { href: "/operations", icon: "precision_manufacturing", label: "Operations" },
   { href: "/calendar", icon: "calendar_month", label: "Calendar" },
   { href: "/settings", icon: "settings", label: "Settings" }
 ];
@@ -38,7 +37,7 @@ export default function Sidebar() {
       <nav className="flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden hide-scrollbar px-1 mt-4">
         <ul className="flex flex-col gap-0.5">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (pathname === '/' && item.href === '/');
+            const isActive = pathname.startsWith(item.href) && item.href !== '/' || (pathname === '/' && item.href === '/');
             
             if (isActive) {
               return (

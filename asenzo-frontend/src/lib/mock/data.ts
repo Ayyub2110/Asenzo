@@ -110,10 +110,27 @@ export const mockAttention: AttentionData = {
 
 export const mockConversion: ConversionData = {
   pipelineValue: 245000,
+  activities: [
+    {
+      id: "act1", type: "Call", timestamp: new Date(Date.now() - 3600000).toISOString(), description: "Completed Discovery Call.", owner: "John Founder", contactName: "David Kim", opportunityId: "o1"
+    }
+  ],
+  conversations: [
+    {
+      id: "c1", leadId: "l1", contact: "David Kim", company: "NextGen AI", source: "LinkedIn Organic", campaign: "Q3 Founder Burnout", status: "OPPORTUNITY", owner: "John Founder", lastInteraction: "Form Submission", lastMessage: "Let's definitely schedule a scoping call.", nextAction: "Schedule call", followUpDate: new Date().toISOString(), opportunityId: "o1", createdDate: new Date(Date.now() - 86400000).toISOString(), updatedDate: new Date().toISOString()
+    },
+    {
+      id: "c2", leadId: "l2", contact: "Sarah Jenkins", company: "Acme Corp", source: "Instagram Ads", campaign: "Retargeting", status: "DISCOVERY", owner: "John Founder", lastInteraction: "Email Confirmed", lastMessage: "Sounds good, looking forward to discussing.", nextAction: "Run Discovery Call", createdDate: new Date(Date.now() - 86400000*3).toISOString(), updatedDate: new Date().toISOString()
+    },
+    {
+      id: "c3", leadId: "l3", contact: "Unknown", company: "Pending", source: "Website", campaign: "Organic", status: "REPLIED", owner: "Sales Team", lastInteraction: "Email Reply", lastMessage: "Not sure right now. Can we talk next month?", nextAction: "Follow up next month", createdDate: new Date(Date.now() - 86400000*5).toISOString(), updatedDate: new Date().toISOString()
+    }
+  ],
   followUps: [
     {
       id: "fu1",
       opportunityId: "o4", // Stale Proposal
+      owner: "John Founder",
       reason: "Deal inactive for 6 days. Proposal outstanding.",
       dueDate: new Date(Date.now() - 86400000).toISOString(),
       priority: "high",
@@ -123,6 +140,7 @@ export const mockConversion: ConversionData = {
     {
       id: "fu2",
       opportunityId: "o2",
+      owner: "John Founder",
       reason: "Call scheduled this afternoon.",
       dueDate: new Date(Date.now() + 86400000).toISOString(),
       priority: "medium",
@@ -282,465 +300,261 @@ export const mockConversion: ConversionData = {
       daysInactive: 0,
       priority: "routine"
     }
+  ],
+  applications: [
+    { id: "app1", leadId: "l1", applicant: "David Kim", company: "NextGen AI", icpFit: "HIGH", problem: "CAC scaling poorly", budget: ">$50k", timeline: "Immediate", status: "UNDER_REVIEW", owner: "John Founder", recommendedRoute: "SALES_CALL" },
+    { id: "app2", leadId: "l4", applicant: "Tom Hanks", company: "Castaway", icpFit: "LOW", problem: "Need more leads", budget: "$1k", timeline: "Eventually", status: "STARTED", owner: "John Founder" }
+  ],
+  bookings: [
+    { id: "b1", leadId: "l1", callType: "Discovery Call", status: "BOOKED", bookedDate: new Date(Date.now() - 4800000).toISOString(), callDate: new Date(Date.now() + 86400000*2).toISOString(), owner: "John Founder", source: "LinkedIn Organic", campaign: "Q3 Founder Burnout" },
+    { id: "b2", leadId: "l2", callType: "Scoping Session", status: "COMPLETED", bookedDate: new Date(Date.now() - 86400000*5).toISOString(), callDate: new Date(Date.now() - 86400000*2).toISOString(), owner: "John Founder", source: "Instagram Ads", campaign: "Retargeting", showStatus: "SHOWED", outcome: "Moved to Proposal" }
+  ],
+  nurtureRecords: [
+    { id: "nr1", leadId: "l5", segment: "TIMING", status: "ACTIVE", lastInteraction: new Date(Date.now() - 86400000*14).toISOString(), reengagementDate: new Date(Date.now() + 86400000*14).toISOString(), owner: "Automated", sequenceName: "Q4 Strategy Drip" }
+  ],
+  assets: [
+    { id: "ca1", name: "Founder Independence VSL", type: "VSL", icp: "Burned out founders", awarenessStage: "Problem Aware", conversions: 48, status: "ACTIVE" },
+    { id: "ca2", name: "System ROI Calculator", type: "Calculator", icp: "B2B SaaS", awarenessStage: "Solution Aware", conversions: 12, status: "ACTIVE" }
   ]
 };
 
-export const mockDelivery: DeliveryData = {
+export const mockDelivery: import("@/lib/types").DeliveryData = {
+  clients: [
+    {
+      id: "c1",
+      name: "Logos Partners",
+      company: "Logos Partners LLC",
+      industry: "Financial Services",
+      icp: "Enterprise B2B",
+      owner: "ASENZO Ops",
+      health: {
+        overall: "GREEN",
+        signals: [
+          {
+            id: "sig1",
+            clientId: "c1",
+            dimension: "DELIVERY",
+            status: "GREEN",
+            reason: "Onboarding completed on time.",
+            timestamp: new Date().toISOString()
+          }
+        ]
+      }
+    }
+  ],
+  contacts: [
+    {
+      id: "con1",
+      clientId: "c1",
+      name: "Jane Doe",
+      email: "jane@logos.com",
+      role: "CEO",
+      isPrimary: true
+    }
+  ],
+  contracts: [
+    {
+      id: "ct1",
+      clientId: "c1",
+      dealId: "d1", // Points back to Revenue Deal
+      offer: "Q3 Optimization Pilot",
+      value: 20000,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 86400000 * 90).toISOString(),
+      paymentStatus: "PAID",
+      agreementStatus: "SIGNED"
+    }
+  ],
+  onboardings: [
+    {
+      id: "ob1",
+      clientId: "c1",
+      status: "COMPLETED",
+      intakeStatus: "APPROVED",
+      assetCollectionStatus: "COMPLETED",
+      accessStatus: "COMPLETED",
+      kickoffStatus: "COMPLETED",
+      health: "GREEN",
+      startDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+      completionDate: new Date().toISOString(),
+      owner: "ASENZO Ops"
+    }
+  ],
   engagements: [
     {
       id: "e1",
-      clientName: "Logos Partners", // Handoff from Conversion
-      engagementType: "Q3 Optimization Pilot",
-      status: "NOT_STARTED",
+      clientId: "c1",
+      name: "System Architecture Refactor",
+      offer: "Q3 Optimization Pilot",
+      owner: "Engineering",
       startDate: new Date().toISOString(),
-      targetCompletion: new Date(Date.now() + 86400000 * 90).toISOString(),
-      owner: "ASENZO Ops",
-      milestones: [
-        {
-          id: "m1",
-          engagementId: "e1",
-          title: "Onboarding Questionnaire",
-          description: "Collect client branding guidelines and founder tone constraints.",
-          dueDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-          status: "pending",
-          owner: "Client"
-        }
+      endDate: new Date(Date.now() + 86400000 * 90).toISOString(),
+      status: "ACTIVE",
+      team: [
+         { id: "tm1", engagementId: "e1", memberId: "u1", role: "Lead Architect" }
       ],
-      blockers: [],
-      intelligenceSignal: "Conversion handoff complete. Awaiting kickoff."
-    },
-    {
-      id: "e2",
-      clientName: "TechNova",
-      engagementType: "Automated Lead Routing Engine",
-      status: "BLOCKED",
-      startDate: new Date(Date.now() - 86400000 * 14).toISOString(),
-      targetCompletion: new Date(Date.now() + 86400000 * 30).toISOString(),
-      owner: "System Engineering",
-      milestones: [
-        {
-          id: "m2",
-          engagementId: "e2",
-          title: "Infrastructure Setup",
-          description: "Initialize webhook endpoints and routing tables.",
-          dueDate: new Date(Date.now() - 86400000 * 2).toISOString(),
-          status: "in_progress",
-          owner: "ASENZO Ops"
-        }
-      ],
-      blockers: [
-        {
-          id: "b1",
-          engagementId: "e2",
-          type: "client_dependency",
-          description: "Awaiting domain DNS verification from client IT.",
-          severity: "high",
-          status: "active",
-          affectedMilestoneId: "m2",
-          recommendedAction: "Escalate to client technical point of contact (Mike Ross)."
-        }
-      ]
-    },
-    {
-      id: "e3",
-      clientName: "Acme Corp",
-      engagementType: "Phase 1 Strategy Launch",
-      status: "ON_TRACK",
-      startDate: new Date(Date.now() - 86400000 * 30).toISOString(),
-      targetCompletion: new Date(Date.now() + 86400000 * 10).toISOString(),
-      owner: "Growth Strategy",
-      milestones: [
-        {
-          id: "m3",
-          engagementId: "e3",
-          title: "Asset Production",
-          description: "Generate 12 founder-voice organic units.",
-          dueDate: new Date(Date.now() - 86400000 * 1).toISOString(),
-          status: "completed",
-          owner: "ASENZO Content"
-        },
-        {
-          id: "m4",
-          engagementId: "e3",
-          title: "Final Review",
-          description: "Client approval of generated assets.",
-          dueDate: new Date(Date.now() + 86400000 * 4).toISOString(),
-          status: "pending",
-          owner: "Client"
-        }
-      ],
-      blockers: []
+      health: "GREEN",
+      progress: 15
     }
-  ]
-};
-
-export const mockRetention: import("@/lib/types").RetentionData = {
-  engagements: [
+  ],
+  milestones: [
     {
-      id: "r1",
-      clientName: "Global Metrics",
-      status: "HEALTHY",
-      owner: "ASENZO Ops",
-      startDate: new Date(Date.now() - 86400000 * 180).toISOString(),
-      lastInteractionDate: new Date(Date.now() - 86400000 * 3).toISOString(),
-      relationshipSummary: "Client is extremely happy with the initial launch and content scaling.",
-      health: "HEALTHY",
-      intelligenceSignal: "Client sentiment trending positive.",
-      goals: [
-        {
-          id: "g1",
-          title: "Scale Twitter Growth",
-          description: "Hit 5k targeted audience members.",
-          currentState: "3,200/5,000",
-          owner: "ASENZO Ops",
-          targetDate: new Date(Date.now() + 86400000 * 45).toISOString(),
-          status: "IN_PROGRESS"
-        }
-      ],
-      interactions: [
-        {
-          id: "i1",
-          date: new Date(Date.now() - 86400000 * 3).toISOString(),
-          type: "CHECK_IN",
-          summary: "Reviewed month 5 report.",
-          owner: "ASENZO Ops"
-        }
-      ],
-      risks: [],
-      nextAction: {
-        id: "na1",
-        title: "Submit upcoming quarter roadmap",
-        description: "Generate and send roadmap proposal for renewal.",
-        dueDate: new Date(Date.now() + 86400000 * 10).toISOString(),
-        owner: "Growth Strategy",
-        status: "PENDING"
-      }
-    },
-    {
-      id: "r2",
-      clientName: "Vortex Labs",
-      status: "NEEDS_ATTENTION",
-      owner: "ASENZO Ops",
-      startDate: new Date(Date.now() - 86400000 * 60).toISOString(),
-      lastInteractionDate: new Date(Date.now() - 86400000 * 25).toISOString(),
-      relationshipSummary: "Initial honeymoon phase wearing off. Missing syncs recently.",
-      health: "WATCH",
-      intelligenceSignal: "Interaction gap detected. Client hasn't been spoken to in 25 days.",
-      goals: [
-        {
-          id: "g2",
-          title: "Setup outbound systems",
-          description: "Finalize outbound playbook and CRM.",
-          currentState: "Drafting playbooks",
-          owner: "Client",
-          targetDate: new Date(Date.now() - 86400000 * 2).toISOString(),
-          status: "AT_RISK"
-        }
-      ],
-      interactions: [
-        {
-          id: "i2",
-          date: new Date(Date.now() - 86400000 * 25).toISOString(),
-          type: "DELIVERY_UPDATE",
-          summary: "Sent asset bundles.",
-          owner: "ASENZO Content"
-        }
-      ],
-      risks: [
-        {
-          id: "rk1",
-          title: "Client Ghosting",
-          description: "Missing recent syncs.",
-          severity: "MEDIUM",
-          status: "OPEN"
-        }
-      ],
-      nextAction: {
-        id: "na2",
-        title: "Executive Check-in",
-        description: "Call to realign on goal momentum.",
-        dueDate: new Date(Date.now() - 86400000 * 1).toISOString(),
-        owner: "Founder",
-        status: "PENDING"
-      }
-    },
-    {
-      id: "r3",
-      clientName: "Nexus Digital", // Delivery completion handoff example
-      status: "AT_RISK",
-      owner: "ASENZO Ops",
-      startDate: new Date(Date.now() - 86400000 * 240).toISOString(),
-      lastInteractionDate: new Date(Date.now() - 86400000 * 14).toISOString(),
-      relationshipSummary: "Delivery completed but structural churn risk due to client's internal restructuring.",
-      health: "AT_RISK",
-      intelligenceSignal: "High severity open risk. Intervention recommended.",
-      goals: [],
-      interactions: [],
-      risks: [
-        {
-          id: "rk2",
-          title: "Internal Client Champion left",
-          description: "Our main POC left the company, putting renewal at serious risk.",
-          severity: "HIGH",
-          status: "OPEN",
-          recommendedAction: "Establish contact with new interim VP of Marketing immediately."
-        }
-      ],
-      nextAction: {
-        id: "na3",
-        title: "Cold outreach to new leadership",
-        description: "Re-pitch value proposition.",
-        dueDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-        owner: "Founder",
-        status: "PENDING"
-      }
-    },
-    {
-      id: "r4",
-      clientName: "Stellar Operations",
-      status: "COMPLETED",
-      owner: "ASENZO Ops",
-      startDate: new Date(Date.now() - 86400000 * 100).toISOString(),
-      lastInteractionDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-      relationshipSummary: "Consulting framework fully deployed. Engagement concluded successfully.",
-      health: "HEALTHY",
-      goals: [
-        {
-          id: "g3",
-          title: "Framework Mapping",
-          description: "Complete.",
-          currentState: "Done",
-          owner: "ASENZO Ops",
-          targetDate: new Date(Date.now() - 86400000 * 10).toISOString(),
-          status: "ACHIEVED"
-        }
-      ],
-      interactions: [],
-      risks: [],
-      nextAction: undefined
-    }
-  ]
-};
-
-export const mockRevenue: import("@/lib/types").RevenueData = {
-  engagements: [
-    {
-      id: "rev1",
-      customerName: "Global Metrics",
-      owner: "ASENZO Finance",
-      linkedContext: "Customer originated from Closed-Won engagement.",
-      status: "ON_TRACK",
-      amount: 45000,
-      currency: "USD",
-      dueDate: new Date(Date.now() + 86400000 * 15).toISOString(),
-      description: "Q3 Optimization Pilot Renewal",
-      paymentState: "INVOICED",
-      items: [
-        {
-          id: "req_img_1",
-          title: "Setup Fee",
-          amount: 15000,
-          dueDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-          status: "COLLECTED",
-          owner: "ASENZO Finance",
-          description: "Initial onboarding and strategy session."
-        },
-        {
-          id: "req_img_2",
-          title: "Month 1 Retainer",
-          amount: 30000,
-          dueDate: new Date(Date.now() + 86400000 * 15).toISOString(),
-          status: "PENDING",
-          owner: "ASENZO Finance",
-          description: "Standard monthly retainer for growth execution."
-        }
-      ],
-      risks: [],
-      nextAction: {
-        id: "rna1",
-        title: "Send partial invoice",
-        description: "Invoice based on hitting interim traffic milestone.",
-        owner: "Finance Ops",
-        dueDate: new Date(Date.now() + 86400000 * 3).toISOString(),
-        status: "PENDING"
-      }
-    },
-    {
-      id: "rev2",
-      customerName: "Vortex Labs",
-      owner: "ASENZO Finance",
-      linkedContext: "Active Phase 1 Delivery",
-      status: "OVERDUE",
-      amount: 60000,
-      currency: "USD",
-      dueDate: new Date(Date.now() - 86400000 * 12).toISOString(),
-      description: "Enterprise Pipeline Development",
-      intelligenceSignal: "Revenue is overdue relative to the expected collection date.",
-      paymentState: "INVOICED",
-      items: [
-        {
-          id: "req_vtx_1",
-          title: "Phase 1 Complete",
-          amount: 60000,
-          dueDate: new Date(Date.now() - 86400000 * 12).toISOString(),
-          status: "OVERDUE",
-          owner: "ASENZO Finance",
-          description: "Final payment for successful Phase 1 delivery."
-        }
-      ],
-      risks: [
-        {
-          id: "rrk1",
-          title: "Accounts Payable Delay",
-          description: "Client AP department requires new vendor form.",
-          status: "OPEN"
-        }
-      ],
-      nextAction: {
-        id: "rna2",
-        title: "Submit vendor packet",
-        description: "Fill out and submit vendor onboarding forms to Vortex Labs AP.",
-        owner: "ASENZO Ops",
-        dueDate: new Date(Date.now() - 86400000 * 1).toISOString(),
-        status: "PENDING"
-      }
-    },
-    {
-      id: "rev3",
-      customerName: "Nexus Digital",
-      owner: "ASENZO Finance",
-      linkedContext: "Contract restructuring in progress",
-      status: "AT_RISK",
-      amount: 120000,
-      currency: "USD",
-      dueDate: new Date(Date.now() + 86400000 * 30).toISOString(),
-      description: "Annual License + Support",
-      intelligenceSignal: "Resolve the outstanding approval dependency before collection.",
-      paymentState: "UNINVOICED",
-      items: [
-        {
-          id: "req_nex_1",
-          title: "Annual Billing Header",
-          amount: 120000,
-          dueDate: new Date(Date.now() + 86400000 * 30).toISOString(),
-          status: "AT_RISK",
-          owner: "ASENZO Finance",
-          description: "Annual upfront payment. Pending final signature on renewed terms."
-        }
-      ],
-      risks: [
-        {
-          id: "rrk2",
-          title: "Contract Dispute",
-          description: "Client is questioning the SLA tiers before renewing.",
-          status: "OPEN"
-        }
-      ],
-      nextAction: {
-        id: "rna3",
-        title: "Executive Call",
-        description: "Align with Nexus CEO on SLA specifics to unlock invoicing.",
-        owner: "Founder",
-        dueDate: new Date(Date.now() + 86400000 * 1).toISOString(),
-        status: "PENDING"
-      }
-    },
-    {
-      id: "rev4",
-      customerName: "Acme Corp",
-      owner: "ASENZO Finance",
-      linkedContext: "Initial Conversion Closed",
-      status: "COLLECTED",
-      amount: 25000,
-      currency: "USD",
-      dueDate: new Date(Date.now() - 86400000 * 30).toISOString(),
-      description: "Brand Discovery Sprint",
-      paymentState: "PAID",
-      items: [
-        {
-          id: "req_acm_1",
-          title: "Sprint Payment",
-          amount: 25000,
-          dueDate: new Date(Date.now() - 86400000 * 30).toISOString(),
-          status: "COLLECTED",
-          owner: "ASENZO Finance",
-          description: "Paid via wire transfer."
-        }
-      ],
-      risks: [],
-      nextAction: undefined
-    }
-  ]
-};
-
-export const mockOperator: import("@/lib/types").OperatorData = {
-  items: [
-    {
-      id: "op1",
-      title: "Follow-up required after qualification",
-      description: "Acme Corp qualification completed with high readiness score. Requires immediate pipeline assignment.",
-      priority: "URGENT",
-      status: "OPEN",
-      owner: "ASENZO Growth",
-      sourceModule: "Conversion",
-      sourceEntityId: "opp1",
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-      recommendedAction: "Review qualification matrix and assign SDR.",
-      intelligenceSignal: "Account matches ideal ICP. Speed to lead is critical.",
-      linkedContext: "High Readiness Score"
-    },
-    {
-      id: "op2",
-      title: "Client dependency blocking delivery",
-      description: "Global Metrics lacks API access to internal systems, blocking the Pipeline Architecture milestone.",
-      priority: "HIGH",
-      status: "BLOCKED",
-      owner: "Delivery Team",
-      sourceModule: "Delivery",
-      sourceEntityId: "del1",
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      dueDate: new Date(Date.now() - 86400000 * 1).toISOString(),
-      recommendedAction: "Escalate to Global Metrics CTO for manual API provision.",
-      linkedContext: "Milestone: Pipeline Architecture"
-    },
-    {
-      id: "op3",
-      title: "Relationship requires attention",
-      description: "Vortex Labs engagement health is deteriorating due to unfulfilled goals.",
-      priority: "MEDIUM",
-      status: "OPEN",
-      owner: "Account Management",
-      sourceModule: "Retention",
-      sourceEntityId: "ret1",
-      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-      recommendedAction: "Schedule a health-check call with Vortex Labs stakeholders.",
-      intelligenceSignal: "No interaction logged in 30 days."
-    },
-    {
-      id: "op4",
-      title: "Overdue collection requires operator action",
-      description: "Vortex Labs Phase 1 Complete invoice is now 12 days overdue.",
-      priority: "HIGH",
+      id: "m1",
+      engagementId: "e1",
+      name: "Foundation Audit",
+      description: "Review current deployment and isolate root issues.",
+      owner: "Engineering",
+      startDate: new Date().toISOString(),
+      dueDate: new Date(Date.now() + 86400000 * 7).toISOString(),
       status: "IN_PROGRESS",
-      owner: "Finance Ops",
-      sourceModule: "Revenue",
-      sourceEntityId: "rev2",
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      recommendedAction: "Submit vendor packet to accounts payable.",
-      linkedContext: "Amount: $60,000"
+      progress: 50,
+      clientDependencies: []
+    }
+  ],
+  deliverables: [
+    {
+      id: "dl1",
+      name: "Audit Report v1",
+      type: "Strategy Document",
+      clientId: "c1",
+      engagementId: "e1",
+      milestoneId: "m1",
+      owner: "Engineering",
+      dueDate: new Date(Date.now() + 86400000 * 5).toISOString(),
+      status: "IN_PROGRESS",
+      versions: []
+    }
+  ],
+  communications: [
+    {
+      id: "msg1",
+      clientId: "c1",
+      owner: "ASENZO Ops",
+      date: new Date().toISOString(),
+      type: "MEETING",
+      status: "CLOSED",
+      summary: "Successful kickoff meeting held."
+    }
+  ],
+  outcomes: [],
+  reports: [],
+  renewals: [],
+  proofs: []
+};
+
+// Removed duplicate/old mockRevenue
+
+export const mockOperations: import("@/lib/types").OperationsData = {
+  team: [
+    {
+      id: "usr1",
+      name: "Alex Becker",
+      role: "Operations Lead",
+      department: "Operations",
+      skills: ["Process Design", "QA", "Approvals"],
+      capacity: 40,
+      workload: 35,
+      status: "ACTIVE",
+      backupFor: ["usr2"]
     },
     {
-      id: "op5",
-      title: "Draft Proposal Approval",
-      description: "Nexus Digital proposal is drafted but requires executive sign-off.",
-      priority: "LOW",
-      status: "COMPLETED",
-      owner: "Executive Sponsor",
-      sourceModule: "Conversion",
-      sourceEntityId: "opp2",
-      createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-      recommendedAction: "Review and approve the contract terms.",
-      linkedContext: "Status: Sent"
+      id: "usr2",
+      name: "Sarah Chen",
+      role: "Content Director",
+      department: "Attention",
+      skills: ["Copywriting", "Video Editing"],
+      capacity: 40,
+      workload: 45,
+      status: "OVER_CAPACITY",
+      backupFor: []
+    }
+  ],
+  tasks: [
+    {
+      id: "tsk1",
+      title: "Content Production Review",
+      description: "Review latest finalized attention SOP.",
+      ownerId: "usr1",
+      sourceModule: "Operations",
+      priority: "HIGH",
+      status: "BACKLOG",
+      dueDate: new Date(Date.now() + 86400000).toISOString(),
+      createdAt: new Date().toISOString()
+    }
+  ],
+  sops: [
+    {
+      id: "sop1",
+      name: "Client Onboarding Sequence",
+      purpose: "Initialize client workspaces and trigger kickoffs",
+      trigger: "Revenue: Deal Closed Won",
+      ownerId: "usr1",
+      processSteps: ["Create Client Record", "Send Intake Form", "Schedule Kickoff"],
+      qualityStandard: "Kickoff must be scheduled within 48 hours of payment",
+      expectedOutput: "Completed onboarding workflow",
+      status: "ACTIVE",
+      version: "1.2",
+      lastReviewedDate: new Date(Date.now() - 30 * 86400000).toISOString(),
+      nextReviewDate: new Date(Date.now() + 60 * 86400000).toISOString()
+    }
+  ],
+  workflows: [
+    {
+      id: "wkf1",
+      name: "Sales Handoff to Delivery",
+      triggerEvent: "Contract Signed",
+      steps: ["Generate Invoice", "Create Asenzo Client Record", "Assign Delivery Lead"],
+      ownerId: "usr1"
+    }
+  ],
+  approvals: [
+    {
+      id: "app1",
+      request: "Strategic Offer Variation",
+      sourceModule: "Revenue",
+      requestedBy: "usr2",
+      approverId: "usr1",
+      priority: "URGENT",
+      status: "PENDING",
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      dueDate: new Date(Date.now() + 86400000).toISOString()
+    }
+  ],
+  qc: [
+    {
+      id: "qc1",
+      title: "Landing Page V2 Copy Review",
+      sourceModule: "Attention",
+      ownerId: "usr2",
+      reviewerId: "usr1",
+      status: "FAILED",
+      severity: "HIGH",
+      relatedRecordId: "dl1"
+    }
+  ],
+  escalations: [
+    {
+      id: "esc1",
+      issue: "Client Delay > 7 Days",
+      sourceModule: "Delivery",
+      severity: "URGENT",
+      ownerId: "usr1",
+      escalationOwnerId: "usr1",
+      status: "OPEN",
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      deadline: new Date(Date.now() + 86400000).toISOString(),
+      reason: "Asset collection from Acme Corp is severely overdue.",
+      recommendedAction: "Founder intervention required on primary contact."
+    }
+  ],
+  schedule: [
+    {
+      id: "sch1",
+      title: "Pipeline Cleanup Sync",
+      frequency: "WEEKLY",
+      ownerId: "usr1",
+      agenda: "Review all stagnant revenue pipeline opportunities.",
+      status: "PENDING"
     }
   ]
 };
@@ -837,4 +651,251 @@ export const mockSettings: import("@/lib/types").SettingsData = {
     intelligenceAggressiveness: "BALANCED"
   },
   intelligenceSignal: "We recommend enabling autodelegation to clear upcoming Operator queues."
+};
+
+export const mockRevenue: import("@/lib/types").RevenueData = {
+  pipelineValue: 2450000,
+  weightedPipeline: 1720000,
+  expectedRevenue: 1720000,
+  closedWon: 840000,
+  closedLost: 310000,
+  winRate: 32,
+  deals: [
+    {
+      id: "d1",
+      leadId: "l1",
+      contact: "David Kim",
+      company: "NextGen AI",
+      owner: "John Founder",
+      value: 45000,
+      currency: "USD",
+      expectedCloseDate: new Date(Date.now() + 86400000 * 14).toISOString(),
+      stage: "PROPOSAL_SENT",
+      nextAction: "Follow up on proposal",
+      lastActivity: "Sent Proposal #381",
+      source: "LinkedIn Organic",
+      campaign: "Q3 Founder Burnout",
+      icp: "Highest",
+      offer: "Full OS Implementation",
+      confidence: "HIGH",
+      stageAge: 4,
+      createdDate: new Date(Date.now() - 86400000 * 20).toISOString(),
+      updatedDate: new Date().toISOString(),
+      probability: 70
+    },
+    {
+       id: "d2",
+       leadId: "l2",
+       contact: "Sarah Jenkins",
+       company: "Acme Corp",
+       owner: "John Founder",
+       value: 12000,
+       currency: "USD",
+       expectedCloseDate: new Date(Date.now() + 86400000 * 7).toISOString(),
+       stage: "QUALIFIED",
+       nextAction: "Book Discovery/Pitch",
+       lastActivity: "Qualified via form",
+       source: "Instagram Ads",
+       campaign: "Retargeting",
+       icp: "Medium",
+       offer: "Pilot Program",
+       confidence: "MEDIUM",
+       stageAge: 1,
+       createdDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+       updatedDate: new Date().toISOString(),
+       probability: 20
+    }
+  ],
+  proposals: [
+    {
+      id: "p1",
+      dealId: "d1",
+      offer: "Full OS Implementation",
+      scope: "Foundation + Acquisition + Conversion",
+      price: 45000,
+      status: "SENT",
+      sentDate: new Date(Date.now() - 86400000 * 4).toISOString(),
+    }
+  ],
+  followUps: [
+    {
+      id: "rf1",
+      dealId: "d1",
+      owner: "John Founder",
+      dueDate: new Date(Date.now() - 86400000 * 1).toISOString(),
+      priority: "HIGH",
+      reason: "Follow up on sent proposal",
+      status: "OVERDUE",
+      nextAction: "Email David to schedule review"
+    }
+  ],
+  objections: [
+    {
+      id: "ob1",
+      objection: "Not sure an automated system can sound like me.",
+      recommendedResponse: "Reference the Founder Voice DNA constraints.",
+      frequency: 24,
+      winLossImpact: "-12%",
+      relatedOffer: "Full OS Implementation"
+    },
+    {
+      id: "ob2",
+      objection: "We tried an agency before and got burned.",
+      recommendedResponse: "Explain the difference between an OS and an agency.",
+      frequency: 41,
+      winLossImpact: "-20%",
+      relatedOffer: "All"
+    }
+  ],
+  playbooks: [
+    {
+      id: "pb1",
+      name: "The Founder Discovery Script",
+      stage: "CALL_HELD",
+      purpose: "Elicit current state constraints and time pain",
+      status: "ACTIVE"
+    },
+    {
+      id: "pb2",
+      name: "OS Comparison Framework",
+      stage: "PROPOSAL_SENT",
+      purpose: "Reframe expectations against traditional agencies",
+      status: "ACTIVE"
+    }
+  ],
+  lostDeals: [
+    {
+       id: "ld1",
+       dealId: "d19",
+       value: 20000,
+       stageLost: "NEGOTIATION",
+       reason: "PRICE",
+       objection: "Too expensive for Q3 budget",
+       dateLost: new Date(Date.now() - 86400000 * 10).toISOString()
+    }
+  ]
+};
+
+export const mockIntelligence: import("@/lib/types").IntelligenceData = {
+  pulse: {
+    revenue: 1720000,
+    pipeline: 3200000,
+    qualifiedLeads: 42,
+    newLeads: 128,
+    conversionRate: 14.5,
+    contentReach: 142000,
+    qualifiedAttention: 8400,
+    clientOutcomes: 12,
+    retentionRisk: 2,
+    operationalHealth: "Warning"
+  },
+  healthMatrix: [
+    { area: "Foundation", metric: "Positioning clarity", status: "Healthy", trend: "Up" },
+    { area: "Attention", metric: "Qualified attention", status: "Healthy", trend: "Up" },
+    { area: "Acquisition", metric: "Lead generation", status: "Warning", trend: "Down" },
+    { area: "Conversion", metric: "Qualification rate", status: "Critical", trend: "Down" },
+    { area: "Revenue", metric: "Pipeline velocity", status: "Healthy", trend: "Up" },
+    { area: "Delivery", metric: "Client outcomes", status: "Healthy", trend: "Stable" },
+    { area: "Operations", metric: "Capacity", status: "Warning", trend: "Down" }
+  ],
+  constraints: [
+    {
+      id: "cnstr1",
+      constraint: "Acquisition → Qualification",
+      detectedDate: new Date(Date.now() - 86400000 * 14).toISOString(),
+      severity: "CRITICAL",
+      evidence: "Lead volume increased by 22% but qualified-lead rate fell 24%.",
+      affectedCenter: "Conversion",
+      recommendedAction: "Audit qualification gate and add mandatory revenue question.",
+      status: "ACTIVE"
+    }
+  ],
+  opportunities: [
+    {
+      id: "opp1",
+      opportunity: "Double down on 'Founder Systems' content pillar",
+      source: "Content-to-Revenue analysis",
+      evidence: "This pillar generates 3.2× more qualified conversations than average.",
+      expectedImpact: "+15% Qualified Pipeline",
+      confidence: "HIGH",
+      requiredAction: "Increase production allocation to this pillar by 20%.",
+      relatedCenter: "Attention",
+      status: "IDENTIFIED"
+    }
+  ],
+  risks: [
+    {
+      id: "rsk1",
+      risk: "Concentrated Active Pipeline",
+      category: "Revenue",
+      severity: "HIGH",
+      probability: "MEDIUM",
+      businessImpact: "Loss of top 2 deals materially affects Q3 cash flow.",
+      evidence: "68% of current qualified pipeline is concentrated in two opportunities.",
+      affectedCenter: "Revenue",
+      mitigation: "Increase qualified opportunity generation at the top of funnel.",
+      status: "OPEN"
+    }
+  ],
+  attribution: [
+    { id: "at1", source: "LinkedIn Content", leads: 82, qualified: 24, opportunities: 12, won: 4, revenue: 160000 },
+    { id: "at2", source: "Founder Newsletter", leads: 42, qualified: 18, opportunities: 8, won: 3, revenue: 140000 },
+    { id: "at3", source: "Referral", leads: 7, qualified: 6, opportunities: 5, won: 5, revenue: 220000 }
+  ],
+  channels: [
+    { id: "ch1", channel: "LinkedIn", reach: 85000, engagementQuality: "High", leads: 110, qualifiedLeads: 32, opportunities: 14, closedDeals: 5, revenue: 200000, conversionRate: 12.7, revenuePerLead: 1818, revenuePerOpportunity: 14285 },
+    { id: "ch2", channel: "X (Twitter)", reach: 45000, engagementQuality: "Medium", leads: 38, qualifiedLeads: 6, opportunities: 2, closedDeals: 0, revenue: 0, conversionRate: 0, revenuePerLead: 0, revenuePerOpportunity: 0 }
+  ],
+  contentRevenue: [
+    {
+      id: "cr1",
+      contentPiece: "Why posting more doesn't grow your business",
+      contentPillar: "Strategic Truths",
+      awarenessStage: "Problem Aware",
+      funnelRole: "Conversion",
+      channel: "LinkedIn",
+      cta: "Book Discovery",
+      reach: 42000,
+      leads: 35,
+      qualifiedLeads: 18,
+      opportunities: 5,
+      deals: 2,
+      revenueInfluenced: 90000
+    }
+  ],
+  founderDependency: {
+    score: 68,
+    majorSources: ["Content final approval", "Sales calls > $20k", "Client onboarding kickoff"],
+    trend: "DECREASING",
+    summary: "68% of critical revenue workflows currently require founder intervention, down from 82% last quarter.",
+    recommendedAction: "Establish sales SOPs and delegate onboarding to Delivery team."
+  },
+  recommendations: [
+    {
+      id: "rec1",
+      recommendation: "Increase Problem-Aware content production by 20%",
+      reason: "High conversion efficiency",
+      evidence: "Problem-aware content represents 34% of published volume but generates 61% of qualified conversations.",
+      expectedImpact: "Higher qualification rate across all leads.",
+      confidence: "HIGH",
+      priority: "HIGH",
+      affectedCenter: "Attention",
+      requiredAction: "Adjust content calendar allocation.",
+      status: "PENDING"
+    }
+  ],
+  reviews: [
+    {
+      id: "rev1",
+      reviewPeriod: "MONTHLY",
+      participants: ["Founder", "Ops Lead"],
+      metrics: ["Revenue", "Pipeline", "Qualified Leads"],
+      findings: "Lead volume is up but quality is down, stressing sales capacity.",
+      decisions: "We will introduce an explicit budget question to the initial assessment.",
+      recommendations: ["rec1"],
+      actions: ["Update Typeform", "Brief SDRs"],
+      completedStatus: true,
+      date: new Date(Date.now() - 86400000 * 3).toISOString()
+    }
+  ]
 };

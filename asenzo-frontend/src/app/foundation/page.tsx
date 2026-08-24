@@ -1,391 +1,284 @@
 "use client";
 
-import React, { useState } from "react";
-import { getFoundation, updateFoundation } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import React, { useState, useEffect } from "react";
+import { Modal } from "@/components/ui/Modal";
+import { mockFoundationData } from "@/lib/mockFoundationData";
 
-import { Skeleton, CardSkeleton } from "@/components/ui/States";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
+// Reusable UI components
+function TitleSection({ title, subtitle }: { title: string, subtitle: string }) {
+  return (
+    <div className="flex items-center justify-between mb-8">
+      <div>
+         <h1 className="text-[24px] font-bold tracking-tight text-foreground uppercase">{title}</h1>
+         <p className="text-[13px] text-muted-foreground mt-1">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4 select-none">
+      <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">{title}</h2>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  let colorClass = "bg-muted text-muted-foreground";
+  if (status.includes("Complete") || status.includes("Strong") || status.includes("Ready")) {
+     colorClass = "bg-success/10 text-success border border-success/20";
+  } else if (status.includes("Needs refinement") || status.includes("Partial")) {
+     colorClass = "bg-warning/10 text-warning border border-warning/20";
+  } else if (status.includes("Missing")) {
+     colorClass = "bg-destructive/10 text-destructive border border-destructive/20";
+  }
+
+  return (
+    <span className={`px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
+      {status}
+    </span>
+  );
+}
+
+function DomainCard({ title, subtitle, status, onClick }: { title: string, subtitle: string, status: string, onClick: () => void }) {
+  return (
+    <div 
+      className="group border border-border bg-card rounded-[12px] p-5 hover:border-tertiary/40 transition-colors cursor-pointer flex flex-col justify-between"
+      onClick={onClick}
+    >
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[14px] font-bold text-foreground tracking-wide uppercase">{title}</h3>
+          <StatusBadge status={status} />
+        </div>
+        <p className="text-[13px] text-muted-foreground font-medium pr-4">{subtitle}</p>
+      </div>
+      <div className="mt-6 flex justify-end">
+         <span className="text-[12px] font-semibold text-tertiary group-hover:text-foreground transition-colors">Edit →</span>
+      </div>
+    </div>
+  );
+}
 
 export default function FoundationPage() {
-  const { data, setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getFoundation);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [data, setData] = useState<typeof mockFoundationData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
 
-  function handleCancel() {
-    setLocalData(data); // revert to canonical explicitly
-    setIsEditing(false);
-  }
-
-  async function handleSave() {
-    if (!localData) return;
-    setIsSaving(true);
-    try {
-      const res = await updateFoundation(localData);
-      setData(res);
-      setLocalData(res);
-      setIsEditing(false);
-    } catch (err: unknown) {
-      alert("Failed to save. " + (err instanceof Error ? err.message : ""));
-    } finally {
-      setIsSaving(false);
-    }
-  }
+  useEffect(() => {
+    // Simulate loading internal sources
+    const timer = setTimeout(() => {
+      setData(mockFoundationData);
+      setLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (loading) {
     return (
-      <div className="p-10 max-w-[1440px] mx-auto w-full space-y-8 animate-in fade-in duration-300">
-        <Skeleton className="h-8 w-64 mb-2" />
-        <Skeleton className="h-4 w-48 mb-8" />
-        <CardSkeleton />
-        <div className="mt-8">
-          <CardSkeleton />
+     <div className="p-6 md:p-10 lg:p-12 max-w-[1360px] mx-auto w-full space-y-12 animate-pulse pb-32">
+        <div className="h-8 bg-muted rounded w-48 mb-2"></div>
+        <div className="h-4 bg-muted rounded w-64 mb-8"></div>
+        <div className="h-[140px] bg-muted/50 rounded-[16px] mb-10 border border-border"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+           {[...Array(8)].map((_, i) => <div key={i} className="h-[160px] bg-muted/50 rounded-[12px] border border-border"></div>)}
         </div>
       </div>
     );
   }
 
-  if (error || !data || !localData) {
-    return (
-      <div className="p-10 max-w-[1440px] mx-auto w-full space-y-8">
-        <Alert variant="danger" title="Load Error">
-          {error || "Foundation context could not be loaded."}
-          <div className="mt-4">
-            <Button variant="secondary" size="sm" onClick={loadData}>Retry</Button>
-          </div>
-        </Alert>
-      </div>
-    );
-  }
-
-  const handleDNAChange = (field: keyof typeof localData.coreDna, value: string) => {
-    setLocalData((prev) => prev ? { ...prev, coreDna: { ...prev.coreDna, [field]: value } } : prev);
-  };
-  const handleICPChange = (field: keyof typeof localData.icp, value: string | string[]) => {
-    setLocalData((prev) => prev ? { ...prev, icp: { ...prev.icp, [field]: value } } : prev);
-  };
-  const handleOfferChange = (field: keyof typeof localData.offer, value: string | string[]) => {
-    setLocalData((prev) => prev ? { ...prev, offer: { ...prev.offer, [field]: value } } : prev);
-  };
-  const handleBrandVoiceChange = (field: keyof typeof localData.brandVoice, value: string | string[]) => {
-    setLocalData((prev) => prev ? { ...prev, brandVoice: { ...prev.brandVoice, [field]: value } } : prev);
-  };
-  const handleFounderVoiceChange = (field: keyof typeof localData.founderVoice, value: string | string[] | boolean) => {
-    setLocalData((prev) => prev ? { ...prev, founderVoice: { ...prev.founderVoice, [field]: value } } : prev);
-  };
+  if (!data) return null;
 
   return (
-    <div className="flex-1 p-container-padding max-w-[1440px] mx-auto w-full flex flex-col lg:flex-row gap-card-gap">
-      <div className="flex-1 flex flex-col space-y-card-gap">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
-          <div>
-            <h3 className="font-headline-md-lg text-display-lg text-on-surface tracking-tight">Foundation DNA</h3>
-            <p className="font-body-lg text-body-lg text-on-surface-variant mt-1">Configure the core parameters driving your Growth OS.</p>
+    <div className="p-6 md:p-10 lg:p-12 max-w-[1360px] mx-auto w-full pb-32">
+      <TitleSection title="Foundation Center" subtitle="The source of truth for your entire business ecosystem." />
+
+      {/* OVERALL HEALTH */}
+      <section className="mb-10">
+        <SectionHeader title="Foundation Health" />
+        <div className="border border-border bg-card rounded-[16px] p-6 lg:p-8 flex flex-col md:flex-row gap-10">
+          <div className="flex flex-col min-w-[200px]">
+             <div className="flex items-baseline gap-3 mb-1">
+                <span className="text-[56px] font-bold text-foreground leading-none tracking-tight tabular-nums">{data.health.percentage}</span>
+                <span className="text-[18px] font-bold text-tertiary">/ 100</span>
+             </div>
+             <p className="text-[13px] text-muted-foreground font-medium mb-4">Overall Readiness</p>
+             <div>
+                <StatusBadge status={data.health.overallStatus} />
+             </div>
           </div>
-          {isEditing ? (
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={handleCancel}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl font-headline-sm text-headline-sm text-on-surface shadow-sm hover:bg-surface-container-low transition-colors gap-2"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSave}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center px-4 py-2 bg-primary text-on-primary border border-outline-variant rounded-xl font-headline-sm text-headline-sm shadow-sm hover:bg-primary/90 transition-colors gap-2"
-              >
-                Save Context
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setIsEditing(true)}
-              className="inline-flex items-center justify-center px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-xl font-headline-sm text-headline-sm text-on-surface shadow-sm hover:bg-surface-container-low transition-colors gap-2"
-            >
-              <span className="material-symbols-outlined text-[18px]">edit_note</span>
-              Edit Context
-            </button>
-          )}
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-5 gap-6">
+             <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Completeness</span>
+               <span className="text-[20px] font-bold text-foreground">{data.health.categories.completeness}</span>
+             </div>
+             <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Clarity</span>
+               <span className="text-[20px] font-bold text-foreground">{data.health.categories.clarity}</span>
+             </div>
+             <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Consistency</span>
+               <span className="text-[20px] font-bold text-foreground">{data.health.categories.consistency}</span>
+             </div>
+             <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Evidence</span>
+               <span className="text-[20px] font-bold text-foreground">{data.health.categories.evidence}</span>
+             </div>
+             <div className="flex flex-col gap-1.5">
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Freshness</span>
+               <span className="text-[20px] font-bold text-foreground">{data.health.categories.freshness}</span>
+             </div>
+          </div>
         </div>
+      </section>
 
-        <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
-          <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">fingerprint</span>
-            Core DNA
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Business Name</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                type="text" 
-                readOnly={!isEditing}
-                value={localData.coreDna.businessName}
-                onChange={(e) => handleDNAChange('businessName', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Business Model</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors appearance-none"
-                value={localData.coreDna.businessModel}
-                readOnly={!isEditing}
-                onChange={(e) => handleDNAChange('businessModel', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Core Description</label>
-              <textarea 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors resize-none" 
-                rows={2}
-                readOnly={!isEditing}
-                value={localData.coreDna.businessDescription}
-                onChange={(e) => handleDNAChange('businessDescription', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Primary Problem Solved</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                type="text" 
-                readOnly={!isEditing}
-                value={localData.coreDna.coreProblemSolved}
-                onChange={(e) => handleDNAChange('coreProblemSolved', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Primary Transformation</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                type="text" 
-                readOnly={!isEditing}
-                value={localData.coreDna.primaryTransformation}
-                onChange={(e) => handleDNAChange('primaryTransformation', e.target.value)}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
-          <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">group</span>
-            Ideal Customer Profile (ICP)
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2 md:col-span-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Profile Description</label>
-              <textarea 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors resize-none" 
-                rows={2}
-                readOnly={!isEditing}
-                value={localData.icp.description}
-                onChange={(e) => handleICPChange('description', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Target Industry</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                type="text" 
-                readOnly={!isEditing}
-                value={localData.icp.industry}
-                onChange={(e) => handleICPChange('industry', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Key Disqualifiers</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                type="text" 
-                readOnly={!isEditing}
-                value={localData.icp.disqualifiers.join(', ')}
-                onChange={(e) => handleICPChange('disqualifiers', e.target.value.split(','))}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
-          <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">view_in_ar</span>
-            Offer Builder
-          </h4>
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Core Deliverables</label>
-              <div className="flex flex-wrap gap-2">
-                {localData.offer.deliverables.map((item, idx) => (
-                    <span key={idx} className="px-3 py-1.5 bg-surface-container border border-outline-variant/30 rounded-md font-body-sm text-body-sm text-on-surface flex items-center gap-1">
-                        {item} {isEditing && <span className="material-symbols-outlined text-[14px] cursor-pointer hover:text-error">close</span>}
-                    </span>
-                ))}
-                {isEditing && (
-                    <button className="px-3 py-1.5 border border-dashed border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary transition-colors rounded-md font-body-sm text-body-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">add</span> Add Item
-                    </button>
-                )}
+      {/* SUMMARY */}
+      <section className="mb-14">
+        <SectionHeader title="Business Summary" />
+        <div className="border border-border bg-card rounded-[16px] p-6 flex flex-col md:flex-row gap-6">
+           <div className="flex-1 flex flex-col gap-4 border-r border-border/50 pr-4">
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Business</h4>
+                <p className="text-[14px] font-semibold text-foreground">{data.summary.business}</p>
               </div>
-            </div>
-            <div className="space-y-2">
-              <label className="font-label-caps text-label-caps text-on-surface-variant block">Proof Mechanism</label>
-              <input 
-                className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                type="text" 
-                readOnly={!isEditing}
-                value={localData.offer.proof}
-                onChange={(e) => handleOfferChange('proof', e.target.value)}
-              />
-            </div>
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-card-gap">
-          <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
-            <h4 className="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">record_voice_over</span>
-              Brand Voice
-            </h4>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="font-label-caps text-label-caps text-on-surface-variant block">Primary Tone</label>
-                <input 
-                    className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors"
-                    value={localData.brandVoice.tone}
-                    readOnly={!isEditing}
-                    onChange={(e) => handleBrandVoiceChange('tone', e.target.value)}
-                />
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Customer / ICP</h4>
+                <p className="text-[14px] font-semibold text-foreground">{data.summary.customer}</p>
               </div>
-              <div className="space-y-2">
-                <label className="font-label-caps text-label-caps text-on-surface-variant block">Constrained Words (Avoid)</label>
-                <input 
-                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                  type="text" 
-                  readOnly={!isEditing}
-                  value={localData.brandVoice.avoidWords.join(', ')}
-                  onChange={(e) => handleBrandVoiceChange('avoidWords', e.target.value.split(','))}
-                />
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Core Problem</h4>
+                <p className="text-[14px] font-medium text-foreground">{data.summary.coreProblem}</p>
               </div>
-            </div>
-          </section>
-
-          <section className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] border border-outline-variant/10">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">person_check</span>
-                Founder Voice
-              </h4>
-              <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                <input 
-                  checked={localData.founderVoice.configured} 
-                  onChange={(e) => handleFounderVoiceChange('configured', e.target.checked)}
-                  disabled={!isEditing}
-                  className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-surface-container-lowest border-4 appearance-none cursor-pointer border-primary bg-primary right-0" 
-                  id="toggle1" name="toggle" type="checkbox"
-                />
-                <label className="toggle-label block overflow-hidden h-5 rounded-full bg-primary cursor-pointer" htmlFor="toggle1"></label>
+           </div>
+           <div className="flex-1 flex flex-col gap-4 border-r border-border/50 pr-4">
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Desired Result</h4>
+                <p className="text-[14px] font-medium text-foreground">{data.summary.desiredResult}</p>
               </div>
-            </div>
-            <div className={`space-y-4 ${!localData.founderVoice.configured ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div className="space-y-2">
-                <label className="font-label-caps text-label-caps text-on-surface-variant block">Content Cadence</label>
-                <input 
-                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors" 
-                  type="text" 
-                  readOnly={!isEditing}
-                  value={localData.founderVoice.cadence}
-                  onChange={(e) => handleFounderVoiceChange('cadence', e.target.value)}
-                />
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Mechanism</h4>
+                <p className="text-[14px] font-semibold text-foreground">{data.summary.mechanism}</p>
               </div>
-              <div className="space-y-2">
-                <label className="font-label-caps text-label-caps text-on-surface-variant block">Common Expressions</label>
-                <textarea 
-                  className="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl p-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors resize-none" 
-                  rows={2}
-                  readOnly={!isEditing}
-                  value={localData.founderVoice.phrases.join(', ')}
-                  onChange={(e) => handleFounderVoiceChange('phrases', e.target.value.split(','))}
-                />
+           </div>
+           <div className="flex-1 flex flex-col gap-4">
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Offer</h4>
+                <p className="text-[14px] font-semibold text-foreground">{data.summary.offer}</p>
               </div>
-            </div>
-          </section>
+              <div>
+                <h4 className="text-[10px] font-bold text-tertiary uppercase tracking-widest mb-1">Positioning</h4>
+                <p className="text-[14px] font-medium text-foreground leading-relaxed">{data.summary.positioning}</p>
+              </div>
+           </div>
         </div>
+      </section>
 
-        {isEditing && (
-          <div className="flex justify-end gap-4 pt-4 pb-8">
-            <button onClick={handleCancel} className="px-6 py-2.5 bg-surface-container-lowest border border-outline-variant/50 rounded-xl font-headline-sm text-headline-sm text-on-surface hover:bg-surface-container transition-colors shadow-sm">
-                Cancel
-            </button>
-            <button onClick={handleSave} className="px-6 py-2.5 bg-primary rounded-xl font-headline-sm text-headline-sm text-on-primary hover:bg-primary/90 transition-colors shadow-md">
-                Save DNA
-            </button>
-          </div>
-        )}
-      </div>
-
-      <aside className="w-full lg:w-80 flex-shrink-0 flex flex-col space-y-card-gap">
-        <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/10 sticky top-[88px]">
-          <div className="flex items-center justify-between mb-6">
-            <h4 className="font-headline-sm text-headline-sm text-on-surface">Data Readiness</h4>
-            <span className="material-symbols-outlined text-on-surface-variant">info</span>
-          </div>
-          <div className="flex flex-col items-center justify-center py-6">
-            <div className="relative w-32 h-32 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-                <circle className="stroke-surface-container-highest" cx="18" cy="18" fill="none" r="16" strokeWidth="3"></circle>
-                <circle className="stroke-primary" cx="18" cy="18" fill="none" r="16" strokeDasharray="100 100" strokeDashoffset={100 - data.readiness.percentage} strokeWidth="3"></circle>
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-headline-md-lg text-display-lg text-primary tracking-tight">{data.readiness.percentage}%</span>
-              </div>
-            </div>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-4 text-center">System is {data.readiness.status.toLowerCase()} and awaiting final DNA inputs.</p>
-          </div>
-          
-          <hr className="border-outline-variant/20 my-6" />
-          
-          <ul className="space-y-4">
-            <li className="flex items-start gap-3">
-              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.coreDna.businessName ? 'text-primary' : 'text-outline-variant opacity-60'}`}>
-                {localData.coreDna.businessName ? 'check_circle' : 'radio_button_unchecked'}
-              </span>
-              <div>
-                <p className="font-headline-sm text-body-sm text-on-surface">Core DNA Defined</p>
-                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">Basic parameters set.</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.icp.description ? 'text-primary' : 'text-outline-variant opacity-60'}`}>
-                {localData.icp.description ? 'check_circle' : 'radio_button_unchecked'}
-              </span>
-              <div>
-                <p className="font-headline-sm text-body-sm text-on-surface">ICP Mapped</p>
-                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">Audience constraints locked.</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.offer.proof ? 'text-primary' : 'text-outline-variant opacity-60'}`}>
-                {localData.offer.proof ? 'check_circle' : 'radio_button_unchecked'}
-              </span>
-              <div>
-                <p className="font-headline-sm text-body-sm text-on-surface">Offer Architecture</p>
-                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">Deliverables structured.</p>
-              </div>
-            </li>
-            <li className={`flex items-start gap-3 ${!localData.founderVoice.configured ? 'opacity-60' : ''}`}>
-              <span className={`material-symbols-outlined text-[20px] mt-0.5 ${localData.founderVoice.configured ? 'text-primary' : 'text-outline-variant'}`}>
-                {localData.founderVoice.configured ? 'check_circle' : 'radio_button_unchecked'}
-              </span>
-              <div>
-                <p className="font-headline-sm text-body-sm text-on-surface">Voice Calibration</p>
-                <p className="font-label-muted text-label-muted text-on-surface-variant mt-0.5">{localData.founderVoice.configured ? 'Configured.' : 'Awaiting final founder input.'}</p>
-              </div>
-            </li>
-          </ul>
+      {/* FOUNDATION DOMAINS GRID */}
+      <section className="mb-14">
+        <SectionHeader title="Foundation Elements" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <DomainCard 
+            title="Business" 
+            subtitle="Who you are. Identity, metrics, objectives." 
+            status={data.health.moduleStatus.business} 
+            onClick={() => setActiveModal("business")} 
+          />
+          <DomainCard 
+            title="Customer" 
+            subtitle="Who you serve. Needs, pain, desired state." 
+            status={data.health.moduleStatus.customer} 
+            onClick={() => setActiveModal("customer")} 
+          />
+          <DomainCard 
+            title="Positioning" 
+            subtitle="How you are positioned in market." 
+            status={data.health.moduleStatus.positioning} 
+            onClick={() => setActiveModal("positioning")} 
+          />
+          <DomainCard 
+            title="Offer" 
+            subtitle="What you sell. Mechanics, delivery, claims." 
+            status={data.health.moduleStatus.offer} 
+            onClick={() => setActiveModal("offer")} 
+          />
+          <DomainCard 
+            title="Brand" 
+            subtitle="How you communicate. Voice and tone." 
+            status={data.health.moduleStatus.brand} 
+            onClick={() => setActiveModal("brand")} 
+          />
+          <DomainCard 
+            title="Knowledge" 
+            subtitle={`What ASENZO knows. ${data.knowledgeMeta.sourcesReady} sources ready.`} 
+            status={data.health.moduleStatus.knowledge} 
+            onClick={() => setActiveModal("knowledge")} 
+          />
+          <DomainCard 
+            title="Proof" 
+            subtitle={`What you can prove. ${data.proofMeta.approvedAssets} approved assets.`} 
+            status={data.health.moduleStatus.proof} 
+            onClick={() => setActiveModal("proof")} 
+          />
         </div>
-      </aside>
+      </section>
+
+      {/* DEPENDENCY IMPACT */}
+      <section>
+        <SectionHeader title="Attention & Ecosystem Impact" />
+        <div className="bg-muted border border-border rounded-[16px] p-6 lg:p-8">
+           <p className="text-[13px] text-muted-foreground font-medium mb-6">
+             These foundation elements directly control the operational context for the rest of ASENZO. Changing them will safely impact downstream workflows without manual reconstruction.
+           </p>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {data.dependencies.map((dep, i) => (
+                <div key={i} className="bg-card border border-border rounded-[10px] p-4 flex flex-col gap-3">
+                   <h4 className="text-[11px] font-bold text-foreground uppercase tracking-widest">{dep.module}</h4>
+                   <ul className="flex flex-col gap-1.5">
+                     {dep.impacts.map((im, j) => (
+                       <li key={j} className="text-[12px] font-medium text-muted-foreground flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px] text-tertiary">subdirectory_arrow_right</span>
+                          {im}
+                       </li>
+                     ))}
+                   </ul>
+                </div>
+              ))}
+           </div>
+        </div>
+      </section>
+
+      {/* Editor Modal Mock */}
+      <Modal 
+        isOpen={activeModal !== null} 
+        onClose={() => setActiveModal(null)} 
+        title={activeModal ? `Edit ${activeModal}` : ""} 
+        size="lg"
+        actions={
+          <>
+             <button className="px-5 py-2.5 border border-border text-foreground font-semibold text-[13px] rounded-lg hover:bg-muted" onClick={() => setActiveModal(null)}>Cancel</button>
+             <button className="px-5 py-2.5 bg-foreground text-background font-semibold text-[13px] rounded-lg hover:bg-foreground/90" onClick={() => setActiveModal(null)}>Save {activeModal}</button>
+          </>
+        }
+      >
+         <div className="flex flex-col gap-6 py-2">
+            <div className="p-4 bg-muted/40 border border-border rounded-lg">
+                <p className="text-[13px] text-foreground font-medium mb-1">Why am I filling this out?</p>
+                <p className="text-[12.5px] text-muted-foreground leading-relaxed">
+                  ASENZO requires explicitly verifiable truths. Changes made here will re-calibrate your AI generation pipelines and intelligence evaluations globally.
+                </p>
+            </div>
+            
+            <div className="h-[200px] border border-dashed border-border rounded-lg flex flex-col items-center justify-center text-center px-4">
+               <span className="material-symbols-outlined text-[32px] text-tertiary mb-3">construction</span>
+               <h3 className="text-[14px] font-semibold text-foreground mb-1">Editor Placeholder</h3>
+               <p className="text-[12.5px] text-muted-foreground max-w-sm">
+                  This mock demonstrates progressive disclosure. Detailed schema forms exist behind this layer, shielding the founder from overwhelming inputs on the main dashboard.
+               </p>
+            </div>
+         </div>
+      </Modal>
+
     </div>
   );
 }

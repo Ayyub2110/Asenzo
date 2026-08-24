@@ -154,12 +154,12 @@ export default function SettingsWorkspace() {
             <div className="mb-8 flex justify-between items-end">
                 <div>
                     <h1 className="font-display-lg text-display-lg text-primary mb-2">
-                        {activeTab === "Profile" && "Operator Profile"}
+                        {activeTab === "Profile" && "Operations Profile"}
                         {activeTab === "Notifications" && "Notification Architecture"}
                         {activeTab === "System" && "System Behaviors"}
                     </h1>
                     <p className="font-body-lg text-body-lg text-secondary">
-                        {activeTab === "Profile" && "Configure global application boundaries and operator identity."}
+                        {activeTab === "Profile" && "Configure global application boundaries and operations identity."}
                         {activeTab === "Notifications" && "Direct alert routing, priority thresholds, and signal delivery."}
                         {activeTab === "System" && "Establish environment rendering and automation protocols."}
                     </p>
