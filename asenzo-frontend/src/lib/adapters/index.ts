@@ -50,6 +50,16 @@ export async function updateFoundation(payload: Partial<FoundationData>): Promis
   if (payload.founderVoice) mockFoundation.founderVoice = { ...mockFoundation.founderVoice, ...payload.founderVoice };
   if (payload.readiness) mockFoundation.readiness = { ...mockFoundation.readiness, ...payload.readiness };
 
+  // New Strategic Forms
+  if (payload.businessContext) mockFoundation.businessContext = { ...mockFoundation.businessContext, ...payload.businessContext };
+  if (payload.customerContext) mockFoundation.customerContext = { ...mockFoundation.customerContext, ...payload.customerContext };
+  if (payload.positioningContext) mockFoundation.positioningContext = { ...mockFoundation.positioningContext, ...payload.positioningContext };
+  if (payload.offerContext) mockFoundation.offerContext = { ...mockFoundation.offerContext, ...payload.offerContext };
+  if (payload.brandContext) mockFoundation.brandContext = { ...mockFoundation.brandContext, ...payload.brandContext };
+  if (payload.knowledge) mockFoundation.knowledge = [ ...payload.knowledge ];
+  if (payload.proofSettings) mockFoundation.proofSettings = [ ...payload.proofSettings ];
+
+
   return { ...mockFoundation }; // Return fresh ref
 }
 

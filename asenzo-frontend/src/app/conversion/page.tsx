@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { ACTION_MAP } from "@/lib/routing";
 import { getConversion } from "@/lib/adapters";
 import { useAdapter } from "@/hooks/useAdapter";
 
@@ -42,19 +43,19 @@ export default function ConversionCommandPage() {
         <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Conversion Pulse</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {[
-            { label: "Total Leads", val: totalLeads },
-            { label: "Qualified", val: qualifiedLeads },
-            { label: "Active Convos", val: activeConversations.length },
-            { label: "Follow-ups Due", val: followUpsDue.length, alert: followUpsDue.length > 0 },
-            { label: "Applications", val: applications },
-            { label: "Bookings", val: bookings },
-            { label: "Show-Up Rate", val: showUpRate, highlight: true },
-            { label: "Conversion Rate", val: conversionRate, highlight: true },
+            { label: "Total Leads", val: totalLeads, href: ACTION_MAP.openConversionInbox() },
+            { label: "Qualified", val: qualifiedLeads, href: ACTION_MAP.openLeadQualification('QUALIFIED') },
+            { label: "Active Convos", val: activeConversations.length, href: ACTION_MAP.openConversionInbox() },
+            { label: "Follow-ups Due", val: followUpsDue.length, alert: followUpsDue.length > 0, href: ACTION_MAP.openFollowUps() }, // Or followups, note: deal follow-ups belong in Revenue
+            { label: "Applications", val: applications, href: ACTION_MAP.openApplications() },
+            { label: "Bookings", val: bookings, href: ACTION_MAP.openBooking() },
+            { label: "Show-Up Rate", val: showUpRate, highlight: true, href: ACTION_MAP.openConversionAnalytics() },
+            { label: "Conversion Rate", val: conversionRate, highlight: true, href: ACTION_MAP.openConversionAnalytics() },
           ].map((m, i) => (
-             <div key={i} className={`p-4 rounded-[12px] border ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
+             <Link href={m.href} key={i} className={`block p-4 rounded-[12px] border hover:opacity-80 transition-opacity ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 mx-auto max-w-full text-clip overflow-hidden whitespace-nowrap ${m.alert ? 'text-destructive' : 'text-muted-foreground'}`}>{m.label}</p>
                <p className={`text-[20px] font-bold leading-none ${m.highlight ? 'text-success' : 'text-foreground'}`}>{m.val}</p>
-             </div>
+             </Link>
           ))}
         </div>
       </section>
@@ -65,22 +66,22 @@ export default function ConversionCommandPage() {
         <section className="lg:col-span-1 bg-card border border-border p-6 rounded-[16px] flex flex-col shadow-sm">
           <h2 className="text-[11px] font-bold text-foreground uppercase tracking-widest leading-none mb-6">Today's Actions</h2>
           <div className="flex flex-col gap-4">
-             <div className="flex justify-between items-center">
+             <Link href={ACTION_MAP.openConversionInbox()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Needs Reply</span>
                 <span className="bg-destructive text-destructive-foreground px-2 py-0.5 rounded text-[11px] font-bold">2</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openFollowUps()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Follow-ups Due</span>
                 <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">{followUpsDue.length}</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openApplications()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Applications to Review</span>
                 <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openBooking()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Bookings Today</span>
                 <span className="bg-success text-background px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </div>
+             </Link>
           </div>
         </section>
 
@@ -117,20 +118,22 @@ export default function ConversionCommandPage() {
             </div>
          </section>
 
-         <section>
+          <section>
             <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Recent Conversations</h2>
             <div className="flex flex-col gap-3">
              {localData.conversations.slice(0, 3).map(c => (
-                <div key={c.id} className="p-4 border border-border rounded-[10px] bg-card flex justify-between items-center">
-                   <div>
-                     <p className="text-[14px] font-bold text-foreground">{c.contact}</p>
-                     <p className="text-[11px] text-muted-foreground">{c.lastInteraction}</p>
-                   </div>
-                   <div className="text-right">
-                     <p className="text-[10px] uppercase font-bold bg-secondary px-2 py-0.5 rounded text-foreground inline-block">{c.status}</p>
-                     <p className="text-[12px] text-muted-foreground mt-1 line-clamp-1 max-w-[150px]">{c.nextAction}</p>
-                   </div>
-                </div>
+                <Link href={ACTION_MAP.openConversionInbox()} key={c.id} className="block hover:opacity-80">
+                  <div className="p-4 border border-border rounded-[10px] bg-card flex justify-between items-center">
+                     <div>
+                       <p className="text-[14px] font-bold text-foreground">{c.contact}</p>
+                       <p className="text-[11px] text-muted-foreground">{c.lastInteraction}</p>
+                     </div>
+                     <div className="text-right">
+                       <p className="text-[10px] uppercase font-bold bg-secondary px-2 py-0.5 rounded text-foreground inline-block">{c.status}</p>
+                       <p className="text-[12px] text-muted-foreground mt-1 line-clamp-1 max-w-[150px]">{c.nextAction}</p>
+                     </div>
+                  </div>
+                </Link>
              ))}
            </div>
          </section>

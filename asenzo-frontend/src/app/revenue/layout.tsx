@@ -20,34 +20,31 @@ export default function RevenueLayout({ children }: { children: React.ReactNode 
   ];
 
   return (
-    <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
-      <div className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="max-w-[1500px] mx-auto px-6 hide-scrollbar overflow-x-auto">
-          <nav className="flex space-x-6 h-12">
-            {navItems.map((item) => {
-              const isActive = pathname === item.path;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.path}
-                  className={`relative flex items-center h-full text-[12px] font-bold tracking-widest uppercase transition-colors whitespace-nowrap ${
-                    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
-                  }`}
-                >
-                  {item.name}
-                  {isActive && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground w-full" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+    <div className="flex flex-col h-full bg-background relative overflow-y-auto min-w-0">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50 shrink-0">
+        <div className="max-w-[1500px] w-full mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center w-full">
+            <nav className="flex gap-1 overflow-x-auto hide-scrollbar w-full">
+              {navItems.map((item) => {
+                const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.path}
+                    className={`px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-colors whitespace-nowrap ${isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'}`}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         </div>
-      </div>
+      </header>
       
-      <div className="flex-1 overflow-y-auto">
+      <main className="flex-1 max-w-[1500px] mx-auto w-full">
          {children}
-      </div>
+      </main>
     </div>
   );
 }

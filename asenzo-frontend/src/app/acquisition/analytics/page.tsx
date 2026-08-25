@@ -3,6 +3,16 @@
 import React from "react";
 
 export default function AcquisitionAnalyticsPage() {
+  const [publishedCount, setPublishedCount] = React.useState(0);
+  
+  React.useEffect(() => {
+    const prodStr = localStorage.getItem("asenzo_production_items");
+    if (prodStr) {
+       const items = JSON.parse(prodStr);
+       setPublishedCount(items.filter((i:any) => i.stage === "PUBLISHED").length);
+    }
+  }, []);
+
   return (
     <div className="p-6 md:p-10 lg:p-12 max-w-[1360px] mx-auto w-full pb-32">
       <div className="flex justify-between items-start mb-8">
@@ -11,38 +21,45 @@ export default function AcquisitionAnalyticsPage() {
           <p className="text-[14px] text-muted-foreground mt-1">Connect acquisition activity directly to revenue outcomes.</p>
         </div>
       </div>
+      
+      {publishedCount === 0 && (
+         <div className="bg-warning/10 border border-warning/30 rounded-[8px] p-4 text-[13px] text-warning font-medium mb-8">
+            <strong className="text-warning font-bold mr-2">NO DATA:</strong> 
+            Metrics are unavailable. You have 0 published assets in the Production pipeline. 
+         </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-0 border border-border rounded-[12px] overflow-hidden mb-10">
         
         <div className="p-5 bg-card border-r border-border/50">
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Attention (Views)</p>
-          <h3 className="text-[24px] font-bold text-foreground mb-4">42,500</h3>
-          <div className="text-[12px] text-success font-bold flex items-center gap-1">+12% vs last mo</div>
+          <h3 className="text-[24px] font-bold text-foreground mb-4">{publishedCount > 0 ? "42,500" : "0"}</h3>
+          {publishedCount > 0 && <div className="text-[12px] text-success font-bold flex items-center gap-1">+12% vs last mo</div>}
         </div>
         
         <div className="p-5 bg-card border-r border-border/50">
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Interest (Engage)</p>
-          <h3 className="text-[24px] font-bold text-foreground mb-4">1,240</h3>
-          <div className="text-[12px] text-success font-bold flex items-center gap-1">+5% vs last mo</div>
+          <h3 className="text-[24px] font-bold text-foreground mb-4">{publishedCount > 0 ? "1,240" : "0"}</h3>
+          {publishedCount > 0 && <div className="text-[12px] text-success font-bold flex items-center gap-1">+5% vs last mo</div>}
         </div>
         
         <div className="p-5 bg-card border-r border-border/50 relative">
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-cyan"></div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Intent (Signals)</p>
-          <h3 className="text-[24px] font-bold text-cyan mb-4">84</h3>
-          <div className="text-[12px] text-success font-bold flex items-center gap-1">+22% vs last mo</div>
+          <h3 className="text-[24px] font-bold text-cyan mb-4">{publishedCount > 0 ? "84" : "0"}</h3>
+          {publishedCount > 0 && <div className="text-[12px] text-success font-bold flex items-center gap-1">+22% vs last mo</div>}
         </div>
         
         <div className="p-5 bg-card border-r border-border/50 relative">
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-tertiary"></div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Demand (Leads)</p>
-          <h3 className="text-[24px] font-bold text-tertiary mb-4">12</h3>
-          <div className="text-[12px] text-destructive font-bold flex items-center gap-1">-5% vs last mo</div>
+          <h3 className="text-[24px] font-bold text-tertiary mb-4">{publishedCount > 0 ? "12" : "0"}</h3>
+          {publishedCount > 0 && <div className="text-[12px] text-destructive font-bold flex items-center gap-1">-5% vs last mo</div>}
         </div>
 
         <div className="p-5 bg-card relative">
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Revenue Influence</p>
-          <h3 className="text-[24px] font-bold text-foreground mb-4">$45,000</h3>
+          <h3 className="text-[24px] font-bold text-foreground mb-4">{publishedCount > 0 ? "$45,000" : "$0"}</h3>
           <div className="text-[12px] text-muted-foreground font-medium">Pipeline generated</div>
         </div>
 

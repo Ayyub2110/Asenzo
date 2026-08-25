@@ -7,27 +7,39 @@ export default function Topbar() {
   const pathname = usePathname();
 
   const getPageTitle = (path: string) => {
-    switch (path) {
-      case "/": return "Command Center";
-      case "/foundation": return "Foundation";
-      case "/attention": return "Attention OS";
-      case "/conversion": return "Conversion OS";
-      case "/delivery": return "Delivery OS";
-      case "/retention": return "Retention OS";
-      case "/revenue": return "Revenue OS";
-      case "/intelligence": return "Intelligence";
-      case "/ai-workforce": return "AI Workforce";
-      case "/resources": return "Resources";
-      case "/settings": return "Settings";
-      default: return "Asenzo OS";
-    }
+    if (path === "/" || path === "/command-center") return "Command Center";
+    if (path.startsWith("/foundation")) return "Foundation";
+    if (path.startsWith("/attention")) return "Attention OS";
+    if (path.startsWith("/acquisition")) return "Acquisition";
+    if (path.startsWith("/conversion")) return "Conversion OS";
+    if (path.startsWith("/revenue")) return "Revenue OS";
+    if (path.startsWith("/delivery")) return "Delivery OS";
+    if (path.startsWith("/retention")) return "Retention OS";
+    if (path.startsWith("/intelligence")) return "Intelligence Center";
+    if (path.startsWith("/operations")) return "Operations Center";
+    if (path.startsWith("/ai-workforce")) return "AI Workforce";
+    if (path.startsWith("/resources")) return "Resources";
+    if (path.startsWith("/settings")) return "Settings";
+    if (path.startsWith("/calendar")) return "Calendar";
+    return "Asenzo OS";
+  };
+
+  const getPageSubtitle = (path: string) => {
+    if (path.startsWith("/intelligence")) return "Strategic analysis across all operating centers. What is happening, why, and what to do next.";
+    if (path.startsWith("/acquisition")) return "Traffic, Attention, and Lead Generation";
+    if (path.startsWith("/conversion")) return "Lead Nurture, Triage, and Conversion";
+    if (path.startsWith("/revenue")) return "Sales Pipeline and Revenue Operations";
+    if (path.startsWith("/delivery")) return "Client Services and Fulfillment Engine";
+    if (path.startsWith("/operations")) return "Team, Workflows, and Process Management";
+    if (path.startsWith("/foundation")) return "The core business ecosystem and blueprint.";
+    return "Monday, August 17 · Business Overview";
   };
 
   return (
     <header className="px-12 h-[72px] flex justify-between items-center w-full shrink-0 border-b border-border/50">
       <div className="flex flex-col justify-center">
         <h2 className="text-[14px] font-semibold tracking-wide text-foreground uppercase mb-[2px]">{getPageTitle(pathname)}</h2>
-        <span className="text-[12px] text-muted-foreground">Monday, August 17 · Business Overview</span>
+        <span className="text-[12px] text-muted-foreground">{getPageSubtitle(pathname)}</span>
       </div>
       
       <div className="flex items-center gap-6">

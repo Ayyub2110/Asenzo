@@ -1,16 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Modal } from "@/components/ui/Modal";
+import { ACTION_MAP } from "@/lib/routing";
 import { mockFoundationData } from "@/lib/mockFoundationData";
+import { getFoundation, updateFoundation } from "@/lib/adapters";
+import { BusinessForm, CustomerForm, PositioningForm, OfferForm, BrandForm, KnowledgeForm, ProofForm } from "./forms";
+
 
 // Reusable UI components
 function TitleSection({ title, subtitle }: { title: string, subtitle: string }) {
   return (
-    <div className="flex items-center justify-between mb-8">
-      <div>
-         <h1 className="text-[24px] font-bold tracking-tight text-foreground uppercase">{title}</h1>
-         <p className="text-[13px] text-muted-foreground mt-1">{subtitle}</p>
+    <div className="flex flex-col items-start justify-start mb-8">
+      <Link href={ACTION_MAP.openCommandCenter()} className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors mb-6 group">
+        <span className="material-symbols-outlined text-[14px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+        Back to Dashboard
+      </Link>
+      <div className="flex items-center justify-between w-full">
+        <div>
+           <h1 className="text-[24px] font-bold tracking-tight text-foreground uppercase">{title}</h1>
+           <p className="text-[13px] text-muted-foreground mt-1">{subtitle}</p>
+        </div>
       </div>
     </div>
   );
@@ -63,17 +74,47 @@ function DomainCard({ title, subtitle, status, onClick }: { title: string, subti
 
 export default function FoundationPage() {
   const [data, setData] = useState<typeof mockFoundationData | null>(null);
+  const [modelData, setModelData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading internal sources
-    const timer = setTimeout(() => {
-      setData(mockFoundationData);
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    async function loadData() {
+      try {
+        const foundation = await getFoundation();
+        setModelData(foundation);
+        setData(mockFoundationData); // Preserve static UI wrapper for dashboard compatibility
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
   }, []);
+
+  const handleSave = async (section: string, payload: any) => {
+    let update: any = {};
+    if (section === "business") update.businessContext = payload;
+    else if (section === "customer") update.customerContext = payload;
+    else if (section === "positioning") update.positioningContext = payload;
+    else if (section === "offer") update.offerContext = payload;
+    else if (section === "brand") update.brandContext = payload;
+    else if (section === "knowledge") update.knowledge = payload.items || [];
+    else if (section === "proof") update.proofSettings = payload.items || [];
+    
+    // Simulate updating UI status based on real input (client-side mock integration)
+    const newUI = { ...data! };
+    if (section === "business" && payload.name) newUI.health.moduleStatus.business = "Complete";
+    if (section === "customer" && payload.idealCustomer) newUI.health.moduleStatus.customer = "Complete";
+    if (section === "knowledge" && payload.items?.length > 0) newUI.knowledgeMeta.sourcesReady = payload.items.length;
+    setData(newUI);
+
+    const res = await updateFoundation(update);
+    setModelData(res);
+    setActiveModal(null);
+  };
+
 
   if (loading) {
     return (
@@ -248,34 +289,23 @@ export default function FoundationPage() {
         </div>
       </section>
 
-      {/* Editor Modal Mock */}
       <Modal 
         isOpen={activeModal !== null} 
         onClose={() => setActiveModal(null)} 
-        title={activeModal ? `Edit ${activeModal}` : ""} 
+        title={""} 
         size="lg"
-        actions={
-          <>
-             <button className="px-5 py-2.5 border border-border text-foreground font-semibold text-[13px] rounded-lg hover:bg-muted" onClick={() => setActiveModal(null)}>Cancel</button>
-             <button className="px-5 py-2.5 bg-foreground text-background font-semibold text-[13px] rounded-lg hover:bg-foreground/90" onClick={() => setActiveModal(null)}>Save {activeModal}</button>
-          </>
-        }
+        actions={null as any}
       >
-         <div className="flex flex-col gap-6 py-2">
-            <div className="p-4 bg-muted/40 border border-border rounded-lg">
-                <p className="text-[13px] text-foreground font-medium mb-1">Why am I filling this out?</p>
-                <p className="text-[12.5px] text-muted-foreground leading-relaxed">
-                  ASENZO requires explicitly verifiable truths. Changes made here will re-calibrate your AI generation pipelines and intelligence evaluations globally.
-                </p>
-            </div>
-            
-            <div className="h-[200px] border border-dashed border-border rounded-lg flex flex-col items-center justify-center text-center px-4">
-               <span className="material-symbols-outlined text-[32px] text-tertiary mb-3">construction</span>
-               <h3 className="text-[14px] font-semibold text-foreground mb-1">Editor Placeholder</h3>
-               <p className="text-[12.5px] text-muted-foreground max-w-sm">
-                  This mock demonstrates progressive disclosure. Detailed schema forms exist behind this layer, shielding the founder from overwhelming inputs on the main dashboard.
-               </p>
-            </div>
+         <div className="h-[80vh] flex flex-col -m-6 sm:-m-8 pb-4 bg-background"> 
+           <div className="flex-1 overflow-hidden px-6 sm:px-8 pt-4 sm:pt-6 relative">
+              {activeModal === "business" && <BusinessForm data={modelData?.businessContext} onSave={(d) => handleSave("business", d)} onCancel={() => setActiveModal(null)} />}
+              {activeModal === "customer" && <CustomerForm data={modelData?.customerContext} onSave={(d) => handleSave("customer", d)} onCancel={() => setActiveModal(null)} />}
+              {activeModal === "positioning" && <PositioningForm data={modelData?.positioningContext} onSave={(d) => handleSave("positioning", d)} onCancel={() => setActiveModal(null)} />}
+              {activeModal === "offer" && <OfferForm data={modelData?.offerContext} onSave={(d) => handleSave("offer", d)} onCancel={() => setActiveModal(null)} />}
+              {activeModal === "brand" && <BrandForm data={modelData?.brandContext} onSave={(d) => handleSave("brand", d)} onCancel={() => setActiveModal(null)} />}
+              {activeModal === "knowledge" && <KnowledgeForm data={{items: modelData?.knowledge}} onSave={(d) => handleSave("knowledge", d)} onCancel={() => setActiveModal(null)} />}
+              {activeModal === "proof" && <ProofForm data={{items: modelData?.proofSettings}} onSave={(d) => handleSave("proof", d)} onCancel={() => setActiveModal(null)} />}
+           </div>
          </div>
       </Modal>
 

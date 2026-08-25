@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { getRevenue } from "@/lib/adapters";
+import { ACTION_MAP } from "@/lib/routing";
 import { useAdapter } from "@/hooks/useAdapter";
 
 export default function RevenueCommandPage() {
@@ -25,19 +27,19 @@ export default function RevenueCommandPage() {
         <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Revenue Pulse</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {[
-            { label: "Active Deals", val: activeDeals.length },
-            { label: "Pipeline", val: formatCurrency(qualifiedPipelineNum) },
-            { label: "Expected Rev", val: formatCurrency(expectedRevenue) },
-            { label: "Proposals Out", val: proposals.filter(p => p.status === 'SENT' || p.status === 'VIEWED' || p.status === 'NEGOTIATION').length },
-            { label: "Follow-ups Due", val: followUps.filter(f => f.status === 'DUE' || f.status === 'OVERDUE').length, alert: followUps.some(f => f.status === 'OVERDUE') },
-            { label: "Closed Won", val: formatCurrency(closedWon), highlight: true },
-            { label: "Closed Lost", val: formatCurrency(closedLost) },
-            { label: "Win Rate", val: `${winRate}%`, highlight: true },
+            { label: "Active Deals", val: activeDeals.length, href: ACTION_MAP.openSalesPipeline() },
+            { label: "Pipeline", val: formatCurrency(qualifiedPipelineNum), href: ACTION_MAP.openSalesPipeline() },
+            { label: "Expected Rev", val: formatCurrency(expectedRevenue), href: ACTION_MAP.openSalesPipeline() },
+            { label: "Proposals Out", val: proposals.filter(p => p.status === 'SENT' || p.status === 'VIEWED' || p.status === 'NEGOTIATION').length, href: ACTION_MAP.openProposals() },
+            { label: "Follow-ups Due", val: followUps.filter(f => f.status === 'DUE' || f.status === 'OVERDUE').length, alert: followUps.some(f => f.status === 'OVERDUE'), href: ACTION_MAP.openFollowUps() },
+            { label: "Closed Won", val: formatCurrency(closedWon), highlight: true, href: ACTION_MAP.openSalesPipeline('closed_won') },
+            { label: "Closed Lost", val: formatCurrency(closedLost), href: ACTION_MAP.openClosedLost() },
+            { label: "Win Rate", val: `${winRate}%`, highlight: true, href: ACTION_MAP.openRevenueDashboard() },
           ].map((m, i) => (
-             <div key={i} className={`p-4 rounded-[12px] border ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
+             <Link href={m.href} key={i} className={`block p-4 rounded-[12px] border hover:opacity-80 transition-opacity ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 mx-auto max-w-full text-clip overflow-hidden whitespace-nowrap ${m.alert ? 'text-destructive' : 'text-muted-foreground'}`}>{m.label}</p>
                <p className={`text-[20px] font-bold leading-none ${m.highlight ? 'text-success' : 'text-foreground'}`}>{m.val}</p>
-             </div>
+             </Link>
           ))}
         </div>
       </section>
@@ -48,18 +50,18 @@ export default function RevenueCommandPage() {
         <section className="lg:col-span-1 bg-card border border-border p-6 rounded-[16px] flex flex-col shadow-sm">
           <h2 className="text-[11px] font-bold text-foreground uppercase tracking-widest leading-none mb-6">Today's Revenue Actions</h2>
           <div className="flex flex-col gap-4">
-             <div className="flex justify-between items-center">
+             <Link href={ACTION_MAP.openProposals()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Proposals to Send</span>
                 <span className="bg-destructive text-destructive-foreground px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openFollowUps()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Follow-ups Due</span>
                 <span className="bg-warning text-warning-foreground px-2 py-0.5 rounded text-[11px] font-bold">{followUps.filter(f => f.status === 'OVERDUE' || f.status === 'DUE').length}</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openSalesPipeline('at_risk')} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Deals at Risk</span>
                 <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">0</span>
-             </div>
+             </Link>
           </div>
         </section>
 
@@ -77,31 +79,33 @@ export default function RevenueCommandPage() {
          <section>
             <div className="flex justify-between items-center mb-4">
                <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Top Active Deals</h2>
-               <div className="text-[11px] font-bold uppercase text-foreground bg-secondary px-2 py-1 rounded">View Pipeline</div>
+               <Link href={ACTION_MAP.openSalesPipeline()} className="text-[11px] font-bold uppercase text-foreground bg-secondary px-2 py-1 rounded hover:bg-muted transition-colors">View Pipeline</Link>
             </div>
             
             <div className="flex flex-col gap-3">
              {activeDeals.map(d => (
-                <div key={d.id} className="p-4 border border-border rounded-[10px] bg-card flex justify-between items-center">
-                   <div>
-                     <p className="text-[14px] font-bold text-foreground">{d.company}</p>
-                     <p className="text-[12px] font-medium text-muted-foreground">{formatCurrency(d.value)} • Expected {new Date(d.expectedCloseDate).toLocaleDateString()}</p>
-                   </div>
-                   <div className="text-right flex flex-col items-end">
-                     <span className="text-[10px] font-bold tracking-widest uppercase bg-secondary text-foreground px-2 py-0.5 rounded mb-1">{d.stage.replace('_', ' ')}</span>
-                     <span className="text-[11px] text-muted-foreground">Confidence: <span className="font-bold">{d.confidence}</span></span>
-                   </div>
-                </div>
+                <Link href={ACTION_MAP.openSalesPipeline()} key={d.id} className="block hover:opacity-80">
+                  <div className="p-4 border border-border rounded-[10px] bg-card flex justify-between items-center">
+                     <div>
+                       <p className="text-[14px] font-bold text-foreground">{d.company}</p>
+                       <p className="text-[12px] font-medium text-muted-foreground">{formatCurrency(d.value)} • Expected {new Date(d.expectedCloseDate).toLocaleDateString()}</p>
+                     </div>
+                     <div className="text-right flex flex-col items-end">
+                       <span className="text-[10px] font-bold tracking-widest uppercase bg-secondary text-foreground px-2 py-0.5 rounded mb-1">{d.stage.replace('_', ' ')}</span>
+                       <span className="text-[11px] text-muted-foreground">Confidence: <span className="font-bold">{d.confidence}</span></span>
+                     </div>
+                  </div>
+                </Link>
              ))}
            </div>
          </section>
          <section>
              <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Recent Losses (Learning)</h2>
-             <div className="p-4 border border-border rounded-[10px] bg-card">
+             <Link href={ACTION_MAP.openClosedLost()} className="block p-4 border border-border rounded-[10px] bg-card hover:opacity-80">
                  <p className="text-[14px] font-bold text-foreground">Pending Brand Restructure</p>
                  <p className="text-[12px] font-medium text-muted-foreground mb-3">{formatCurrency(200000)} • Lost in NEGOTIATION</p>
                  <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold p-2 flex uppercase tracking-wide rounded">Reason: Price (Too expensive for Q3 Budget)</div>
-             </div>
+             </Link>
          </section>
        </div>
     </div>

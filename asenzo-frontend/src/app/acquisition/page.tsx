@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { ACTION_MAP } from "@/lib/routing";
 import { getLeads, getSources, getCampaigns } from "@/lib/adapters/acquisition";
 import { Lead, AcquisitionSource, AcquisitionCampaign } from "@/lib/types";
 
@@ -9,6 +10,7 @@ export default function AcquisitionCommandPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [sources, setSources] = useState<AcquisitionSource[]>([]);
   const [campaigns, setCampaigns] = useState<AcquisitionCampaign[]>([]);
+  const [pipelineMetrics, setPipelineMetrics] = useState({ ideas: 0, scripts: 0, review: 0, published: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,6 +24,20 @@ export default function AcquisitionCommandPage() {
         setLeads(ls);
         setSources(scs);
         setCampaigns(cmps);
+        
+        // Read Pipeline Metrics
+        const ideasStr = localStorage.getItem("asenzo_content_ideas");
+        const prodStr = localStorage.getItem("asenzo_production_items");
+        const allIdeas = ideasStr ? JSON.parse(ideasStr) : [];
+        const allProds = prodStr ? JSON.parse(prodStr) : [];
+        
+        setPipelineMetrics({
+          ideas: allIdeas.filter((i:any) => i.status === "GENERATED" || i.status === "REVIEW" || i.status === "IDEA").length,
+          scripts: allIdeas.filter((i:any) => i.status === "SCRIPTING").length,
+          review: allProds.filter((p:any) => p.stage === "FOUNDER REVIEW").length,
+          published: allProds.filter((p:any) => p.stage === "PUBLISHED").length,
+        });
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -62,7 +78,7 @@ export default function AcquisitionCommandPage() {
             <h3 className="text-[18px] lg:text-[20px] font-bold mb-2">Create 3 Product-aware case-study posts this week.</h3>
             <p className="text-[14px] font-medium text-background/80 mb-6">Your current content has strong reach but insufficient proof content. Prospects are not converting.</p>
           </div>
-          <Link href="/acquisition/scripts">
+          <Link href={ACTION_MAP.openScripts()}>
             <button className="bg-background text-foreground px-5 py-2.5 rounded-[8px] text-[13px] font-semibold w-fit hover:bg-background/90 transition">
                Draft Script Now
             </button>
@@ -86,18 +102,18 @@ export default function AcquisitionCommandPage() {
              <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Acquisition Pulse</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-5 border border-border bg-card rounded-[12px]">
+            <Link href={ACTION_MAP.openAcquisitionLeads()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Total Leads</p>
               <span className="text-[28px] font-bold text-foreground leading-none">{leads.length}</span>
-            </div>
-            <div className="p-5 border border-border bg-card rounded-[12px]">
+            </Link>
+            <Link href={ACTION_MAP.openLeadQualification('QUALIFIED')} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Qualified Leads</p>
                <span className="text-[28px] font-bold text-success leading-none">{qualifiedLeads.length}</span>
-            </div>
-            <div className="p-5 border border-border bg-card rounded-[12px]">
+            </Link>
+            <Link href={ACTION_MAP.openAcquisitionConversations()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Active Conversations</p>
                <span className="text-[28px] font-bold text-cyan leading-none">{activeConversations.length}</span>
-            </div>
+            </Link>
             <div className="p-5 border border-border bg-card rounded-[12px]">
                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Qual Rate</p>
                <span className="text-[28px] font-bold text-tertiary leading-none">{qualRate}%</span>
@@ -109,22 +125,22 @@ export default function AcquisitionCommandPage() {
         <section>
           <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Content Production Health</h2>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-5 border border-border bg-card rounded-[12px]">
+            <Link href={ACTION_MAP.openContentCalendar()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Planned Content</p>
               <span className="text-[24px] font-bold text-foreground leading-none">12</span>
-            </div>
-            <div className="p-5 border border-border bg-card rounded-[12px]">
+            </Link>
+            <Link href={ACTION_MAP.openAcquisitionAnalytics()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Published</p>
                <span className="text-[24px] font-bold text-success leading-none">5</span>
-            </div>
-            <div className="p-5 border border-border bg-card rounded-[12px]">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex justify-between">Review Blockers <span className="bg-destructive/20 text-destructive text-[10px] px-1 rounded">ALERT</span></p>
-               <span className="text-[24px] font-bold text-destructive leading-none">4 Scripts</span>
-            </div>
-            <div className="p-5 border border-border bg-card rounded-[12px]">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Story Sequences</p>
-               <span className="text-[24px] font-bold text-cyan leading-none">3 Active</span>
-            </div>
+            </Link>
+            <Link href="/acquisition/production" className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
+               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex justify-between">Review Blockers {pipelineMetrics.review > 0 && <span className="bg-destructive/20 text-destructive text-[10px] px-1 rounded">ALERT</span>}</p>
+               <span className={`text-[24px] font-bold leading-none ${pipelineMetrics.review > 0 ? 'text-destructive' : 'text-foreground'}`}>{pipelineMetrics.review} Items</span>
+            </Link>
+            <Link href="/acquisition/strategy" className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
+               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Generated Ideas</p>
+               <span className="text-[24px] font-bold text-cyan leading-none">{pipelineMetrics.ideas} Output</span>
+            </Link>
           </div>
         </section>
 
@@ -136,7 +152,7 @@ export default function AcquisitionCommandPage() {
         <section className="col-span-1">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Top Sources</h2>
-            <Link href="/acquisition/sources" className="text-[10px] uppercase font-bold text-foreground">View All</Link>
+            <Link href={ACTION_MAP.openAcquisitionSources()} className="text-[10px] uppercase font-bold text-foreground hover:underline">View All</Link>
           </div>
           <div className="flex flex-col gap-2">
             {sources.length === 0 ? <p className="p-4 border border-border rounded-[8px] text-[13px] text-muted-foreground italic">No source data.</p> : sources.slice(0, 3).map(src => (
@@ -155,7 +171,7 @@ export default function AcquisitionCommandPage() {
         <section className="col-span-1">
           <div className="flex justify-between items-center mb-4">
              <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Active Campaigns</h2>
-             <Link href="/acquisition/campaigns" className="text-[10px] uppercase font-bold text-foreground">View All</Link>
+             <Link href={ACTION_MAP.openAcquisitionCampaigns()} className="text-[10px] uppercase font-bold text-foreground hover:underline">View All</Link>
           </div>
           <div className="flex flex-col gap-2">
             {campaigns.length === 0 ? <p className="p-4 border border-border rounded-[8px] text-[13px] text-muted-foreground italic">No campaigns active.</p> : campaigns.filter(c => c.status === 'ACTIVE').slice(0, 3).map(c => (
@@ -194,21 +210,19 @@ export default function AcquisitionCommandPage() {
           </div>
         </section>
         
-        {/* PIPELINE */}
         <section className="col-span-1">
           <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Asset Pipeline</h2>
           <div className="bg-card border border-border rounded-[12px] p-2 flex flex-col gap-1">
             {[
-              { stage: "Ideas", count: 24 },
-              { stage: "Briefs & Scripts", count: 12 },
-              { stage: "Production", count: 8 },
-              { stage: "Founder Review", count: 4, alert: true },
-              { stage: "Scheduled", count: 5 },
+              { stage: "Ideas Queue", count: pipelineMetrics.ideas, link: "/acquisition/strategy" },
+              { stage: "Script Center", count: pipelineMetrics.scripts, link: "/acquisition/scripts" },
+              { stage: "Founder Review", count: pipelineMetrics.review, alert: pipelineMetrics.review > 0, link: "/acquisition/production" },
+              { stage: "Published", count: pipelineMetrics.published, link: "/acquisition/analytics" },
             ].map((p, i) => (
-              <div key={i} className="flex justify-between items-center p-3 border-b border-border/50 last:border-0">
+              <Link href={p.link} key={i} className="flex justify-between items-center p-3 border-b border-border/50 last:border-0 hover:bg-muted/50 transition-colors cursor-pointer">
                 <span className={`text-[13px] font-medium ${p.alert ? 'text-destructive font-bold' : 'text-foreground'}`}>{p.stage}</span>
                 <span className={`text-[13px] font-bold bg-secondary px-2 py-0.5 rounded ${p.alert ? 'bg-destructive/10 text-destructive' : 'text-foreground'}`}>{p.count}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -221,9 +235,9 @@ export default function AcquisitionCommandPage() {
             <h3 className="text-[16px] font-bold text-foreground mb-1">No acquisition activity yet.</h3>
             <p className="text-[13px] text-muted-foreground mb-6">Connect your foundational assets to start generating Demand.</p>
             <div className="flex gap-2">
-               <Link href="/acquisition/strategy"><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold">Create Strategy</button></Link>
-               <Link href="/acquisition/scripts"><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold">Create Script</button></Link>
-               <Link href="/acquisition/capture"><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold">Create Capture Surface</button></Link>
+               <Link href={ACTION_MAP.openContentStrategy()}><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold hover:bg-muted">Create Strategy</button></Link>
+               <Link href={ACTION_MAP.openScripts()}><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold hover:bg-muted">Create Script</button></Link>
+               <Link href={ACTION_MAP.openAcquisitionCapture()}><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold hover:bg-muted">Create Capture Surface</button></Link>
             </div>
          </div>
       )}

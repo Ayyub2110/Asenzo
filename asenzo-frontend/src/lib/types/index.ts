@@ -90,6 +90,14 @@ export interface FoundationData {
     status: "Not Started" | "Incomplete" | "Partially Configured" | "Ready" | "Highly Ready";
     missingItems: string[];
   };
+  // Detailed Strategic Context (New Extensions)
+  businessContext?: any;
+  customerContext?: any;
+  positioningContext?: any;
+  offerContext?: any;
+  brandContext?: any;
+  knowledge?: any[];
+  proofSettings?: any[];
 }
 
 // ============== ATTENTION ==============
@@ -102,14 +110,126 @@ export interface MarketSignal {
 
 export interface ContentIdea {
   id: string;
+  workspaceId?: string;
   title: string;
-  stage: "TOF" | "MOF" | "BOF";
-  status: "idea" | "drafting" | "requires_review" | "approved" | "published";
-  framework: string;
+  coreInsight?: string;
+  problem?: string;
+  whyMatters?: string;
+  
+  icp?: string;
+  awarenessStage?: "Unaware" | "Problem-aware" | "Solution-aware" | "Product-aware" | "Most-aware";
+  funnelStage?: "TOF" | "MOF" | "BOF";
+  audienceSituation?: string;
+  
+  objective?: string;
+  contentPillar?: string;
+  messagePillar?: string;
+  strategicGap?: string;
+  
+  // Content Strategy Extensions
   angle?: string;
+  beliefToChallenge?: string;
+  beliefToInstall?: string;
+  hookDirection?: string;
+  hookDraft?: string;
+  
+  knowledgeSource?: string;
+  proofType?: string;
+  proofAsset?: string;
+  evidenceNotes?: string;
+  
+  primaryChannel?: string;
+  contentFormat?: string;
+  repurposingPotential?: string[];
+  
+  primaryCta?: string;
+  relatedOffer?: string;
+  businessOutcome?: string;
+  ctaDestination?: string;
+  
+  owner?: string;
+  priority?: "Low" | "Medium" | "High" | "Strategic";
+  targetPublishDate?: string;
+  campaign?: string;
+  productionNotes?: string;
+  
+  // New AI/Research Fields required for n8n integration
+  requestedCount?: number;
+  researchSummary?: string;
+  marketObservation?: string;
+  aiRecommendation?: string;
+  sourceCount?: number;
+  sources?: { url: string; type: "video" | "article" | "post" | "research" | "other" }[];
+  
+  status: "GENERATED" | "REVIEW" | "SELECTED" | "IDEA" | "SCRIPT" | "SCRIPTING" | "PRODUCTION" | "IN_PRODUCTION" | "APPROVED" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED" | "idea" | "drafting" | "requires_review" | "approved" | "published"; // Updated for master prompt states
+  createdAt?: string;
+  updatedAt?: string;
+
+  // New Validation Scoring Matrix
+  viralityScore?: number;
+  contentInterestScore?: number;
+  businessRelevanceScore?: number;
+  confidenceScore?: number;
+  
+  viralityFactors?: Array<{ label: string; score: number; max: number }>;
+  interestFactors?: Array<{ label: string; score: number; max: number }>;
+  businessRelevanceFactors?: Array<{ label: string; score: number; max: number }>;
+  scoringEvidence?: string[];
+  scoringVersion?: string;
+
+  // Legacy fields
+  framework?: string;
   outputGoal?: string;
   contentDraft?: string;
   marketSignalRef?: string;
+  stage?: "TOF" | "MOF" | "BOF";
+}
+
+// Script Models for Script Center
+export interface RequiredScript {
+  id: string;
+  ideaId: string;
+  workspaceId: string;
+  version: number;
+  content: string; // The draft script
+  hooks?: string[];
+  status: "DRAFT" | "REVIEW_REQUIRED" | "APPROVED" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ProductionStage = "IDEA" | "BRIEF" | "SCRIPT" | "FOUNDER REVIEW" | "APPROVED" | "RECORDING" | "EDITING" | "FINAL REVIEW" | "SCHEDULED" | "PUBLISHED";
+
+export interface ContentProductionItem {
+  id: string;
+  ideaId?: string;
+  scriptId?: string;
+  workspaceId: string;
+  title: string;
+  format: string;
+  channel: string;
+  stage: ProductionStage;
+  dueDate?: string;
+  owner?: string;
+  assetUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// AI Integration Interface for n8n (for frontend documentation)
+export interface GenerateIdeaRequest {
+  workspaceId: string;
+  icp: string;
+  awarenessStage: string;
+  funnelStage: string;
+  contentPillar: string;
+  objective: string;
+  channel: string;
+  format: string;
+  cta: string;
+  offer: string;
+  topic?: string;
+  requestedCount: number;
 }
 
 export interface AttentionData {

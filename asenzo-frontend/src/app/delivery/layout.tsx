@@ -20,13 +20,11 @@ export default async function DeliveryLayout({ children }: { children: React.Rea
   ];
 
   return (
-    <div className="flex flex-col h-full bg-background relative overflow-y-auto w-full">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50">
+    <div className="flex flex-col h-full bg-background relative overflow-y-auto min-w-0">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50 shrink-0">
         <div className="max-w-[1500px] w-full mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-[14px] font-bold tracking-widest uppercase text-foreground shrink-0">Delivery OS</h1>
-            
-            <nav className="hidden xl:flex gap-1 overflow-x-auto hide-scrollbar">
+          <div className="flex items-center w-full">
+            <nav className="flex gap-1 overflow-x-auto hide-scrollbar w-full">
               {tabs.map((tab) => {
                 const isActive = tab.href === "/delivery" ? currentPath === "/delivery" : currentPath.startsWith(tab.href);
                 return (
@@ -44,7 +42,7 @@ export default async function DeliveryLayout({ children }: { children: React.Rea
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-[1500px] mx-auto overflow-y-auto">
+      <main className="flex-1 max-w-[1500px] mx-auto w-full">
         {children}
       </main>
     </div>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { ACTION_MAP } from "@/lib/routing";
 import { getDelivery } from "@/lib/adapters";
 import { useAdapter } from "@/hooks/useAdapter";
 
@@ -37,19 +38,19 @@ export default function DeliveryCommandPage() {
         <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Delivery Pulse</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           {[
-            { label: "Active Clients", val: activeClients },
-            { label: "Onboarding", val: onboardingClients },
-            { label: "Engagements", val: activeEngagements },
-            { label: "Milestones Due", val: localData.milestones.length },
-            { label: "Blocked Items", val: blockedDeliverables, alert: blockedDeliverables > 0 },
-            { label: "Renewals", val: localData.renewals.length },
-            { label: "Proof Assets", val: localData.proofs.length },
-            { label: "Health Score", val: "94%", highlight: true },
+            { label: "Active Clients", val: activeClients, href: ACTION_MAP.openClientHealth() },
+            { label: "Onboarding", val: onboardingClients, href: ACTION_MAP.openOnboarding() },
+            { label: "Engagements", val: activeEngagements, href: ACTION_MAP.openDeliveryProjects() },
+            { label: "Milestones Due", val: localData.milestones.length, href: ACTION_MAP.openDeliveryProjects() },
+            { label: "Blocked Items", val: blockedDeliverables, alert: blockedDeliverables > 0, href: ACTION_MAP.openDeliveryProjects('blocked') },
+            { label: "Renewals", val: localData.renewals.length, href: ACTION_MAP.openRetentionAndProof() },
+            { label: "Proof Assets", val: localData.proofs.length, href: ACTION_MAP.openRetentionAndProof() },
+            { label: "Health Score", val: "94%", highlight: true, href: ACTION_MAP.openClientHealth() },
           ].map((m, i) => (
-             <div key={i} className={`p-4 rounded-[12px] border ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
+             <Link href={m.href} key={i} className={`block p-4 rounded-[12px] border hover:opacity-80 transition-opacity ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
                <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 mx-auto max-w-full text-clip overflow-hidden whitespace-nowrap ${m.alert ? 'text-destructive' : 'text-muted-foreground'}`}>{m.label}</p>
                <p className={`text-[20px] font-bold leading-none ${m.highlight ? 'text-success' : 'text-foreground'}`}>{m.val}</p>
-             </div>
+             </Link>
           ))}
         </div>
       </section>
@@ -60,18 +61,18 @@ export default function DeliveryCommandPage() {
         <section className="lg:col-span-1 bg-card border border-border p-6 rounded-[16px] flex flex-col shadow-sm">
           <h2 className="text-[11px] font-bold text-foreground uppercase tracking-widest leading-none mb-6">Today's Delivery Actions</h2>
           <div className="flex flex-col gap-4">
-             <div className="flex justify-between items-center">
+             <Link href={ACTION_MAP.openDeliveryProjects('blocked')} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Client input overdue</span>
                 <span className="bg-destructive text-destructive-foreground px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openDeliveryProjects('review')} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Deliverables Awaiting Approval</span>
                 <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">2</span>
-             </div>
-             <div className="flex justify-between items-center">
+             </Link>
+             <Link href={ACTION_MAP.openOnboarding()} className="flex justify-between items-center hover:opacity-80">
                 <span className="text-[13px] font-medium text-muted-foreground">Kickoffs Pending</span>
                 <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">0</span>
-             </div>
+             </Link>
           </div>
         </section>
 
