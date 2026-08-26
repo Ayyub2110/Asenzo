@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", icon: "dashboard", label: "Command Center" },
-  { href: "/foundation", icon: "account_balance", label: "Foundation" },
-  { href: "/acquisition", icon: "radar", label: "Acquisition" },
-  { href: "/conversion", icon: "query_stats", label: "Conversion" },
-  { href: "/delivery", icon: "check_circle", label: "Delivery" },
-  { href: "/retention", icon: "favorite", label: "Retention" },
+  { href: "/intelligence", icon: "psychology", label: "Intelligence" },
+  { href: "/acquisition", icon: "track_changes", label: "Acquisition" },
+  { href: "/conversion", icon: "filter_alt", label: "Conversion" },
+  { href: "/revenue", icon: "account_balance_wallet", label: "Revenue" },
+  { href: "/delivery", icon: "inventory_2", label: "Delivery" },
+  { href: "/operations", icon: "account_tree", label: "Operations" },
   { href: "/settings", icon: "settings", label: "Settings" }
 ];
 

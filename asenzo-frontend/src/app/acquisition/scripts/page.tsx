@@ -12,6 +12,9 @@ export default function ScriptCenterPage() {
   const [showRectifyModal, setShowRectifyModal] = useState(false);
   const [rectifyState, setRectifyState] = useState<"QUESTIONS" | "VOICE_MODE" | "LISTENING" | "PROCESSING" | "CAPTURED" | "ANALYZING" | "RESULT">("QUESTIONS");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  
+  // Manual Idea states
+  const [manualSourceLinks, setManualSourceLinks] = useState<string[]>([""]);
 
   const handleAutoGenerateScript = () => {
     setIsGeneratingScript(true);
@@ -304,20 +307,70 @@ export default function ScriptCenterPage() {
                  )}
                </div>
              ) : (
-               <div className="p-8">
-                  <div className="space-y-5 mb-8">
+                <div className="p-8">
+                  <div className="space-y-6 mb-8">
+                     
+                     {/* Source Links Input Area */}
                      <div>
-                       <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Core Idea</label>
-                       <input type="text" placeholder="Title or core message" className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] outline-none focus:border-foreground/40" />
+                        <div className="flex justify-between items-center mb-2">
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Source Links</label>
+                           <button 
+                             onClick={() => setManualSourceLinks([...manualSourceLinks, ""])}
+                             className="text-[10px] font-bold text-foreground hover:text-tertiary flex items-center gap-1 transition-colors">
+                             <span className="material-symbols-outlined text-[14px]">add</span> Add link
+                           </button>
+                        </div>
+                        <div className="space-y-2">
+                           {manualSourceLinks.map((link, idx) => (
+                             <div key={idx} className="flex items-center gap-2">
+                                <input 
+                                   type="text" 
+                                   placeholder="https://instagram.com/reel/..." 
+                                   value={link}
+                                   onChange={(e) => {
+                                      const newLinks = [...manualSourceLinks];
+                                      newLinks[idx] = e.target.value;
+                                      setManualSourceLinks(newLinks);
+                                   }}
+                                   className="flex-1 bg-background border border-border/50 rounded-[6px] p-3 text-[13px] outline-none focus:border-foreground/40 placeholder:text-muted-foreground/30" 
+                                />
+                                {manualSourceLinks.length > 1 && (
+                                   <button 
+                                     onClick={() => setManualSourceLinks(manualSourceLinks.filter((_, i) => i !== idx))}
+                                     className="w-[42px] h-[42px] flex items-center justify-center shrink-0 border border-border/50 rounded-[6px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                                      <span className="material-symbols-outlined text-[16px]">close</span>
+                                   </button>
+                                )}
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div>
+                       <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">What caught your attention?</label>
+                       <textarea 
+                          placeholder="What did you notice? A topic, hook, opinion, format, story, idea, or something you want to explore..." 
+                          className="w-full h-[90px] resize-none bg-background border border-border/50 rounded-[6px] p-3 text-[14px] outline-none focus:border-foreground/40 placeholder:text-muted-foreground/30" 
+                       />
                      </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Pillar</label>
-                           <select className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] font-bold outline-none"><option>Select</option></select>
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Pillar <span className="text-[10px] lowercase text-muted-foreground/50 ml-1">(Optional)</span></label>
+                           <select className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] font-bold outline-none text-foreground/80">
+                              <option>Recommend Best Fit</option>
+                              <option>Entrepreneurship</option>
+                              <option>Mindset</option>
+                              <option>Business</option>
+                           </select>
                         </div>
                         <div>
-                           <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Format</label>
-                           <select className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] font-bold outline-none"><option>Select</option></select>
+                           <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Funnel Stage <span className="text-[10px] lowercase text-muted-foreground/50 ml-1">(Optional)</span></label>
+                           <select className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] font-bold outline-none text-foreground/80">
+                              <option>Recommend Stage</option>
+                              <option>TOF</option>
+                              <option>MOF</option>
+                              <option>BOF</option>
+                           </select>
                         </div>
                      </div>
                   </div>
