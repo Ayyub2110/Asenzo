@@ -14,9 +14,40 @@ export default function AcquisitionProductionPage() {
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
 
   useEffect(() => {
-    const prodStr = localStorage.getItem("asenzo_production_items");
+    const prodStr = localStorage.getItem("asenzo_production_items_v2");
     if (prodStr) {
       setItems(JSON.parse(prodStr));
+    } else {
+      const defaultItems: any[] = [
+        {
+          id: "prod_1",
+          ideaId: "1",
+          workspaceId: "ws_1",
+          title: "Consistency isn't your problem. Clarity is.",
+          format: "Contrarian Reel",
+          channel: "Instagram",
+          stage: "IDEA",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          pillar: "Founder Clarity", 
+          funnel: "MOF"
+        },
+        {
+          id: "prod_2",
+          ideaId: "2",
+          workspaceId: "ws_1",
+          title: "Why scaling before $20k/mo breaks agencies",
+          format: "Story Carousel",
+          channel: "LinkedIn",
+          stage: "IDEA",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          pillar: "Mistakes", 
+          funnel: "TOF"
+        }
+      ];
+      setItems(defaultItems);
+      localStorage.setItem("asenzo_production_items_v2", JSON.stringify(defaultItems));
     }
   }, []);
 
@@ -42,7 +73,7 @@ export default function AcquisitionProductionPage() {
     });
 
     setItems(updatedItems);
-    localStorage.setItem("asenzo_production_items", JSON.stringify(updatedItems));
+    localStorage.setItem("asenzo_production_items_v2", JSON.stringify(updatedItems));
     setDraggedItemId(null);
   };
 
@@ -94,10 +125,15 @@ export default function AcquisitionProductionPage() {
                         <span className="material-symbols-outlined text-[14px]">drag_indicator</span>
                      </div>
                      
-                     <div className="flex justify-between items-center mb-2">
-                       <span className="text-[10px] uppercase font-bold bg-muted/60 text-foreground px-2 py-0.5 rounded tracking-widest">
+                     <div className="flex justify-between items-center mb-2 gap-2">
+                       <span className="text-[10px] uppercase font-bold bg-muted/60 text-foreground px-2 py-0.5 rounded tracking-widest truncate">
                          {item.format}
                        </span>
+                       {/* Mock strategic context pulling from idea if available */}
+                       <div className="flex gap-1 shrink-0">
+                          <span className="text-[9px] uppercase font-bold border border-border/50 text-muted-foreground px-1 py-0.5 rounded tracking-widest" title="Funnel Stage">{(item as any).funnel || "TOF"}</span>
+                          <span className="text-[9px] uppercase font-bold border border-border/50 text-muted-foreground px-1 py-0.5 rounded tracking-widest truncate max-w-[60px]" title="Pillar">{(item as any).pillar || "Pillar"}</span>
+                       </div>
                      </div>
                      
                      <h4 className="text-[13px] font-bold text-foreground leading-snug mb-3 pr-4">{item.title}</h4>
