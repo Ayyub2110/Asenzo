@@ -10,7 +10,7 @@ export default function ScriptCenterPage() {
   const [isResearching, setIsResearching] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [showRectifyModal, setShowRectifyModal] = useState(false);
-  const [rectifyState, setRectifyState] = useState<"QUESTIONS" | "ANALYZING" | "RESULT">("QUESTIONS");
+  const [rectifyState, setRectifyState] = useState<"QUESTIONS" | "VOICE_MODE" | "LISTENING" | "PROCESSING" | "CAPTURED" | "ANALYZING" | "RESULT">("QUESTIONS");
   const [showSubmitModal, setShowSubmitModal] = useState(false);
 
   const handleAutoGenerateScript = () => {
@@ -124,7 +124,7 @@ export default function ScriptCenterPage() {
                  </div>
               </div>
               <div className="flex gap-3">
-                 <button onClick={() => setShowRectifyModal(true)} className="px-4 py-2 border border-border rounded-[6px] text-[12px] font-bold text-tertiary border-tertiary/30 hover:bg-tertiary/10 flex items-center gap-2 transition-colors"><span className="material-symbols-outlined text-[14px]">psychology</span> Rectify Script</button>
+                 <button onClick={() => setShowRectifyModal(true)} className="px-4 py-2 border border-border rounded-[6px] text-[12px] font-bold text-tertiary border-tertiary/30 hover:bg-tertiary/10 flex items-center gap-2 transition-colors">Rectify Script</button>
                  <button onClick={() => setShowSubmitModal(true)} className="px-4 py-2 bg-foreground text-background rounded-[6px] text-[12px] font-bold hover:bg-foreground/90 flex items-center gap-2">Submit <span className="material-symbols-outlined text-[14px]">send</span></button>
               </div>
            </div>
@@ -211,22 +211,19 @@ export default function ScriptCenterPage() {
               </div>
 
               {/* Central Editor */}
-              <div className="flex-1 bg-card border border-border rounded-[12px] flex flex-col overflow-hidden relative">
-                 <div className="p-3 border-b border-border/50 bg-background flex justify-between items-center">
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest pl-2">Script Editor</span>
-                    <button 
-                      onClick={handleAutoGenerateScript}
-                      disabled={isGeneratingScript}
-                      className="text-[11px] font-bold text-background px-4 py-1.5 bg-foreground rounded-[6px] hover:bg-foreground/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        {isGeneratingScript ? (
-                           <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
-                        ) : (
-                           <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                        )}
-                        {isGeneratingScript ? "GENERATING..." : "AUTO-WRITE SCRIPT"}
-                    </button>
+              <div className="flex-1 flex flex-col bg-card border border-border/80 rounded-[12px] overflow-hidden shadow-sm">
+                 <div className="p-4 border-b border-border/50 bg-muted/10 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-[14px] font-bold text-foreground">Script / Copy Workspace</h2>
+                    </div>
+                    <div className="text-[11px] font-bold text-muted-foreground">
+                      v1.0
+                    </div>
                  </div>
-                 <div className="flex-1 p-8 relative">
+                 
+
+
+                 <div className="flex-1 p-6 relative group">
                     {isGeneratingScript && (
                        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
                           <div className="flex flex-col items-center">
@@ -235,10 +232,11 @@ export default function ScriptCenterPage() {
                           </div>
                        </div>
                     )}
-                    <textarea 
-                       value={scriptContent}
-                       onChange={(e) => setScriptContent(e.target.value)}
-                       className="w-full h-full resize-none outline-none bg-transparent text-[16px] leading-[1.8] font-medium text-foreground relative z-0"
+                    <textarea
+                      className="w-full h-full min-h-[600px] resize-none bg-transparent border-none focus:ring-0 text-[16px] text-foreground leading-relaxed font-medium focus:outline-none placeholder:text-muted-foreground/30 relative z-0"
+                      placeholder="Start writing your script or post here. The structure should adapt to your selected format..."
+                      value={scriptContent}
+                      onChange={e => setScriptContent(e.target.value)}
                     />
                  </div>
               </div>
@@ -348,6 +346,12 @@ export default function ScriptCenterPage() {
                 {rectifyState === "QUESTIONS" && (
                    <div className="space-y-6">
                       <p className="text-[14px] font-medium text-foreground mb-6">Before we finalize this script, the system needs to understand your true strategic intent. Answer briefly.</p>
+                      
+                      <div className="flex gap-2 p-1 bg-muted/20 rounded-[8px] border border-border/50 max-w-[200px] mb-6">
+                         <button className="flex-1 py-1.5 text-[11px] font-bold uppercase tracking-widest bg-background text-foreground shadow-sm rounded border border-border/50">Text</button>
+                         <button onClick={() => setRectifyState("VOICE_MODE")} className="flex-1 py-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">Voice</button>
+                      </div>
+
                       <div>
                          <label className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block mb-2">Why does this matter right now?</label>
                          <input type="text" className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] outline-none focus:border-foreground/40" placeholder="e.g. Too many founders are burning out on useless tasks..." />
@@ -361,6 +365,62 @@ export default function ScriptCenterPage() {
                          <select className="w-full bg-background border border-border/50 rounded-[6px] p-3 text-[14px] outline-none focus:border-foreground/40"><option>Relief / Validated</option><option>Challenged</option><option>Curious</option><option>Urgent</option></select>
                       </div>
                       <div className="pt-6 flex justify-end">
+                         <button onClick={() => { setRectifyState("ANALYZING"); setTimeout(() => setRectifyState("RESULT"), 2500); }} className="px-5 py-2.5 bg-tertiary text-background text-[12px] font-bold rounded-[6px] hover:bg-tertiary/90">Analyze & Rectify</button>
+                      </div>
+                   </div>
+                )}
+
+                {rectifyState === "VOICE_MODE" && (
+                   <div className="space-y-6 flex flex-col items-center justify-center py-8">
+                      <div className="flex gap-2 p-1 bg-muted/20 rounded-[8px] border border-border/50 max-w-[200px] mb-4 self-start">
+                         <button onClick={() => setRectifyState("QUESTIONS")} className="flex-1 py-1.5 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">Text</button>
+                         <button className="flex-1 py-1.5 text-[11px] font-bold uppercase tracking-widest bg-background text-foreground shadow-sm rounded border border-border/50">Voice</button>
+                      </div>
+
+                      <div className="text-center max-w-md w-full">
+                         <h3 className="text-[16px] font-bold text-foreground mb-4">"Why does this matter right now?"</h3>
+                         
+                         <button onClick={() => { setRectifyState("LISTENING"); setTimeout(() => setRectifyState("PROCESSING"), 3000); setTimeout(() => setRectifyState("CAPTURED"), 5000); }} className="w-20 h-20 bg-tertiary/10 border-2 border-tertiary/30 rounded-full flex items-center justify-center mx-auto hover:bg-tertiary/20 hover:scale-105 transition-all duration-300 shadow-[0_0_20px_rgba(var(--tertiary),0.2)]">
+                            <span className="material-symbols-outlined text-[32px] text-tertiary">mic</span>
+                         </button>
+                         <p className="text-[12px] font-bold uppercase tracking-widest text-tertiary mt-4">Tap to begin</p>
+                      </div>
+                   </div>
+                )}
+
+                {rectifyState === "LISTENING" && (
+                   <div className="space-y-6 flex flex-col items-center justify-center py-8 text-center h-full">
+                      <h3 className="text-[16px] font-bold text-foreground mb-4 opacity-50">"Why does this matter right now?"</h3>
+                      <div className="w-20 h-20 bg-tertiary text-background rounded-full flex items-center justify-center mx-auto animate-pulse flex-shrink-0">
+                         <span className="material-symbols-outlined text-[32px]">mic</span>
+                      </div>
+                      <p className="text-[12px] font-bold uppercase tracking-widest text-tertiary mt-4">Listening...</p>
+                      <div className="w-full max-w-sm h-12 flex items-center justify-center gap-1 opacity-70">
+                         <div className="w-1 h-3 bg-tertiary rounded-full animate-bounce"></div>
+                         <div className="w-1 h-6 bg-tertiary rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                         <div className="w-1 h-4 bg-tertiary rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                         <div className="w-1 h-8 bg-tertiary rounded-full animate-bounce" style={{animationDelay: '0.3s'}}></div>
+                         <div className="w-1 h-5 bg-tertiary rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                         <div className="w-1 h-3 bg-tertiary rounded-full animate-bounce" style={{animationDelay: '0.5s'}}></div>
+                      </div>
+                   </div>
+                )}
+
+                {rectifyState === "PROCESSING" && (
+                   <div className="space-y-6 flex flex-col items-center justify-center py-8 text-center h-full">
+                      <span className="material-symbols-outlined text-[32px] animate-spin text-tertiary flex-shrink-0">progress_activity</span>
+                      <p className="text-[12px] font-bold uppercase tracking-widest text-foreground mt-4">Processing audio...</p>
+                   </div>
+                )}
+
+                {rectifyState === "CAPTURED" && (
+                   <div className="space-y-6 flex flex-col items-center justify-center py-8 max-w-xl mx-auto">
+                      <h3 className="text-[12px] font-bold uppercase tracking-widest text-muted-foreground self-start">Captured Response:</h3>
+                      <div className="w-full bg-muted/20 border border-border/50 p-5 rounded-[8px] text-[14px] font-medium leading-relaxed text-foreground shadow-inner">
+                         "Founders are burning themselves out trying to post 3 times a day like everyone says, but they aren't getting anywhere because their underlying message isn't clear to begin with. It's a waste of energy."
+                      </div>
+                      <div className="flex gap-4 self-end mt-4">
+                         <button onClick={() => setRectifyState("VOICE_MODE")} className="px-4 py-2 text-[12px] font-bold text-muted-foreground hover:text-foreground">Re-record</button>
                          <button onClick={() => { setRectifyState("ANALYZING"); setTimeout(() => setRectifyState("RESULT"), 2500); }} className="px-5 py-2.5 bg-tertiary text-background text-[12px] font-bold rounded-[6px] hover:bg-tertiary/90">Analyze & Rectify</button>
                       </div>
                    </div>

@@ -4,16 +4,13 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Asenzo Adaptation Phase 4 nav items
 const navItems = [
   { href: "/", icon: "dashboard", label: "Command Center" },
-  { href: "/intelligence", icon: "neurology", label: "Intelligence" },
+  { href: "/foundation", icon: "account_balance", label: "Foundation" },
   { href: "/acquisition", icon: "radar", label: "Acquisition" },
   { href: "/conversion", icon: "query_stats", label: "Conversion" },
-  { href: "/revenue", icon: "payments", label: "Revenue" },
   { href: "/delivery", icon: "check_circle", label: "Delivery" },
-  { href: "/operations", icon: "precision_manufacturing", label: "Operations" },
-  { href: "/calendar", icon: "calendar_month", label: "Calendar" },
+  { href: "/retention", icon: "favorite", label: "Retention" },
   { href: "/settings", icon: "settings", label: "Settings" }
 ];
 

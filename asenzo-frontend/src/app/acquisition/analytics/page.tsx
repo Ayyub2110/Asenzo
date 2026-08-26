@@ -14,6 +14,24 @@ export default function AcquisitionAnalyticsPage() {
     { title: "Morning routines are wasting your time", type: "Reel", views: "4K", class: "Drawing Board", hook: "18%", retention: "12%", cta: "0.4%" },
   ];
 
+  // Mock Creator Analysis
+  const creatorData = [
+    {
+      name: "Alex Morgan",
+      niche: "B2B Growth",
+      pillars: "Founder Psychology, Operations",
+      followers: "42.5K",
+      avgViews: "184K",
+      engagement: "7.2%",
+      bestFormat: "Contrarian",
+      bestPillar: "Founder Psychology",
+      landingPage: "high-converting",
+      contentValue: "High",
+      offerValue: "High",
+      instagram: "instagram.com/alexmorgan"
+    }
+  ];
+
   return (
     <div className="p-6 md:p-10 lg:p-12 max-w-[1400px] mx-auto w-full pb-32">
       
@@ -178,6 +196,61 @@ export default function AcquisitionAnalyticsPage() {
                         <td className={`p-4 font-bold ${parseInt(asset.hook) > 40 ? 'text-success' : 'text-warning'}`}>{asset.hook}</td>
                         <td className="p-4 font-medium text-foreground">{asset.retention}</td>
                         <td className="p-4 font-medium text-foreground">{asset.cta}</td>
+                     </tr>
+                  ))}
+               </tbody>
+            </table>
+         </div>
+      </div>
+
+      {/* Creator Analysis */}
+      <div className="bg-card border border-border rounded-[12px] mt-8 overflow-hidden">
+         <div className="p-4 border-b border-border/50 bg-muted/10 flex justify-between items-center">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+               <span className="material-symbols-outlined text-[14px]">person_search</span> Creator Analysis
+            </h3>
+         </div>
+         <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+               <thead>
+                  <tr className="border-b border-border/50 text-[10px] uppercase font-bold text-muted-foreground tracking-widest bg-background">
+                     <th className="p-4 font-bold">Creator</th>
+                     <th className="p-4 font-bold">Niche & Pillars</th>
+                     <th className="p-4 font-bold">Performance</th>
+                     <th className="p-4 font-bold">Best Vectors</th>
+                     <th className="p-4 font-bold">Values</th>
+                  </tr>
+               </thead>
+               <tbody className="text-[13px]">
+                  {creatorData.map((creator, i) => (
+                     <tr key={i} className="border-b border-border/20 hover:bg-muted/30 transition-colors">
+                        <td className="p-4">
+                           <div className="font-bold text-foreground mb-1">{creator.name}</div>
+                           <a href={`https://${creator.instagram}`} className="text-[11px] text-blue-500 hover:underline">{creator.instagram}</a>
+                        </td>
+                        <td className="p-4">
+                           <div className="font-bold text-foreground mb-1">{creator.niche}</div>
+                           <div className="text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded inline-block">{creator.pillars}</div>
+                        </td>
+                        <td className="p-4">
+                           <div className="flex flex-col gap-1 text-[11px]">
+                              <span className="flex justify-between w-32"><span className="text-muted-foreground">Followers</span> <span className="font-bold text-foreground">{creator.followers}</span></span>
+                              <span className="flex justify-between w-32"><span className="text-muted-foreground">Avg Views</span> <span className="font-bold text-foreground">{creator.avgViews}</span></span>
+                              <span className="flex justify-between w-32"><span className="text-muted-foreground">Engagement</span> <span className="font-bold text-success">{creator.engagement}</span></span>
+                           </div>
+                        </td>
+                        <td className="p-4">
+                           <div className="flex flex-col gap-1 text-[11px]">
+                              <span className="flex justify-between w-40"><span className="text-muted-foreground">Best Format</span> <span className="font-bold text-foreground">{creator.bestFormat}</span></span>
+                              <span className="flex justify-between w-40"><span className="text-muted-foreground">Best Pillar</span> <span className="font-bold text-foreground">{creator.bestPillar}</span></span>
+                           </div>
+                        </td>
+                        <td className="p-4">
+                           <div className="flex flex-col gap-1 text-[11px]">
+                              <span className="flex justify-between w-32"><span className="text-muted-foreground">Content Value</span> <span className="font-bold text-foreground">{creator.contentValue}</span></span>
+                              <span className="flex justify-between w-32"><span className="text-muted-foreground">Offer Value</span> <span className="font-bold text-foreground">{creator.offerValue}</span></span>
+                           </div>
+                        </td>
                      </tr>
                   ))}
                </tbody>

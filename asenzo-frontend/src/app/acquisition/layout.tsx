@@ -6,13 +6,13 @@ import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/acquisition", label: "Acquisition Command" },
+  { href: "/acquisition/analytics", label: "Analytics" },
   { href: "/acquisition/strategy", label: "Content Strategy" },
   { href: "/acquisition/calendar", label: "Content Calendar" },
   { href: "/acquisition/production", label: "Content Production" },
   { href: "/acquisition/scripts", label: "Script Center" },
   { href: "/acquisition/stories", label: "Story Sequence" },
   { href: "/acquisition/outreach", label: "Outreach" },
-  { href: "/acquisition/analytics", label: "Analytics" },
 ];
 
 export default function AcquisitionLayout({ children }: { children: React.ReactNode }) {
