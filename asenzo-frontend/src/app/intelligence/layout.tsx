@@ -16,8 +16,6 @@ export default function IntelligenceLayout({
     { label: "Opportunities", href: "/intelligence/opportunities" },
     { label: "Risks", href: "/intelligence/risks" },
     { label: "Attribution", href: "/intelligence/attribution" },
-    { label: "Channel Performance", href: "/intelligence/channels" },
-    { label: "Content-to-Revenue", href: "/intelligence/content-revenue" },
     { label: "Founder Independence", href: "/intelligence/founder-independence" },
     { label: "Recommendations", href: "/intelligence/recommendations" }
   ];

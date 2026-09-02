@@ -1,144 +1,154 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ACTION_MAP } from "@/lib/routing";
-import { getConversion } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import { ActionQueueItem, Lead, Opportunity } from "@/lib/types/conversion";
 
-export default function ConversionCommandPage() {
-  const { localData, loading, error } = useAdapter(getConversion);
+const MOCK_ACTION_QUEUE: ActionQueueItem[] = [
+  { id: "q1", type: "HOT_LEAD", title: "Hot Lead Needs Response", description: "David Miller matched ICP & downloaded Lead Magnet", urgency: "HIGH", targetRoute: "/conversion/leads" },
+  { id: "q2", type: "CALL_DUE", title: "Sales Call Tomorrow", description: "Discovery call with Sarah Jenkins at CloudScale", urgency: "HIGH", targetRoute: "/conversion/pipeline/calls" },
+];
 
-  if (loading) {
-    return <div className="p-10 animate-pulse h-96 w-full max-w-[1200px] mx-auto bg-muted/20 rounded-[16px]" />;
-  }
+const QUICK_ACTIONS = [
+  { label: "Qualify Lead", icon: "verified", color: "text-blue-500", href: "/conversion/leads/qualification" },
+  { label: "Create Opportunity", icon: "add_chart", color: "text-emerald-500", href: "/conversion/pipeline" },
+  { label: "Log Conversation", icon: "forum", color: "text-purple-500", href: "/conversion/conversations" },
+  { label: "Schedule Call", icon: "calendar_month", color: "text-orange-500", href: "/conversion/pipeline/calls" },
+];
 
-  if (error || !localData) {
-    return <div className="p-10">Error loading Conversion OS.</div>;
-  }
+export default function ConversionCommandCenter() {
+  const [queue] = useState<ActionQueueItem[]>(MOCK_ACTION_QUEUE);
+  
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
 
-  // Calculate high-level pulse stats
-  const totalLeads = 128; // Using mock top-level count since Phase 1 doesn't ingest true Lead count here yet.
-  const qualifiedLeads = 34; 
-  const activeConversations = localData.conversations.filter(c => !["CLOSED_WON", "LOST", "UNRESPONSIVE", "NOT_INTERESTED", "NOT_NOW"].includes(c.status));
-  const followUpsDue = localData.followUps.filter(f => f.status === "DUE" || f.status === "OVERDUE");
-  const applications = localData.applications?.length || 0;
-  const bookings = localData.bookings?.length || 0;
-  const showUpRate = "78%";
-  const conversionRate = "12%";
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/conversion/leads").then(r => r.json()),
+      fetch("/api/conversion/opportunities").then(r => r.json())
+    ]).then(([lData, oData]) => {
+      setLeads(lData || []);
+      setOpportunities(oData || []);
+    }).catch(console.error);
+  }, []);
 
-  // Intelligence bottlenecks
-  let bottleneck = { title: "Healthy Conversion Flow", text: "Pipeline operating efficiently." };
-  if (followUpsDue.length > 5) {
-     bottleneck = { title: "FOLLOW-UP BOTTLENECK", text: `${followUpsDue.length} conversations have no next action or are overdue.` };
-  } else if (qualifiedLeads > bookings) {
-     bottleneck = { title: "BOOKING BOTTLENECK", text: "Qualified leads are not booking." };
-  }
+  const totalPipeline = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
+  const qualifiedLeads = leads.filter(l => l.qualificationStatus === "QUALIFIED").length;
+
+  const stats = [
+    { label: "Total Leads", value: leads.length, change: "All Time" },
+    { label: "Qualified Leads", value: qualifiedLeads, change: "Approved" },
+    { label: "Active Deals", value: opportunities.length, change: "In Pipeline" },
+    { label: "Pipeline Value", value: `£${(totalPipeline/1000).toFixed(1)}k`, change: "Weighted" },
+    { label: "Calls Upcoming", value: opportunities.filter(o => o.pipelineStage === "CALL_BOOKED").length, change: "Scheduled" },
+    { label: "Win Rate", value: "68%", change: "Last 30d" },
+  ];
 
   return (
-    <div className="p-6 md:p-10 mx-auto w-full pb-32">
-      
-      {/* 1. CONVERSION PULSE */}
-      <section className="mb-12">
-        <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Conversion Pulse</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-          {[
-            { label: "Total Leads", val: totalLeads, href: ACTION_MAP.openConversionInbox() },
-            { label: "Qualified", val: qualifiedLeads, href: ACTION_MAP.openLeadQualification('QUALIFIED') },
-            { label: "Active Convos", val: activeConversations.length, href: ACTION_MAP.openConversionInbox() },
-            { label: "Follow-ups Due", val: followUpsDue.length, alert: followUpsDue.length > 0, href: ACTION_MAP.openFollowUps() }, // Or followups, note: deal follow-ups belong in Revenue
-            { label: "Applications", val: applications, href: ACTION_MAP.openApplications() },
-            { label: "Bookings", val: bookings, href: ACTION_MAP.openBooking() },
-            { label: "Show-Up Rate", val: showUpRate, highlight: true, href: ACTION_MAP.openConversionAnalytics() },
-            { label: "Conversion Rate", val: conversionRate, highlight: true, href: ACTION_MAP.openConversionAnalytics() },
-          ].map((m, i) => (
-             <Link href={m.href} key={i} className={`block p-4 rounded-[12px] border hover:opacity-80 transition-opacity ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
-               <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 mx-auto max-w-full text-clip overflow-hidden whitespace-nowrap ${m.alert ? 'text-destructive' : 'text-muted-foreground'}`}>{m.label}</p>
-               <p className={`text-[20px] font-bold leading-none ${m.highlight ? 'text-success' : 'text-foreground'}`}>{m.val}</p>
-             </Link>
-          ))}
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-        
-        {/* TODAY'S ACTIONS */}
-        <section className="lg:col-span-1 bg-card border border-border p-6 rounded-[16px] flex flex-col shadow-sm">
-          <h2 className="text-[11px] font-bold text-foreground uppercase tracking-widest leading-none mb-6">Today's Actions</h2>
-          <div className="flex flex-col gap-4">
-             <Link href={ACTION_MAP.openConversionInbox()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Needs Reply</span>
-                <span className="bg-destructive text-destructive-foreground px-2 py-0.5 rounded text-[11px] font-bold">2</span>
-             </Link>
-             <Link href={ACTION_MAP.openFollowUps()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Follow-ups Due</span>
-                <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">{followUpsDue.length}</span>
-             </Link>
-             <Link href={ACTION_MAP.openApplications()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Applications to Review</span>
-                <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </Link>
-             <Link href={ACTION_MAP.openBooking()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Bookings Today</span>
-                <span className="bg-success text-background px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </Link>
-          </div>
-        </section>
-
-        {/* INTELLIGENCE & BOTTLENECKS */}
-        <section className="lg:col-span-2 bg-foreground text-background p-6 rounded-[16px] shadow-sm flex flex-col justify-center">
-            <h2 className="text-[11px] font-bold text-background/70 uppercase tracking-widest leading-none mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[16px]">{bottleneck.title.includes("Healthy") ? 'check_circle' : 'warning'}</span> Intelligence & Bottlenecks
-            </h2>
-            <h3 className="text-[20px] font-bold mb-2">{bottleneck.title}</h3>
-            <p className="text-[14px] font-medium text-background/80">{bottleneck.text}</p>
-        </section>
+    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[14px]">track_changes</span>
+          Pillar 3 — Conversion OS
+        </p>
+        <h1 className="text-[24px] font-bold text-slate-900 tracking-tight mt-1">Command Center</h1>
+        <p className="text-[12px] text-slate-500 mt-1">Operating hub for turning qualified attention into closed revenue.</p>
       </div>
 
-      {/* TOP SOURCES & RECENT */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-         <section>
-            <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Top Conversion Sources</h2>
-            <div className="bg-card border border-border rounded-[12px] p-4 text-[13px]">
-               <div className="flex justify-between font-bold text-muted-foreground uppercase text-[10px] tracking-wider border-b border-border pb-2 mb-2">
-                 <span>Source</span>
-                 <span>Leads</span>
-                 <span>Booked</span>
-               </div>
-               <div className="flex justify-between py-2 border-b border-border/50">
-                 <span className="font-bold text-foreground">Instagram Organic</span>
-                 <span className="text-muted-foreground">62</span>
-                 <span className="text-foreground">6</span>
-               </div>
-               <div className="flex justify-between py-2">
-                 <span className="font-bold text-foreground">LinkedIn DM</span>
-                 <span className="text-muted-foreground">41</span>
-                 <span className="text-foreground">3</span>
-               </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-6 gap-4">
+        {stats.map((stat, i) => (
+          <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+            <p className="text-[11px] font-bold text-slate-500">{stat.label}</p>
+            <div className="mt-2">
+              <span className="text-[20px] font-bold text-slate-900">{stat.value}</span>
+              <span className="text-[10px] text-emerald-600 font-semibold ml-2">{stat.change}</span>
             </div>
-         </section>
-
-          <section>
-            <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Recent Conversations</h2>
-            <div className="flex flex-col gap-3">
-             {localData.conversations.slice(0, 3).map(c => (
-                <Link href={ACTION_MAP.openConversionInbox()} key={c.id} className="block hover:opacity-80">
-                  <div className="p-4 border border-border rounded-[10px] bg-card flex justify-between items-center">
-                     <div>
-                       <p className="text-[14px] font-bold text-foreground">{c.contact}</p>
-                       <p className="text-[11px] text-muted-foreground">{c.lastInteraction}</p>
-                     </div>
-                     <div className="text-right">
-                       <p className="text-[10px] uppercase font-bold bg-secondary px-2 py-0.5 rounded text-foreground inline-block">{c.status}</p>
-                       <p className="text-[12px] text-muted-foreground mt-1 line-clamp-1 max-w-[150px]">{c.nextAction}</p>
-                     </div>
-                  </div>
-                </Link>
-             ))}
-           </div>
-         </section>
+          </div>
+        ))}
       </div>
 
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left: Action Queue */}
+        <div className="col-span-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+              Action Queue
+            </h2>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden divide-y divide-slate-100">
+            {queue.map((item) => (
+              <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 rounded-full p-1 border ${
+                    item.urgency === "HIGH" ? "bg-red-50 border-red-200 text-red-600" :
+                    item.urgency === "MEDIUM" ? "bg-amber-50 border-amber-200 text-amber-600" :
+                    "bg-slate-50 border-slate-200 text-slate-600"
+                  }`}>
+                    <span className="material-symbols-outlined text-[14px]">
+                      {item.type === "HOT_LEAD" ? "local_fire_department" :
+                       item.type === "CALL_DUE" ? "call" :
+                       item.type === "OFFER_DECISION" ? "description" :
+                       item.type === "FOLLOWUP" ? "refresh" : "history"}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-[13px] font-bold text-slate-900">{item.title}</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{item.description}</p>
+                  </div>
+                </div>
+                <Link 
+                  href={item.targetRoute}
+                  className="px-4 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  Resolve
+                </Link>
+              </div>
+            ))}
+            {queue.length === 0 && (
+               <div className="p-8 text-center text-[12px] text-slate-500">No pending actions.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Quick Actions & Intelligence */}
+        <div className="col-span-4 space-y-5">
+          {/* Quick Actions */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <h3 className="text-[12px] font-bold text-slate-900 mb-3 uppercase tracking-wider text-slate-400">Manual Actions</h3>
+            <div className="space-y-2">
+              {QUICK_ACTIONS.map((action, i) => (
+                <Link
+                  key={i}
+                  href={action.href}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all font-semibold text-[12px] text-slate-700"
+                >
+                  <span className={`material-symbols-outlined text-[18px] ${action.color}`}>{action.icon}</span>
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* AI Intelligence Snippet */}
+          <div className="bg-violet-50/50 border border-violet-100 rounded-xl p-5 shadow-sm">
+            <h3 className="text-[10px] font-bold text-violet-600 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+              <span className="material-symbols-outlined text-[14px]">psychology</span>
+              Conversion Intelligence
+            </h3>
+            <p className="text-[12px] font-medium text-slate-900 mb-2">Primary Bottleneck: Offer → Won</p>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              12 qualified calls resulted in only 3 closed-won deals this month. The highest-frequency blocker logged post-call is "Trust / Previous Agency Failure".
+            </p>
+            <div className="mt-4 pt-3 border-t border-violet-100">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">Recommended Feedback Loop</span>
+              <p className="text-[11px] font-medium text-slate-800 mt-1">Brief Acquisition to prioritize MOF proof & risk-reversal posts.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

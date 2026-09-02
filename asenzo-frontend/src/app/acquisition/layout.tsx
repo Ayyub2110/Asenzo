@@ -1,47 +1,170 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const tabs = [
-  { href: "/acquisition", label: "Command Center", exact: true },
-  { href: "/acquisition/strategy", label: "Strategy" },
-  { href: "/acquisition/research", label: "Research" },
-  { href: "/acquisition/content", label: "Content" },
-  { href: "/acquisition/funnels", label: "Funnels" },
-  { href: "/acquisition/library", label: "Library" },
-  { href: "/acquisition/analytics", label: "Analytics" },
+interface NavItem {
+  href: string;
+  label: string;
+  exact?: boolean;
+}
+
+interface NavGroup {
+  id: string;
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    id: "content",
+    title: "1. Content",
+    items: [
+      { href: "/acquisition/strategy", label: "Strategy" },
+      { href: "/acquisition/research", label: "Research & Ideas" },
+      { href: "/acquisition/scripts", label: "Scripts" },
+      { href: "/acquisition/production", label: "Production & Kanban" },
+      { href: "/acquisition/stories", label: "Stories" },
+      { href: "/acquisition/content/analytics", label: "Content Analytics" },
+    ],
+  },
+  {
+    id: "distribution",
+    title: "2. Distribution",
+    items: [
+      { href: "/acquisition/distribution", label: "Organic Social" },
+      { href: "/acquisition/channels", label: "Channels" },
+    ],
+  },
+  {
+    id: "assets",
+    title: "3. Conversion Assets",
+    items: [{ href: "/acquisition/assets", label: "Conversion Assets" }],
+  },
+  {
+    id: "nurture",
+    title: "4. Lead Capture & Nurture",
+    items: [{ href: "/acquisition/nurture", label: "Lead Capture & Nurture" }],
+  },
+  {
+    id: "outreach",
+    title: "5. Outbound",
+    items: [{ href: "/acquisition/outreach", label: "Outreach Workspace" }],
+  },
+  {
+    id: "funnels",
+    title: "6. Funnels",
+    items: [{ href: "/acquisition/funnels", label: "Funnel Canvas" }],
+  },
+  {
+    id: "analytics",
+    title: "7. Analytics",
+    items: [
+      { href: "/acquisition/analytics", label: "Acquisition Analytics" },
+      { href: "/acquisition/channels", label: "Channels" },
+      { href: "/acquisition/content-revenue", label: "Content → Revenue" },
+    ],
+  },
 ];
 
 export default function AcquisitionLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isFunnels = pathname === "/acquisition/funnels" || pathname?.startsWith("/acquisition/funnels/");
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+
+  // Determine active pillar based on route
+  const getActiveGroup = () => {
+    for (const group of navGroups) {
+      if (group.items.some((item) => pathname === item.href || (item.href !== "/acquisition" && pathname?.startsWith(item.href)))) {
+        return group.id;
+      }
+    }
+    return null;
+  };
+
+  const currentGroup = activeGroup || getActiveGroup() || "content";
 
   return (
     <div className={`flex flex-col min-w-0 ${isFunnels ? "h-[calc(100vh-72px)] overflow-hidden" : "h-full overflow-y-auto"}`}>
-      {/* Tab nav — ASENZO design system */}
+      {/* Top Header - Level 1 Pillars in classic ASENZO clean design */}
       <div className="sticky top-0 z-30 bg-background border-b border-border shrink-0">
-        <div className="max-w-[1400px] mx-auto px-8 flex items-center gap-1 h-11">
-          {tabs.map((tab) => {
-            const isActive = tab.exact
-              ? pathname === tab.href
-              : pathname === tab.href || pathname?.startsWith(tab.href + "/");
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all whitespace-nowrap ${
-                  isActive
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
+        <div className="max-w-[1400px] mx-auto px-8 flex items-center justify-between h-11 text-[12px]">
+          <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none">
+            <Link
+              href="/acquisition"
+              className={`px-3 py-1.5 rounded-md font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                pathname === "/acquisition"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px]">dashboard</span>
+              Command Center
+            </Link>
+
+            <div className="h-4 w-[1px] bg-slate-200 mx-1 shrink-0" />
+
+            {navGroups.map((group) => {
+              const isGroupActive = currentGroup === group.id;
+              const primaryHref = group.items[0]?.href || "/acquisition";
+              return (
+                <Link
+                  key={group.id}
+                  href={primaryHref}
+                  onClick={() => setActiveGroup(group.id)}
+                  className={`px-3 py-1.5 rounded-md font-semibold transition-all whitespace-nowrap ${
+                    isGroupActive
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                  }`}
+                >
+                  {group.title}
+                </Link>
+              );
+            })}
+
+            <div className="h-4 w-[1px] bg-slate-200 mx-1 shrink-0" />
+
+            <Link
+              href="/acquisition/library"
+              className={`px-3 py-1.5 rounded-md font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                pathname === "/acquisition/library"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px]">local_library</span>
+              Library
+            </Link>
+          </div>
         </div>
+
+        {/* Level 2 Sub-Navigation Bar */}
+        {pathname !== "/acquisition" && pathname !== "/acquisition/library" && (
+          <div className="bg-slate-50/80 border-t border-slate-200 px-8 py-1.5">
+            <div className="max-w-[1400px] mx-auto flex items-center gap-2 overflow-x-auto text-[11px]">
+              {navGroups
+                .find((g) => g.id === currentGroup)
+                ?.items.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== "/acquisition" && pathname?.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`px-2.5 py-1 rounded transition-colors font-semibold ${
+                        isActive
+                          ? "bg-blue-600 text-white"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Page content */}
@@ -51,3 +174,5 @@ export default function AcquisitionLayout({ children }: { children: React.ReactN
     </div>
   );
 }
+
+

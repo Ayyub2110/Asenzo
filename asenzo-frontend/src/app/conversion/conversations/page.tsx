@@ -1,78 +1,68 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { getConversion } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import { Lead } from "@/lib/types/conversion";
 
-export default function ConversationsPage() {
-  const { localData, loading, error } = useAdapter(getConversion);
+export default function ConversationsInbox() {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (loading) {
-     return <div className="p-10 animate-pulse h-96 w-full max-w-[1200px] mx-auto bg-muted/20 rounded-[16px]" />;
-  }
-
-  if (error || !localData) {
-     return <div className="p-10">Error loading Conversations.</div>;
-  }
-
-  const { conversations } = localData;
+  useEffect(() => {
+    fetch("/api/conversion/leads")
+      .then(r => r.json())
+      .then(data => {
+        setLeads(data || []);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
 
   return (
-    <div className="p-6 md:p-10 max-w-[1400px] mx-auto">
-      <div className="flex items-end justify-between mb-8">
+    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6 h-full flex flex-col">
+      <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-[18px] font-bold text-foreground mb-1">Conversations</h1>
-          <p className="text-[14px] text-muted-foreground">Global view of all active lead conversations.</p>
+          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Unified Inbox</h1>
+          <p className="text-[12px] text-slate-500 mt-0.5">Manage all active dialogues crossing the intent threshold.</p>
+        </div>
+        <div className="flex gap-2">
+           <Link href="/conversion/conversations/dms" className="px-4 py-2 bg-slate-100 font-bold text-[11px] rounded-lg">DM Inbound</Link>
+           <Link href="/conversion/conversations/sales" className="px-4 py-2 bg-slate-100 font-bold text-[11px] rounded-lg">Sales Threads</Link>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-[16px] overflow-hidden">
-        <div className="flex items-center gap-2 p-4 border-b border-border bg-card">
-           <input type="text" placeholder="Search conversations..." className="bg-background border border-border text-foreground text-[13px] px-3 py-1.5 rounded-[6px] w-[250px]" />
-           <select className="bg-background border border-border text-foreground text-[13px] px-3 py-1.5 rounded-[6px]">
-              <option>All Statuses</option>
-              <option>ACTIVE</option>
-              <option>WAITING</option>
-           </select>
-        </div>
-        <table className="w-full text-left">
-          <thead className="bg-secondary/50">
-            <tr>
-              <th className="p-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Contact</th>
-              <th className="p-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Company</th>
-              <th className="p-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Status</th>
-              <th className="p-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest hidden md:table-cell">Next Action</th>
-              <th className="p-4 text-[11px] font-bold text-muted-foreground uppercase tracking-widest text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {conversations.length === 0 ? (
-               <tr>
-                 <td colSpan={5} className="p-10 text-center">
-                    <p className="text-[13px] text-muted-foreground font-medium italic">No active conversations found.</p>
-                 </td>
-               </tr>
-            ) : conversations.map(c => (
-              <tr key={c.id} className="border-t border-border hover:bg-secondary/30 transition-colors">
-                 <td className="p-4">
-                   <p className="text-[14px] font-bold text-foreground">{c.contact}</p>
-                   <p className="text-[11px] text-muted-foreground bg-background border border-border w-fit px-1.5 rounded mt-1">{c.source}</p>
-                 </td>
-                 <td className="p-4 text-[13px] font-medium text-foreground">{c.company}</td>
-                 <td className="p-4">
-                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-background border border-border text-foreground">{c.status as string}</span>
-                 </td>
-                 <td className="p-4 hidden md:table-cell">
-                   <p className="text-[13px] text-foreground">{c.nextAction}</p>
-                 </td>
-                 <td className="p-4 text-right">
-                   <button className="bg-foreground text-background text-[12px] font-bold px-4 py-1.5 rounded-[6px] hover:opacity-90">Open</button>
-                 </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 overflow-hidden flex">
+         {/* Sidebar thread list */}
+         <div className="w-[320px] border-r border-slate-200 flex flex-col bg-slate-50/50">
+            <div className="p-4 border-b border-slate-200 bg-white">
+               <input type="text" placeholder="Search conversations..." className="w-full px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-slate-400 transition-colors" />
+            </div>
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+               {isLoading ? (
+                  <div className="p-4 text-center text-[12px] text-slate-500">Loading...</div>
+               ) : leads.map(lead => (
+                  <div key={lead.id} className="p-4 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+                     <div className="flex justify-between items-start mb-1">
+                        <span className="text-[13px] font-bold text-slate-900">{lead.name}</span>
+                        <span className="text-[10px] text-slate-400 font-medium">10m ago</span>
+                     </div>
+                     <p className="text-[11px] text-slate-500 truncate mt-1">Has there been any update on the...</p>
+                     <div className="mt-2 flex gap-1">
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-600 font-semibold text-[9px] rounded uppercase">{lead.acquisitionChannel || "Direct"}</span>
+                     </div>
+                  </div>
+               ))}
+               {leads.length === 0 && !isLoading && (
+                  <div className="p-8 text-center text-[12px] text-slate-400">No active threads.</div>
+               )}
+            </div>
+         </div>
+         {/* Main chat window */}
+         <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 flex items-center justify-center text-slate-400 text-[12px]">
+               Select a conversation to load the operational thread.
+            </div>
+         </div>
       </div>
     </div>
   );

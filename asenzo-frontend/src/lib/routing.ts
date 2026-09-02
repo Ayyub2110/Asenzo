@@ -9,8 +9,6 @@ export const ACTION_MAP = {
   // Command Center
   openCommandCenter: () => '/',
 
-  // Foundation
-  openFoundation: () => '/foundation',
 
 
   // Acquisition 
@@ -66,8 +64,8 @@ export const ACTION_MAP = {
   openIntelligenceOpportunities: () => '/intelligence/opportunities',
   openIntelligenceRisks: () => '/intelligence/risks',
   openAttribution: () => '/intelligence/attribution',
-  openChannelPerformance: () => '/intelligence/channels',
-  openContentToRevenue: () => '/intelligence/content-revenue',
+  openChannelPerformance: () => '/acquisition/channels',
+  openContentToRevenue: () => '/acquisition/content-revenue',
   openFounderIndependence: () => '/intelligence/founder-independence',
   openRecommendations: () => '/intelligence/recommendations',
   openStrategicReviews: () => '/intelligence/reviews',

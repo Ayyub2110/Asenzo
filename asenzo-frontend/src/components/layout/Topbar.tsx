@@ -29,7 +29,6 @@ export default function Topbar() {
 
   const getPageTitle = (path: string) => {
     if (path === "/" || path === "/command-center") return "Command Center";
-    if (path.startsWith("/foundation")) return "Foundation";
     if (path.startsWith("/attention")) return "Attention OS";
     if (path.startsWith("/acquisition")) return "Acquisition";
     if (path.startsWith("/conversion")) return "Conversion OS";
@@ -52,7 +51,6 @@ export default function Topbar() {
     if (path.startsWith("/revenue")) return "Sales Pipeline and Revenue Operations";
     if (path.startsWith("/delivery")) return "Client Services and Fulfillment Engine";
     if (path.startsWith("/operations")) return "Team, Workflows, and Process Management";
-    if (path.startsWith("/foundation")) return "The core business ecosystem and blueprint.";
     return "Monday, August 17 · Business Overview";
   };
 

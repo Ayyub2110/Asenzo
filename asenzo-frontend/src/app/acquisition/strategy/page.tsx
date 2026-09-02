@@ -6,7 +6,7 @@ import React, { useState } from "react";
 const TABS = [
   { id: "business", label: "Business & Offer" },
   { id: "audience", label: "Audience Intelligence" },
-  { id: "awareness", label: "Awareness & Pillars" },
+  { id: "awareness", label: "Content Strategy & Content Pillars" },
   { id: "positioning", label: "Positioning" },
   { id: "priorities", label: "Priorities" },
 ];
@@ -265,11 +265,11 @@ export default function StrategyPage() {
           </div>
         )}
 
-        {/* ── Awareness & Pillars ── */}
+        {/* ── Content Strategy & Content Pillars ── */}
         {activeTab === "awareness" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-[16px] font-bold text-slate-900 mb-0.5">Awareness & Content Pillars</h2>
+              <h2 className="text-[16px] font-bold text-slate-900 mb-0.5">Content Strategy & Content Pillars</h2>
               <p className="text-[12px] text-slate-500">Map your content to awareness stages. Every piece should serve one stage with one goal.</p>
             </div>
 
@@ -392,24 +392,7 @@ export default function StrategyPage() {
                 onChange={e => setPositioning(p => ({ ...p, offerTransformation: e.target.value }))} />
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <label className={labelClass}>Generated Hooks (from audience language)</label>
-                <button className="text-[10px] font-semibold text-blue-600 hover:text-blue-700">Regenerate →</button>
-              </div>
-              <div className="space-y-2">
-                {[
-                  '"I post every day and nobody buys" — why consistency isn\'t your problem.',
-                  "If you don't know where your next client is coming from, your content is missing one critical thing.",
-                  "Agencies, courses, cold DMs — and still inconsistent. Here's what actually changed the equation.",
-                ].map((hook, i) => (
-                  <div key={i} className="flex gap-2 p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                    <span className="text-[11px] text-slate-400 shrink-0">{i + 1}.</span>
-                    <p className="text-[12px] text-slate-700">{hook}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+
             <button className="px-5 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors">Save Positioning</button>
           </div>
         )}

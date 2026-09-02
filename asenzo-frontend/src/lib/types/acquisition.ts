@@ -479,3 +479,114 @@ export interface ContentLearning {
   
   createdAt: string;
 }
+
+// ==========================================
+// PHASE 8: 5 CORE AGENTIC ORCHESTRATION MODELS
+// ==========================================
+
+export type AgentType = 
+  | 'STRATEGY_INTELLIGENCE'
+  | 'RESEARCH_OPPORTUNITY'
+  | 'CONTENT_ENGINE'
+  | 'OUTREACH_INTELLIGENCE'
+  | 'ACQUISITION_INTELLIGENCE';
+
+export type AgentExecutionStatus = 
+  | 'QUEUED' 
+  | 'RUNNING' 
+  | 'COMPLETED' 
+  | 'NEEDS_REVIEW' 
+  | 'FAILED' 
+  | 'CANCELLED';
+
+export interface AgentExecutionLog {
+  id: string;
+  workspaceId: string;
+  agentType: AgentType;
+  trigger: string;
+  inputContext: Record<string, any>;
+  status: AgentExecutionStatus;
+  startedAt: string;
+  completedAt?: string;
+  output?: Record<string, any>;
+  confidence?: number;
+  sources?: { title: string; url?: string; type?: string }[];
+  error?: string;
+  humanReviewRequired: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+}
+
+export interface StrategyAgentOutput {
+  currentAcquisitionPriority: string;
+  biggestConstraint: string;
+  awarenessStageGaps: string[];
+  contentGaps: string[];
+  offerMessageGaps: string[];
+  recommendedCampaigns: string[];
+  recommendedContentObjectives: string[];
+  recommendedOutreachObjectives: string[];
+}
+
+export interface ScoredOpportunityIdea {
+  id: string;
+  title: string;
+  whyNow: string;
+  audiencePain: string;
+  evidence: string;
+  contrarianAngle: string;
+  awarenessStage: string;
+  businessObjective: string;
+  recommendedFormat: string;
+  overallScore: number;
+  subScores: {
+    icpRelevance: number;
+    problemIntensity: number;
+    novelty: number;
+    contrarianPotential: number;
+    evidenceStrength: number;
+    emotionalPull: number;
+    contentPotential: number;
+    shareability: number;
+    businessRelevance: number;
+    offerRelevance: number;
+    awarenessStageFit: number;
+  };
+}
+
+export interface ContentEngineOutput {
+  ideaId: string;
+  brief: string;
+  hooks: string[];
+  selectedHook: string;
+  recommendedScript: string;
+  alternativeScript?: string;
+  cta: string;
+  caption: string;
+  titleThumbnailAngles: string[];
+  repurposingOptions: string[];
+  reviewStatus: 'DRAFT' | 'APPROVED' | 'REJECTED';
+}
+
+export interface OutreachLeadIntelligence {
+  leadId: string;
+  fitScore: number;
+  temperature: 'HOT' | 'WARM' | 'COLD';
+  reasons: string[];
+  recommendedAngle: string;
+  openingMessage: string;
+  whyThisMessage: string;
+  followUp1: string;
+  followUp2: string;
+  humanApprovalRequired: boolean;
+}
+
+export interface AcquisitionSystemDiagnosis {
+  systemState: string;
+  primaryBottleneck: string;
+  workingInsight: string;
+  weaknessInsight: string;
+  strategicRecommendations: string[];
+  triggeredAction?: string;
+  updatedAt: string;
+}

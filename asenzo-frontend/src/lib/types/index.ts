@@ -435,7 +435,7 @@ export interface DeliveryClient {
   company: string;
   industry: string;
   icp: string;
-  owner: string; 
+  owner: string;
   health: ClientHealth;
   dealSource?: string;
 }

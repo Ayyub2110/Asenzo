@@ -56,18 +56,35 @@ export default function AcquisitionCommandCenter() {
   return (
     <div className="px-8 py-6 pb-16 max-w-[1400px] mx-auto">
 
-      {/* Header */}
+      {/* Header & Quick Operational Action Triggers */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Acquisition OS</p>
           <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Command Center</h1>
-          <p className="text-[12px] text-slate-500 mt-0.5">Real-time view of your acquisition machine — what's active, what's next.</p>
+          <p className="text-[12px] text-slate-500 mt-0.5">Real-time view of your acquisition machine — operational hub & 5-agent system health.</p>
         </div>
-        <Link href="/acquisition/research"
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors">
-          <span className="material-symbols-outlined text-[14px]">search</span>
-          Run Research
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/acquisition/content" className="px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">add</span>
+            Create Content
+          </Link>
+          <Link href="/acquisition/research" className="px-3 py-1.5 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">search</span>
+            Run Research
+          </Link>
+          <Link href="/acquisition/scripts" className="px-3 py-1.5 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">edit_note</span>
+            Write Script
+          </Link>
+          <Link href="/acquisition/outreach" className="px-3 py-1.5 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">send</span>
+            Start Outreach
+          </Link>
+          <Link href="/acquisition/funnels" className="px-3 py-1.5 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">account_tree</span>
+            Build Funnel
+          </Link>
+        </div>
       </div>
 
       {/* Alerts strip */}
