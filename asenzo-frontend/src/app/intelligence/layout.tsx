@@ -29,12 +29,12 @@ export default function IntelligenceLayout({
           <div className="flex items-center w-full">
             <nav className="flex gap-1 overflow-x-auto hide-scrollbar w-full">
               {tabs.map((tab) => {
-                const isActive = tab.href === "/intelligence" 
-                  ? pathname === "/intelligence" 
+                const isActive = tab.href === "/intelligence"
+                  ? pathname === "/intelligence"
                   : pathname?.startsWith(tab.href);
                 return (
-                  <Link 
-                    key={tab.label} 
+                  <Link
+                    key={tab.label}
                     href={tab.href}
                     className={`px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-colors whitespace-nowrap ${isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'}`}
                   >
@@ -46,7 +46,7 @@ export default function IntelligenceLayout({
           </div>
         </div>
       </header>
-      
+
       <main className="flex-1 max-w-[1500px] mx-auto w-full">
         {children}
       </main>

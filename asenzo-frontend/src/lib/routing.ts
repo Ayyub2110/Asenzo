@@ -12,16 +12,9 @@ export const ACTION_MAP = {
   // Foundation
   openFoundation: () => '/foundation',
 
-  // Attention
-  openAttention: () => '/attention',
 
   // Acquisition 
   openAcquisition: () => '/acquisition',
-  openAcquisitionLeads: () => '/acquisition/leads',
-  openAcquisitionConversations: () => '/acquisition/conversations',
-  openAcquisitionSources: () => '/acquisition/sources',
-  openAcquisitionCampaigns: () => '/acquisition/campaigns',
-  openAcquisitionCapture: () => '/acquisition/capture',
   openContentStrategy: () => '/acquisition/strategy',
   openContentCalendar: () => '/acquisition/calendar',
   openProductionQueue: () => '/acquisition/production?filter=active', // Specific queue
@@ -33,7 +26,7 @@ export const ACTION_MAP = {
   // Conversion
   openConversion: () => '/conversion',
   openConversionInbox: () => '/conversion/inbox', // DM Triage / Incoming Leads
-  openLeadQualification: (status?: string) => 
+  openLeadQualification: (status?: string) =>
     status ? `/conversion/qualification?status=${status}` : '/conversion/qualification',
   openApplications: () => '/conversion/applications',
   openBooking: () => '/conversion/booking',
@@ -44,19 +37,19 @@ export const ACTION_MAP = {
   // Revenue 
   openRevenue: () => '/revenue',
   openSalesPipeline: (view: string = 'active') => `/revenue/pipeline?view=${view}`,
-  openCloserRoom: () => '/revenue/closer-room',
+  openCloserRoom: () => '/revenue/closer',
   openSalesPlaybook: () => '/revenue/playbook',
   openProposals: () => '/revenue/proposals',
   openFollowUps: () => '/revenue/followups',
   openObjections: () => '/revenue/objections',
-  openClosedLost: () => '/revenue/closed-lost',
-  openRevenueDashboard: () => '/revenue/dashboard',
+  openClosedLost: () => '/revenue/lost',
+  openRevenueDashboard: () => '/revenue/analytics',
 
   // Delivery
   openDelivery: () => '/delivery',
   openClientHealth: (status?: string) => `/delivery/health${status ? `?filter=${status}` : ''}`,
   openOnboarding: () => `/delivery/onboarding`,
-  openDeliveryProjects: (filter?: string) => `/delivery/projects${filter ? `?filter=${filter}` : ''}`,
+  openDeliveryProjects: (filter?: string) => `/delivery/engagements${filter ? `?filter=${filter}` : ''}`,
   openRetentionAndProof: () => '/delivery/retention',
   openClientTimeline: (clientId: string) => `/delivery/clients/${clientId}`,
   openEngagements: () => '/delivery/engagements',
@@ -67,8 +60,8 @@ export const ACTION_MAP = {
 
   // Intelligence
   openIntelligence: () => '/intelligence',
-  openBusinessPulse: () => '/intelligence/pulse',
-  openConstraints: (constraintId?: string) => 
+  openBusinessPulse: () => '/intelligence',
+  openConstraints: (constraintId?: string) =>
     constraintId ? `/intelligence/constraints?id=${constraintId}` : '/intelligence/constraints',
   openIntelligenceOpportunities: () => '/intelligence/opportunities',
   openIntelligenceRisks: () => '/intelligence/risks',

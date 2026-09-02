@@ -3,17 +3,17 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ContentIdea } from "@/lib/types";
+import { ContentItem } from "@/lib/types";
 
 export default function IdeaWorkspacePage() {
   const { id } = useParams();
   const router = useRouter();
-  const [idea, setIdea] = useState<ContentIdea | null>(null);
+  const [idea, setIdea] = useState<ContentItem | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("asenzo_content_ideas");
     if (saved) {
-      const ideas: ContentIdea[] = JSON.parse(saved);
+      const ideas: ContentItem[] = JSON.parse(saved);
       const found = ideas.find(i => i.id === id);
       if (found) {
         setIdea(found);
@@ -33,7 +33,7 @@ export default function IdeaWorkspacePage() {
   const handleArchive = () => {
     const existingStr = localStorage.getItem("asenzo_content_ideas");
     if (existingStr) {
-      const ideas: ContentIdea[] = JSON.parse(existingStr);
+      const ideas: ContentItem[] = JSON.parse(existingStr);
       const updated = ideas.map(i => i.id === id ? { ...i, status: "ARCHIVED" } : i);
       localStorage.setItem("asenzo_content_ideas", JSON.stringify(updated));
     }

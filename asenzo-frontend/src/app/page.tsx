@@ -130,44 +130,50 @@ export default function CommandCenterPage() {
           </div>
         </div>
 
-        {/* Business Foundation */}
-        <div className="bg-card border border-border rounded-[16px] p-6 lg:p-8 hover:border-tertiary/40 transition-colors flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Business Foundation</h2>
-              <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest leading-none ${foundationStatus === 'Ready' || foundationStatus === 'Highly Ready' ? 'bg-success/20 text-success' :
-                  foundationStatus === 'Incomplete' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning'
-                }`}>
-                {foundationStatus}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-[13px] mb-6">
-              <div>
-                <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">ICP</span>
-                <p className="font-medium text-foreground truncate">{foundation?.icp?.description || "Founder-led service businesses"}</p>
-              </div>
-              <div>
-                <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Core Pain</span>
-                <p className="font-medium text-foreground truncate">{foundation?.icp?.painPoints?.[0] || "Inconsistent growth"}</p>
-              </div>
-              <div>
-                <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Desired Result</span>
-                <p className="font-medium text-foreground truncate">{foundation?.icp?.desiredOutcomes?.[0] || "Predictable founder-led growth"}</p>
-              </div>
-              <div>
-                <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Positioning</span>
-                <p className="font-medium text-foreground truncate">{foundation?.coreDna?.positioning || "92 / 100"}</p>
-              </div>
-              <div className="col-span-2">
-                <span className="block text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Unique Mechanism</span>
-                <p className="font-medium text-foreground">{foundation?.coreDna?.differentiation || "ASENZO Growth Operating System"}</p>
-              </div>
-            </div>
+        {/* Business Foundation — full module embedded in Command Center */}
+        <div className="bg-card border border-border rounded-[16px] p-6 lg:p-8 flex flex-col">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Business Foundation</h2>
+            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest leading-none ${
+              foundationStatus === 'Ready' || foundationStatus === 'Highly Ready' ? 'bg-success/20 text-success' :
+              foundationStatus === 'Incomplete' ? 'bg-destructive/20 text-destructive' : 'bg-warning/20 text-warning'
+            }`}>{foundationStatus}</span>
           </div>
-          <Link href={ACTION_MAP.openFoundation()} className="flex items-center justify-center h-10 w-full bg-foreground text-background font-bold text-[13px] rounded-[8px] transition-opacity hover:opacity-90">
-            View Foundation
-          </Link>
+
+          <div className="grid grid-cols-1 gap-2 flex-1">
+            {[
+              { key: "business", label: "Business", subtitle: foundation?.businessContext?.name || "Company name & stage", status: foundation?.businessContext?.name ? "Complete" : "Needs refinement", icon: "business" },
+              { key: "customer", label: "Customer", subtitle: foundation?.customerContext?.idealCustomer || foundation?.icp?.description || "ICP & pain points", status: foundation?.customerContext?.idealCustomer ? "Complete" : "Needs refinement", icon: "people" },
+              { key: "positioning", label: "Positioning", subtitle: foundation?.positioningContext?.uniqueMechanism || foundation?.coreDna?.positioning || "Unique mechanism & differentiation", status: foundation?.positioningContext?.uniqueMechanism ? "Complete" : "Needs refinement", icon: "flare" },
+              { key: "offer", label: "Offer", subtitle: foundation?.offerContext?.coreOffer || "Core offer & delivery", status: foundation?.offerContext?.coreOffer ? "Complete" : "Missing", icon: "sell" },
+              { key: "brand", label: "Brand", subtitle: foundation?.brandContext?.voice || "Voice, tone & personality", status: foundation?.brandContext?.voice ? "Complete" : "Missing", icon: "brush" },
+              { key: "knowledge", label: "Knowledge", subtitle: "Source documents & context for AI", status: "Partial", icon: "library_books" },
+              { key: "proof", label: "Proof", subtitle: "Case studies & testimonials", status: "Partial", icon: "verified" },
+            ].map(item => {
+              const statusColor = item.status === "Complete" ? "bg-success/10 text-success border border-success/20"
+                : item.status === "Needs refinement" ? "bg-warning/10 text-warning border border-warning/20"
+                : item.status === "Partial" ? "bg-warning/10 text-warning border border-warning/20"
+                : "bg-destructive/10 text-destructive border border-destructive/20";
+              return (
+                <Link key={item.key} href={`/foundation`}
+                  className="group flex items-center justify-between p-3 border border-border rounded-[10px] hover:border-tertiary/40 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="material-symbols-outlined text-[16px] text-muted-foreground shrink-0">{item.icon}</span>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-bold text-foreground">{item.label}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest ${statusColor}`}>{item.status}</span>
+                    <span className="material-symbols-outlined text-[14px] text-muted-foreground group-hover:text-foreground transition-colors">arrow_forward</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </div>
+
       </section>
 
       {/* 3. BUSINESS PULSE */}

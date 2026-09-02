@@ -4,6 +4,7 @@
  */
 
 export * from "./acquisition";
+import { ContentItem } from "./acquisition";
 
 export type AutomationStatus =
   | "NOT_CONFIGURED"
@@ -108,114 +109,6 @@ export interface MarketSignal {
   source: string;
 }
 
-export interface ContentIdea {
-  id: string;
-  workspaceId?: string;
-  title: string;
-  coreInsight?: string;
-  problem?: string;
-  whyMatters?: string;
-  
-  icp?: string;
-  awarenessStage?: "Unaware" | "Problem-aware" | "Solution-aware" | "Product-aware" | "Most-aware";
-  funnelStage?: "TOF" | "MOF" | "BOF";
-  audienceSituation?: string;
-  
-  objective?: string;
-  contentPillar?: string;
-  messagePillar?: string;
-  strategicGap?: string;
-  
-  // Content Strategy Extensions
-  angle?: string;
-  beliefToChallenge?: string;
-  beliefToInstall?: string;
-  hookDirection?: string;
-  hookDraft?: string;
-  
-  knowledgeSource?: string;
-  proofType?: string;
-  proofAsset?: string;
-  evidenceNotes?: string;
-  
-  primaryChannel?: string;
-  contentFormat?: string;
-  repurposingPotential?: string[];
-  
-  primaryCta?: string;
-  relatedOffer?: string;
-  businessOutcome?: string;
-  ctaDestination?: string;
-  
-  owner?: string;
-  priority?: "Low" | "Medium" | "High" | "Strategic";
-  targetPublishDate?: string;
-  campaign?: string;
-  productionNotes?: string;
-  
-  // New AI/Research Fields required for n8n integration
-  requestedCount?: number;
-  researchSummary?: string;
-  marketObservation?: string;
-  aiRecommendation?: string;
-  sourceCount?: number;
-  sources?: { url: string; type: "video" | "article" | "post" | "research" | "other" }[];
-  
-  status: "GENERATED" | "REVIEW" | "SELECTED" | "IDEA" | "SCRIPT" | "SCRIPTING" | "PRODUCTION" | "IN_PRODUCTION" | "APPROVED" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED" | "idea" | "drafting" | "requires_review" | "approved" | "published"; // Updated for master prompt states
-  createdAt?: string;
-  updatedAt?: string;
-
-  // New Validation Scoring Matrix
-  viralityScore?: number;
-  contentInterestScore?: number;
-  businessRelevanceScore?: number;
-  confidenceScore?: number;
-  
-  viralityFactors?: Array<{ label: string; score: number; max: number }>;
-  interestFactors?: Array<{ label: string; score: number; max: number }>;
-  businessRelevanceFactors?: Array<{ label: string; score: number; max: number }>;
-  scoringEvidence?: string[];
-  scoringVersion?: string;
-
-  // Legacy fields
-  framework?: string;
-  outputGoal?: string;
-  contentDraft?: string;
-  marketSignalRef?: string;
-  stage?: "TOF" | "MOF" | "BOF";
-}
-
-// Script Models for Script Center
-export interface RequiredScript {
-  id: string;
-  ideaId: string;
-  workspaceId: string;
-  version: number;
-  content: string; // The draft script
-  hooks?: string[];
-  status: "DRAFT" | "REVIEW_REQUIRED" | "APPROVED" | "ARCHIVED";
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type ProductionStage = "IDEA" | "BRIEF" | "SCRIPT" | "FOUNDER REVIEW" | "APPROVED" | "RECORDING" | "EDITING" | "FINAL REVIEW" | "SCHEDULED" | "PUBLISHED";
-
-export interface ContentProductionItem {
-  id: string;
-  ideaId?: string;
-  scriptId?: string;
-  workspaceId: string;
-  title: string;
-  format: string;
-  channel: string;
-  stage: ProductionStage;
-  dueDate?: string;
-  owner?: string;
-  assetUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // AI Integration Interface for n8n (for frontend documentation)
 export interface GenerateIdeaRequest {
   workspaceId: string;
@@ -233,7 +126,7 @@ export interface GenerateIdeaRequest {
 }
 
 export interface AttentionData {
-  ideas: ContentIdea[];
+  ideas: ContentItem[];
   marketSignals: MarketSignal[];
 }
 
@@ -733,7 +626,7 @@ export type OperationsApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CH
 export type OperationsSOPStatus = "DRAFT" | "ACTIVE" | "NEEDS_REVIEW" | "ARCHIVED";
 export type OperationsEscalationStatus = "OPEN" | "ACKNOWLEDGED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 export type OperationsQCStatus = "NOT_REVIEWED" | "PASSED" | "FAILED" | "CHANGES_REQUIRED" | "RECHECK_REQUIRED";
-export type ModuleSource = "Foundation" | "Attention" | "Acquisition" | "Conversion" | "Revenue" | "Delivery" | "Operations";
+export type ModuleSource = "Foundation" | "Attention" | "Acquisition" | "Conversion" | "Revenue" | "Delivery" | "Operations" | "Intelligence" | "Command";
 
 export interface OperationsTeamMember {
   id: string;
@@ -904,6 +797,50 @@ export interface SettingsData {
 // ============== INTELLIGENCE CENTER (Phase 6) ==============
 
 export type ConfidenceLevel = "HIGH" | "MEDIUM" | "LOW";
+
+export type OperatingItemType = 'CONSTRAINT' | 'OPPORTUNITY' | 'RISK' | 'RECOMMENDATION';
+
+export type OperatingItemStatus =
+  | 'DETECTED' | 'DIAGNOSING' | 'PLANNED' | 'IN_PROGRESS'
+  | 'BLOCKED' | 'MONITORING' | 'RESOLVED' | 'DISMISSED';
+
+export interface OperatingItem {
+  id: string;
+  workspaceId: string;
+  type: OperatingItemType;
+  title: string;
+  description: string;
+  sourceCenter: ModuleSource;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  impact: string;
+  confidence: ConfidenceLevel;
+  detectedAt: string;
+  status: OperatingItemStatus;
+  owner?: string;
+  dueDate?: string;
+  recommendedActions: string[];
+  selectedAction?: string;
+  linkedTasks: string[];
+  linkedCenterEntities?: {
+    center: ModuleSource;
+    entityType: string;
+    entityId: string;
+  }[];
+  activity?: {
+    id: string;
+    type: string;
+    message: string;
+    createdAt: string;
+    actor?: string;
+  }[];
+  outcome?: string;
+  resolutionEvidence?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface IntelligenceInsight {
   id: string;

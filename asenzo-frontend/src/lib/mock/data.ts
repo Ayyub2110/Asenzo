@@ -1,9 +1,20 @@
-import { 
-  CommandCenterData, 
-  FoundationData, 
-  AttentionData, 
-  ConversionData, 
-  DeliveryData 
+import {
+  CommandCenterData,
+  FoundationData,
+  AttentionData,
+  ConversionData,
+  DeliveryData,
+  // Phase 3 Research Types
+  Creator,
+  CreatorChannel,
+  ContentReference,
+  OutlierAnalysis,
+  ResearchSignal,
+  ContentPattern,
+  // Phase 4 Idea Types
+  ContentIdea,
+  ContentAngle,
+  Hook,
 } from "../types";
 
 export const mockCommandCenter: CommandCenterData = {
@@ -72,22 +83,24 @@ export const mockFoundation: FoundationData = {
 
 export const mockAttention: AttentionData = {
   ideas: [
-    { 
-      id: "i1", 
-      title: "Why scaling breaks at $50k/mo", 
-      stage: "TOF", 
-      status: "requires_review", 
+    {
+      id: "i1",
+      title: "Why scaling breaks at $50k/mo",
+      stage: "TOF",
+      status: "FOUNDER_REVIEW",
+      libraryStatus: "ACTIVE",
       framework: "Contrarian Truth",
       angle: "Target the single-point-of-failure fallacy common in agency owners.",
       outputGoal: "Drive awareness of operational fragility and introduce the concept of 'Founder Independence' as the real metric of scale.",
       contentDraft: "Most service founders hit a brutal ceiling at $50k/month.\n\nAnd they try to solve it incorrectly.\n\nThe instinct is to push harder. Clone yourself. Hire more junior executioners. But that just multiplies your chaos.\n\nThe real issue? You’re trying to scale a job, not a business.\n\nWhen you are the primary bottleneck—when every escalated issue, every sales call, and every strategic pivot requires your brain—scale breaks you. \n\nThe answer isn't working 80 hours instead of 60. The answer is building an operating system where the inputs (leads) convert to outputs (client success) without requiring you to act as the processing engine in the middle.\n\nStop optimizing your hustle. Optimize your independence."
     },
-    { id: "i2", title: "The 3 systems every founder needs", stage: "MOF", status: "drafting", framework: "Listicle" },
-    { 
-      id: "i3", 
-      title: "Case Study: How we automated manual lead generation", 
-      stage: "BOF", 
-      status: "idea", 
+    { id: "i2", title: "The 3 systems every founder needs", stage: "MOF", status: "SCRIPT", libraryStatus: "DRAFT", framework: "Listicle" },
+    {
+      id: "i3",
+      title: "Case Study: How we automated manual lead generation",
+      stage: "BOF",
+      status: "IDEA",
+      libraryStatus: "DRAFT",
       framework: "Hero's Journey",
       marketSignalRef: "ms2"
     }
@@ -120,10 +133,10 @@ export const mockConversion: ConversionData = {
       id: "c1", leadId: "l1", contact: "David Kim", company: "NextGen AI", source: "LinkedIn Organic", campaign: "Q3 Founder Burnout", status: "OPPORTUNITY", owner: "John Founder", lastInteraction: "Form Submission", lastMessage: "Let's definitely schedule a scoping call.", nextAction: "Schedule call", followUpDate: new Date().toISOString(), opportunityId: "o1", createdDate: new Date(Date.now() - 86400000).toISOString(), updatedDate: new Date().toISOString()
     },
     {
-      id: "c2", leadId: "l2", contact: "Sarah Jenkins", company: "Acme Corp", source: "Instagram Ads", campaign: "Retargeting", status: "DISCOVERY", owner: "John Founder", lastInteraction: "Email Confirmed", lastMessage: "Sounds good, looking forward to discussing.", nextAction: "Run Discovery Call", createdDate: new Date(Date.now() - 86400000*3).toISOString(), updatedDate: new Date().toISOString()
+      id: "c2", leadId: "l2", contact: "Sarah Jenkins", company: "Acme Corp", source: "Instagram Ads", campaign: "Retargeting", status: "DISCOVERY", owner: "John Founder", lastInteraction: "Email Confirmed", lastMessage: "Sounds good, looking forward to discussing.", nextAction: "Run Discovery Call", createdDate: new Date(Date.now() - 86400000 * 3).toISOString(), updatedDate: new Date().toISOString()
     },
     {
-      id: "c3", leadId: "l3", contact: "Unknown", company: "Pending", source: "Website", campaign: "Organic", status: "REPLIED", owner: "Sales Team", lastInteraction: "Email Reply", lastMessage: "Not sure right now. Can we talk next month?", nextAction: "Follow up next month", createdDate: new Date(Date.now() - 86400000*5).toISOString(), updatedDate: new Date().toISOString()
+      id: "c3", leadId: "l3", contact: "Unknown", company: "Pending", source: "Website", campaign: "Organic", status: "REPLIED", owner: "Sales Team", lastInteraction: "Email Reply", lastMessage: "Not sure right now. Can we talk next month?", nextAction: "Follow up next month", createdDate: new Date(Date.now() - 86400000 * 5).toISOString(), updatedDate: new Date().toISOString()
     }
   ],
   followUps: [
@@ -306,11 +319,11 @@ export const mockConversion: ConversionData = {
     { id: "app2", leadId: "l4", applicant: "Tom Hanks", company: "Castaway", icpFit: "LOW", problem: "Need more leads", budget: "$1k", timeline: "Eventually", status: "STARTED", owner: "John Founder" }
   ],
   bookings: [
-    { id: "b1", leadId: "l1", callType: "Discovery Call", status: "BOOKED", bookedDate: new Date(Date.now() - 4800000).toISOString(), callDate: new Date(Date.now() + 86400000*2).toISOString(), owner: "John Founder", source: "LinkedIn Organic", campaign: "Q3 Founder Burnout" },
-    { id: "b2", leadId: "l2", callType: "Scoping Session", status: "COMPLETED", bookedDate: new Date(Date.now() - 86400000*5).toISOString(), callDate: new Date(Date.now() - 86400000*2).toISOString(), owner: "John Founder", source: "Instagram Ads", campaign: "Retargeting", showStatus: "SHOWED", outcome: "Moved to Proposal" }
+    { id: "b1", leadId: "l1", callType: "Discovery Call", status: "BOOKED", bookedDate: new Date(Date.now() - 4800000).toISOString(), callDate: new Date(Date.now() + 86400000 * 2).toISOString(), owner: "John Founder", source: "LinkedIn Organic", campaign: "Q3 Founder Burnout" },
+    { id: "b2", leadId: "l2", callType: "Scoping Session", status: "COMPLETED", bookedDate: new Date(Date.now() - 86400000 * 5).toISOString(), callDate: new Date(Date.now() - 86400000 * 2).toISOString(), owner: "John Founder", source: "Instagram Ads", campaign: "Retargeting", showStatus: "SHOWED", outcome: "Moved to Proposal" }
   ],
   nurtureRecords: [
-    { id: "nr1", leadId: "l5", segment: "TIMING", status: "ACTIVE", lastInteraction: new Date(Date.now() - 86400000*14).toISOString(), reengagementDate: new Date(Date.now() + 86400000*14).toISOString(), owner: "Automated", sequenceName: "Q4 Strategy Drip" }
+    { id: "nr1", leadId: "l5", segment: "TIMING", status: "ACTIVE", lastInteraction: new Date(Date.now() - 86400000 * 14).toISOString(), reengagementDate: new Date(Date.now() + 86400000 * 14).toISOString(), owner: "Automated", sequenceName: "Q4 Strategy Drip" }
   ],
   assets: [
     { id: "ca1", name: "Founder Independence VSL", type: "VSL", icp: "Burned out founders", awarenessStage: "Problem Aware", conversions: 48, status: "ACTIVE" },
@@ -391,7 +404,7 @@ export const mockDelivery: import("@/lib/types").DeliveryData = {
       endDate: new Date(Date.now() + 86400000 * 90).toISOString(),
       status: "ACTIVE",
       team: [
-         { id: "tm1", engagementId: "e1", memberId: "u1", role: "Lead Architect" }
+        { id: "tm1", engagementId: "e1", memberId: "u1", role: "Lead Architect" }
       ],
       health: "GREEN",
       progress: 15
@@ -684,26 +697,26 @@ export const mockRevenue: import("@/lib/types").RevenueData = {
       probability: 70
     },
     {
-       id: "d2",
-       leadId: "l2",
-       contact: "Sarah Jenkins",
-       company: "Acme Corp",
-       owner: "John Founder",
-       value: 12000,
-       currency: "USD",
-       expectedCloseDate: new Date(Date.now() + 86400000 * 7).toISOString(),
-       stage: "QUALIFIED",
-       nextAction: "Book Discovery/Pitch",
-       lastActivity: "Qualified via form",
-       source: "Instagram Ads",
-       campaign: "Retargeting",
-       icp: "Medium",
-       offer: "Pilot Program",
-       confidence: "MEDIUM",
-       stageAge: 1,
-       createdDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-       updatedDate: new Date().toISOString(),
-       probability: 20
+      id: "d2",
+      leadId: "l2",
+      contact: "Sarah Jenkins",
+      company: "Acme Corp",
+      owner: "John Founder",
+      value: 12000,
+      currency: "USD",
+      expectedCloseDate: new Date(Date.now() + 86400000 * 7).toISOString(),
+      stage: "QUALIFIED",
+      nextAction: "Book Discovery/Pitch",
+      lastActivity: "Qualified via form",
+      source: "Instagram Ads",
+      campaign: "Retargeting",
+      icp: "Medium",
+      offer: "Pilot Program",
+      confidence: "MEDIUM",
+      stageAge: 1,
+      createdDate: new Date(Date.now() - 86400000 * 5).toISOString(),
+      updatedDate: new Date().toISOString(),
+      probability: 20
     }
   ],
   proposals: [
@@ -765,13 +778,13 @@ export const mockRevenue: import("@/lib/types").RevenueData = {
   ],
   lostDeals: [
     {
-       id: "ld1",
-       dealId: "d19",
-       value: 20000,
-       stageLost: "NEGOTIATION",
-       reason: "PRICE",
-       objection: "Too expensive for Q3 budget",
-       dateLost: new Date(Date.now() - 86400000 * 10).toISOString()
+      id: "ld1",
+      dealId: "d19",
+      value: 20000,
+      stageLost: "NEGOTIATION",
+      reason: "PRICE",
+      objection: "Too expensive for Q3 budget",
+      dateLost: new Date(Date.now() - 86400000 * 10).toISOString()
     }
   ]
 };
@@ -899,3 +912,512 @@ export const mockIntelligence: import("@/lib/types").IntelligenceData = {
     }
   ]
 };
+
+export const mockOperatingItems: import("@/lib/types").OperatingItem[] = [
+  {
+    id: "oi_cnstr1",
+    workspaceId: "ws_1",
+    type: "CONSTRAINT",
+    title: "Qualification Checkpoint",
+    description: "Lead volume increased by 22% but qualified-lead rate fell 24%.",
+    sourceCenter: "Acquisition",
+    sourceEntityType: "ConstraintRecord",
+    sourceEntityId: "cnstr1",
+    severity: "CRITICAL",
+    priority: "HIGH",
+    impact: "Low qualification rate blocking Revenue pipeline",
+    confidence: "HIGH",
+    detectedAt: mockIntelligence.constraints[0].detectedDate,
+    status: "DETECTED",
+    recommendedActions: ["Audit qualification gate and add mandatory revenue question."],
+    linkedTasks: [],
+    createdAt: mockIntelligence.constraints[0].detectedDate,
+    updatedAt: mockIntelligence.constraints[0].detectedDate
+  },
+  {
+    id: "oi_opp1",
+    workspaceId: "ws_1",
+    type: "OPPORTUNITY",
+    title: "Double down on 'Founder Systems' content pillar",
+    description: "This pillar generates 3.2× more qualified conversations than average.",
+    sourceCenter: "Intelligence",
+    sourceEntityType: "GrowthOpportunity",
+    sourceEntityId: "opp1",
+    severity: "MEDIUM",
+    priority: "HIGH",
+    impact: "+15% Qualified Pipeline",
+    confidence: "HIGH",
+    detectedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    status: "PLANNED",
+    recommendedActions: ["Increase production allocation to this pillar by 20%."],
+    linkedTasks: [],
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "oi_rsk1",
+    workspaceId: "ws_1",
+    type: "RISK",
+    title: "Concentrated Active Pipeline",
+    description: "68% of current qualified pipeline is concentrated in two opportunities.",
+    sourceCenter: "Revenue",
+    sourceEntityType: "RiskRecord",
+    sourceEntityId: "rsk1",
+    severity: "HIGH",
+    priority: "HIGH",
+    impact: "Loss of top 2 deals materially affects Q3 cash flow.",
+    confidence: "HIGH",
+    detectedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    status: "MONITORING",
+    recommendedActions: ["Increase qualified opportunity generation at the top of funnel."],
+    linkedTasks: [],
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: "oi_rec1",
+    workspaceId: "ws_1",
+    type: "RECOMMENDATION",
+    title: "Increase Problem-Aware content production by 20%",
+    description: "Problem-aware content represents 34% of published volume but generates 61% of qualified conversations.",
+    sourceCenter: "Intelligence",
+    sourceEntityType: "IntelligenceRecommendation",
+    sourceEntityId: "rec1",
+    severity: "LOW",
+    priority: "HIGH",
+    impact: "Higher qualification rate across all leads.",
+    confidence: "HIGH",
+    detectedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    status: "DETECTED",
+    recommendedActions: ["Adjust content calendar allocation."],
+    linkedTasks: [],
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+// ==========================================
+// PHASE 3: RESEARCH INTELLIGENCE MOCK DATA
+// ==========================================
+
+export const mockCreators: Creator[] = [
+  {
+    id: "creator_1",
+    name: "Justin Welsh",
+    tags: ["Founder Creators", "Solopreneur"],
+    audienceSize: "500K+",
+    trend: "up",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "creator_2",
+    name: "Katelyn Bourgoin",
+    tags: ["Marketing Leaders"],
+    audienceSize: "150K+",
+    trend: "up",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockCreatorChannels: CreatorChannel[] = [
+  {
+    id: "channel_1",
+    creatorId: "creator_1",
+    platform: "LinkedIn",
+    channelUrl: "https://linkedin.com/in/justinwelsh",
+    baselinePerformance: "100,000",
+    topFormat: "Carousel",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "channel_2",
+    creatorId: "creator_2",
+    platform: "LinkedIn",
+    channelUrl: "https://linkedin.com/in/katebour",
+    baselinePerformance: "50,000",
+    topFormat: "Text + Image",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockContentReferences: ContentReference[] = [
+  {
+    id: "ref_1",
+    channelId: "channel_1",
+    topic: "Solopreneurship",
+    contentFormat: "Carousel",
+    rawContent: "I run a $5M/year business with zero employees. Here's my exact weekly schedule.",
+    metrics: { views: "520,000", engagement: "11%" },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "ref_2",
+    channelId: "channel_2",
+    topic: "Buyer Psychology",
+    contentFormat: "Text + Image",
+    rawContent: "Most marketers are obsessed with CAC. But they ignore the silent killer: Customer Confusion.\n\nIf your prospect doesn't immediately understand what you do in 5 seconds, they bounce.",
+    metrics: { views: "425,000", engagement: "8%" },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockOutlierAnalyses: OutlierAnalysis[] = [
+  {
+    id: "out_1",
+    contentReferenceId: "ref_1",
+    multiplier: 5.2,
+    analysisStatus: "UNANALYZED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "out_2",
+    contentReferenceId: "ref_2",
+    multiplier: 8.5,
+    analysisStatus: "ANALYZED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockResearchSignals: ResearchSignal[] = [
+  {
+    id: "sig_1",
+    outlierAnalysisId: "out_2",
+    title: "High Intent Cognitive Bias Hook",
+    signalType: "OUTLIER_POST",
+    description: "Katelyn's post utilizing the 'silent killer' framing performed 8.5x above her baseline.",
+    source: "LinkedIn Scrape",
+    status: "CONVERTED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "sig_2",
+    title: "Result-Oriented Hooks Resurgence",
+    signalType: "FORMAT_TREND",
+    description: "Result-oriented hooks are converting 3x better than contrarian hooks in your niche this week.",
+    source: "Trend Analytics",
+    status: "SAVED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockContentPatterns: ContentPattern[] = [
+  {
+    id: "pat_1",
+    researchSignalId: "sig_1",
+    name: "Pattern Interrupt / Contrarian",
+    description: "Attacks a commonly accepted metric to create tension, introducing a hidden problem.",
+    whatHappened: "Post went highly viral (8.5x multiplier) by shifting the focus from an accepted difficulty (CAC) to an unseen threat.",
+    whyWorked: "Validates a hidden problem marketers suspect they have.",
+    evidence: "Found in multiple top-performing posts this quarter.",
+    occurrences: "14 times across 3 competitors",
+    relevance: "High. Directly addresses our ICP's pain points.",
+    confidence: "HIGH",
+    hookType: "Pattern interrupt",
+    funnelStage: "TOF",
+    awarenessStage: "Problem-Aware",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+// ==========================================
+// PHASE 4: IDEA & HOOK INTELLIGENCE MOCK DATA
+// ==========================================
+
+export const mockContentIdeas: ContentIdea[] = [
+  {
+    id: "idea_1",
+    title: "Why CAC is a vanity metric - The real cost of Customer Confusion",
+    coreInsight: "Founders focus on CAC but ignore bounce rate due to bad messaging. If your prospect does not understand your offer in 5s, they leave.",
+    targetIcp: "B2B SaaS Founders",
+    awarenessStage: "Problem-aware",
+    funnelRole: "TOF",
+    contentPillar: "Strategic Frameworks",
+    messagePillar: "Product-Market Fit",
+    relatedPatternId: "pat_1",
+    relatedResearchSignalIds: ["sig_1"],
+    whyWorthCreating: "Direct match with 8.5x outlier on LinkedIn. High relevance to current ICP pain points.",
+    evidence: "Based on 3 recent outlier posts from top competitors.",
+    priority: "HIGH",
+    status: "SELECTED",
+    potentialFormats: ["Text + Image", "Carousel"],
+    suggestedCta: "Lead Magnet: Messaging Cheatsheet",
+    suggestedNextAction: "Scripting",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockContentAngles: ContentAngle[] = [
+  {
+    id: "angle_1",
+    parentIdeaId: "idea_1",
+    angleTitle: "The Contrarian Cost Focus",
+    angleType: "Contrarian",
+    coreArgument: "Obsessing over CAC will blind you to the real cash burn which is confused messaging.",
+    targetAwarenessStage: "Problem-aware",
+    emotionalTrigger: "Fear of wasted spend",
+    differentiation: "Shifting the blame from advertising algorithms to their own landing page.",
+    supportingResearch: "Marketing teams waste 60% of budget on confused clicks.",
+    recommendedFormats: ["Text + Image"],
+    priorityScore: 92,
+    status: "SELECTED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "angle_2",
+    parentIdeaId: "idea_1",
+    angleTitle: "Personal Founder Mistake",
+    angleType: "Founder Story",
+    coreArgument: "I wasted $5k on ads because my landing page didn't explain what we did in 5 seconds.",
+    targetAwarenessStage: "Unaware",
+    emotionalTrigger: "Relatability",
+    differentiation: "Creates empathy rather than challenging them.",
+    supportingResearch: "Personal stories have 3x engagement on LinkedIn.",
+    recommendedFormats: ["Carousel"],
+    priorityScore: 84,
+    status: "DRAFT",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+export const mockHooks: Hook[] = [
+  {
+    id: "hook_1",
+    parentAngleId: "angle_1",
+    parentIdeaId: "idea_1",
+    hookText: "Most SaaS founders are obsessed with CAC. But they ignore the silent killer draining their runway: Customer Confusion.",
+    hookType: "Contrarian",
+    hookFormula: "Call out ICP + Attack common metric + Reveal unseen threat",
+    awarenessStage: "Problem-aware",
+    patternSource: "Pattern Interrupt / Contrarian (pat_1)",
+    whyShouldWork: "Uses an accepted negative (CAC) to introduce a new, controllable negative (Confusion).",
+    evidenceReference: "Multiplier: 8.5x on Kate B's post.",
+    score: {
+      total: 92,
+      clarity: 18,
+      specificity: 18,
+      curiosity: 20,
+      relevanceToIcp: 20,
+      patternEvidence: 8,
+      differentiation: 8
+    },
+    status: "SELECTED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "hook_2",
+    parentAngleId: "angle_1",
+    parentIdeaId: "idea_1",
+    hookText: "If your prospect doesn't understand your software in 5 seconds, they bounce. Here's why your CAC is lying to you.",
+    hookType: "Warning",
+    hookFormula: "Condition + Negative Consequence + Re-contextualize safe metric",
+    awarenessStage: "Problem-aware",
+    patternSource: "Derived from Problem Amplification",
+    whyShouldWork: "Creates immediate time pressure (5 seconds) affecting a core metric.",
+    evidenceReference: "Standard copywriting best practice.",
+    score: {
+      total: 78,
+      clarity: 20,
+      specificity: 14,
+      curiosity: 15,
+      relevanceToIcp: 15,
+      patternEvidence: 4,
+      differentiation: 10
+    },
+    status: "SAVED",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
+// ==========================================
+// PHASE 5: SCRIPT ENGINE INTELLIGENCE
+// ==========================================
+
+export const mockScriptFrameworks: import('../types').ScriptFramework[] = [
+  {
+    id: "framework_1",
+    name: "The Contrarian Value Shift",
+    description: "Challenges a common belief, validates the viewer's frustration, and introduces a new mechanism.",
+    isSystem: true,
+    structure: [
+      { name: "Hook", required: true, description: "State the widely accepted belief and immediately call it false." },
+      { name: "Context / Validation", required: true, description: "Explain why they've been taught this and why it's burning them out." },
+      { name: "The Shift", required: true, description: "Introduce the actual constraint they should be focusing on." },
+      { name: "Value Depiction", required: true, description: "Show exactly how solving this new constraint changes their outcome." },
+      { name: "CTA", required: false, description: "Direct them to a resource that solves the new constraint." }
+    ]
+  },
+  {
+    id: "framework_2",
+    name: "Founder Journey Breakdown",
+    description: "A narrative-driven structure focusing on a specific painful mistake and the pivot.",
+    isSystem: true,
+    structure: [
+      { name: "The Mistake", required: true, description: "Open with a highly specific, costly mistake you made." },
+      { name: "The Impact", required: true, description: "Quantify the pain (time, money, stress)." },
+      { name: "The Pivot", required: true, description: "The exact moment or realization that caused a change in strategy." },
+      { name: "The Framework", required: true, description: "Break down the new strategy into 2-3 actionable steps." },
+      { name: "Takeaway", required: true, description: "One sentence summarizing the moral of the story." }
+    ]
+  }
+];
+
+export const mockScriptPlans: import('../types').ScriptPlan[] = [
+  {
+    id: "plan_1",
+    linkedHookId: "hook_1",
+    linkedIdeaId: "idea_1",
+    frameworkId: "framework_1",
+    strategicContext: {
+      icp: "B2B SaaS Founders ($10k-$50k MRR)",
+      awarenessStage: "Problem-aware (they know they aren't growing)",
+      founderVoice: "Direct, no-fluff, slightly challenging but empathetic to the grind.",
+      coreObjections: ["I just need more traffic", "My product is too complex to simplify"],
+      coreOffer: "Growth OS Strategy Session"
+    },
+    outline: [
+      { sectionId: "Hook", purpose: "Interrupt CAC obsession", points: ["Obsessing over CAC", "Customer Confusion is the real killer"] },
+      { sectionId: "Context / Validation", purpose: "Validate their ad spend pain", points: ["You've optimized targeting", "But bounce rate is 80%"] },
+      { sectionId: "The Shift", purpose: "Pivot to messaging", points: ["Ads don't fix bad copy", "If they don't get it in 5s, they leave"] },
+      { sectionId: "Value Depiction", purpose: "Show what good looks like", points: ["Clear one-liner", "Instant disqualification of bad leads"] },
+      { sectionId: "CTA", purpose: "Drive strategy call", points: ["Book a session to fix messaging"] }
+    ],
+    status: "DRAFTING",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+export const mockScriptVersions: import('../types').ScriptVersion[] = [
+  {
+    id: "version_1",
+    scriptPlanId: "plan_1",
+    versionNumber: 1,
+    content: "[Hook]\nMost SaaS founders are obsessed with CAC. But they ignore the silent killer draining their runway: Customer Confusion.\n\n[Context]\nYou spend thousands optimizing LinkedIn ads. You dial in your targeting. You get the click. But your bounce rate is 80%. Why? Because your landing page is a wall of jargon.\n\n[The Shift]\nAds don't fix bad copy. If a prospect doesn't understand exactly what you do and who you do it for in 5 seconds, they leave. Your CAC isn't high because ads are expensive. It's high because you are paying to confuse people.\n\n[Value Depiction]\nYou don't need a new ad agency. You need a clear one-liner. You need messaging that instantly qualifies your ideal buyer and repels the rest.\n\n[CTA]\nStop burning cash on confused clicks. If you want a teardown of your current messaging, DM me 'CLARITY' and let's fix it.",
+    status: "DRAFT",
+    editorRole: "AI",
+    aiScore: {
+      hookStrength: 92,
+      valueDepictability: 85,
+      clarity: 95,
+      total: 90
+    },
+    createdAt: new Date().toISOString()
+  }
+];
+
+// ==========================================
+// PHASE 7: PERFORMANCE & LEARNING
+// ==========================================
+
+export const mockContentPerformances: import('../types').ContentPerformance[] = [
+  {
+    id: "perf_1",
+    contentItemId: "content_2", // Matches the mock ContentItem
+    primaryChannel: "LinkedIn",
+    publishedAt: new Date(Date.now() - 7 * 86400000).toISOString(),
+    views: 12500,
+    impressions: 18000,
+    engagements: 450,
+    clicks: 120,
+    optIns: 15,
+    meetingsBooked: 2,
+    pipelineGenerated: 20000,
+    engagementRate: 3.6,
+    clickThroughRate: 0.96,
+    conversionRate: 12.5, // (15 / 120) * 100
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
+export const mockContentLearnings: import('../types').ContentLearning[] = [
+  {
+    id: "learning_1",
+    contentPerformanceId: "perf_1",
+    contentItemId: "content_2",
+    linkedIdeaId: "idea_1",
+    linkedAngleId: "angle_1",
+    linkedHookId: "hook_1",
+    whatWorked: [
+      "Starting with a contrarian statement stopped the scroll.",
+      "Metrics-driven carousel slides kept retention high."
+    ],
+    whatFailed: [
+      "The CTA was slightly generic, leading to lower than expected meetings despite high opt-ins."
+    ],
+    aiRecommendation: "Next time, specify the exact outcome of the strategy session in the CTA rather than just 'DM me'. Retain the contrarian hook structure.",
+    founderAction: "ITERATE_HOOK",
+    createdAt: new Date().toISOString()
+  }
+];
+
+// ==========================================
+// PHASE 6: CONTENT ITEMS MOCK
+// ==========================================
+
+export const mockContentItems: import('../types').ContentItem[] = [
+  {
+    id: "content_1",
+    title: "Consistency isn't your problem. Clarity is.",
+    status: "SCRIPT",
+    libraryStatus: "DRAFT",
+    contentFormat: "Contrarian Reel",
+    primaryChannel: "Instagram",
+    contentPillar: "Founder Clarity",
+    funnelStage: "MOF",
+    script: "[Hook]\nStop posting 3 times a day...\n\n[Context]\nYou are shouting into the void...",
+    objective: "Build Trust",
+    primaryCta: "DM for framework",
+    evidenceNotes: "Vertical video, high energy, fast cuts.",
+    strategicGap: "Don't forget the B-roll overlay at 0:05.",
+    businessOutcome: "N/A"
+  },
+  {
+    id: "content_2",
+    title: "Why scaling before $20k/mo breaks agencies",
+    status: "PRODUCTION",
+    libraryStatus: "ACTIVE",
+    contentFormat: "Story Carousel",
+    primaryChannel: "LinkedIn",
+    contentPillar: "Mistakes",
+    funnelStage: "TOF",
+    script: "Slide 1: Breaking your agency...\nSlide 2: The trap...",
+    objective: "Reach",
+    primaryCta: "Save this post",
+    evidenceNotes: "Text-based carousel.",
+    strategicGap: "Use brand colors only.",
+    businessOutcome: "N/A"
+  },
+  {
+    id: "content_3",
+    title: "How we close $10k+ deals without sales calls",
+    status: "SCHEDULED",
+    libraryStatus: "ACTIVE",
+    contentFormat: "Newsletter",
+    primaryChannel: "Email",
+    contentPillar: "Frameworks & Systems",
+    funnelStage: "BOF",
+    script: "The system is simple but the execution is hard...",
+    objective: "Conversion",
+    primaryCta: "Apply to Waitlist",
+    evidenceNotes: "Long form text.",
+    strategicGap: "Include screenshot of Stripe dashboard.",
+    businessOutcome: "N/A"
+  }
+];

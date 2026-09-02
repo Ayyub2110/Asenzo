@@ -5,42 +5,47 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/acquisition", label: "Acquisition Command" },
+  { href: "/acquisition", label: "Command Center", exact: true },
+  { href: "/acquisition/strategy", label: "Strategy" },
+  { href: "/acquisition/research", label: "Research" },
+  { href: "/acquisition/content", label: "Content" },
+  { href: "/acquisition/funnels", label: "Funnels" },
+  { href: "/acquisition/library", label: "Library" },
   { href: "/acquisition/analytics", label: "Analytics" },
-  { href: "/acquisition/strategy", label: "Content Strategy" },
-  { href: "/acquisition/calendar", label: "Content Calendar" },
-  { href: "/acquisition/production", label: "Content Production" },
-  { href: "/acquisition/scripts", label: "Script Center" },
-  { href: "/acquisition/stories", label: "Story Sequence" },
-  { href: "/acquisition/outreach", label: "Outreach" },
 ];
 
 export default function AcquisitionLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isFunnels = pathname === "/acquisition/funnels" || pathname?.startsWith("/acquisition/funnels/");
 
   return (
-    <div className="flex flex-col h-full bg-background relative overflow-y-auto min-w-0">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50 shrink-0">
-        <div className="max-w-[1500px] w-full mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center w-full">
-            <nav className="flex gap-1 overflow-x-auto hide-scrollbar w-full">
-              {tabs.map((tab) => {
-                const isActive = pathname === tab.href || pathname?.startsWith(tab.href + '/');
-                return (
-                  <Link
-                    key={tab.label}
-                    href={tab.href}
-                    className={`px-3 py-1.5 rounded-[6px] text-[12px] font-semibold transition-colors whitespace-nowrap ${isActive ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'}`}
-                  >
-                    {tab.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+    <div className={`flex flex-col min-w-0 ${isFunnels ? "h-[calc(100vh-72px)] overflow-hidden" : "h-full overflow-y-auto"}`}>
+      {/* Tab nav — ASENZO design system */}
+      <div className="sticky top-0 z-30 bg-background border-b border-border shrink-0">
+        <div className="max-w-[1400px] mx-auto px-8 flex items-center gap-1 h-11">
+          {tabs.map((tab) => {
+            const isActive = tab.exact
+              ? pathname === tab.href
+              : pathname === tab.href || pathname?.startsWith(tab.href + "/");
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
         </div>
-      </header>
-      <main className="flex-1 max-w-[1500px] mx-auto w-full">
+      </div>
+
+      {/* Page content */}
+      <main className={isFunnels ? "flex-1 overflow-hidden" : "flex-1 max-w-[1400px] mx-auto w-full"}>
         {children}
       </main>
     </div>

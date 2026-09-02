@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GenerateIdeaRequest, ContentIdea } from "@/lib/types";
+import { GenerateIdeaRequest, ContentItem } from "@/lib/types";
 import { mockFoundation } from "@/lib/mock/data";
 
 export default function GenerateIdeaWorkspace() {

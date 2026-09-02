@@ -1,247 +1,251 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { ACTION_MAP } from "@/lib/routing";
-import { getLeads, getSources, getCampaigns } from "@/lib/adapters/acquisition";
-import { Lead, AcquisitionSource, AcquisitionCampaign } from "@/lib/types";
 
-export default function AcquisitionCommandPage() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [sources, setSources] = useState<AcquisitionSource[]>([]);
-  const [campaigns, setCampaigns] = useState<AcquisitionCampaign[]>([]);
-  const [pipelineMetrics, setPipelineMetrics] = useState({ ideas: 0, scripts: 0, review: 0, published: 0 });
-  const [loading, setLoading] = useState(true);
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const STAGES = [
+  { key: "INBOX", label: "Inbox", color: "#6B7280", count: 4 },
+  { key: "SHORTLISTED", label: "Shortlisted", color: "#8B5CF6", count: 7 },
+  { key: "SCRIPTING", label: "Scripting", color: "#2563EB", count: 3 },
+  { key: "PRODUCTION", label: "Production", color: "#D97706", count: 5 },
+  { key: "REVIEW", label: "Review", color: "#DC2626", count: 2 },
+  { key: "SCHEDULED", label: "Scheduled", color: "#16A34A", count: 6 },
+  { key: "PUBLISHED", label: "Published", color: "#0EA5E9", count: 34 },
+  { key: "LEARNING", label: "Learning", color: "#7C3AED", count: 12 },
+];
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [ls, scs, cmps] = await Promise.all([
-          getLeads(),
-          getSources(),
-          getCampaigns()
-        ]);
-        setLeads(ls);
-        setSources(scs);
-        setCampaigns(cmps);
-        
-        // Read Pipeline Metrics
-        const ideasStr = localStorage.getItem("asenzo_content_ideas");
-        const prodStr = localStorage.getItem("asenzo_production_items");
-        const allIdeas = ideasStr ? JSON.parse(ideasStr) : [];
-        const allProds = prodStr ? JSON.parse(prodStr) : [];
-        
-        setPipelineMetrics({
-          ideas: allIdeas.filter((i:any) => i.status === "GENERATED" || i.status === "REVIEW" || i.status === "IDEA").length,
-          scripts: allIdeas.filter((i:any) => i.status === "SCRIPTING").length,
-          review: allProds.filter((p:any) => p.stage === "FOUNDER REVIEW").length,
-          published: allProds.filter((p:any) => p.stage === "PUBLISHED").length,
-        });
+const ALERTS = [
+  { type: "warning", icon: "warning", color: "text-amber-600 bg-amber-50 border-amber-200", text: "Audience profile is 31 days old — re-validation recommended before next campaign." },
+  { type: "insight", icon: "insights", color: "text-blue-600 bg-blue-50 border-blue-200", text: "Talking-head content outperforming comparison-style by 2.4× this month." },
+  { type: "opportunity", icon: "auto_awesome", color: "text-violet-600 bg-violet-50 border-violet-200", text: "3 ideas validated across 4+ creators this week — strong market signal for MOF content." },
+  { type: "gap", icon: "warning_amber", color: "text-orange-600 bg-orange-50 border-orange-200", text: "MOF underrepresented — only 18% of recent posts. Target is 30%." },
+];
 
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
+const PERF_SIGNALS = [
+  { label: "Best Hook", value: "Curiosity-Led", sub: "+34% vs avg" },
+  { label: "Best Format", value: "Talking Head", sub: "+28% engagement" },
+  { label: "Best Pillar", value: "Client Acquisition", sub: "7 of top 10 posts" },
+  { label: "Best Awareness", value: "Problem-Aware", sub: "Highest reach" },
+  { label: "Top Pattern", value: "Contrarian → Proof", sub: "8.5× baseline lift" },
+];
 
-  if (loading) {
-    return <div className="p-6 md:p-10 lg:p-12 max-w-[1360px] mx-auto w-full animate-pulse h-96 bg-muted/20 rounded-[16px]" />;
-  }
+const NEXT_ACTION = {
+  type: "MOF",
+  title: "Client Acquisition Case Study — Problem-Aware",
+  reason: "This idea has been independently used by 4 creators this week. One nano creator (normally 2K views) hit 84K — 42× baseline outperformance. Your Solution-Aware content is currently underrepresented (4 vs target 6). Proof-led hooks are outperforming educational hooks in your niche by 3.1×.",
+  framework: "Problem → Belief Shift → Mechanism → Proof → CTA",
+  awareness: "Solution-Aware",
+  funnel: "MOF",
+  pillar: "Client Acquisition",
+};
 
-  const qualifiedLeads = leads.filter(l => l.status === 'QUALIFIED' || l.status === 'READY_FOR_HANDOFF' || l.status === 'HANDED_OFF');
-  const activeConversations = leads.filter(l => l.status === 'IN_CONVERSATION');
-  const qualRate = leads.length > 0 ? Math.round((qualifiedLeads.length / leads.length) * 100) : 0;
-  
-  // Real Bottleneck Logic
-  let bottleneck = null;
-  if (leads.length > 10 && qualifiedLeads.length < (leads.length * 0.2)) {
-    bottleneck = { type: 'CONVERSION BOTTLENECK', text: 'Strong lead volume but low qualification rate.' };
-  } else if (leads.length > 0 && activeConversations.length === 0) {
-    bottleneck = { type: 'CONVERSATION BOTTLENECK', text: 'Qualified leads are not transitioning into active conversations.' };
-  } else if (leads.length === 0) {
-    bottleneck = { type: 'CAPTURE BOTTLENECK', text: 'Not enough capture surface activity to generate leads.' };
-  } else {
-    bottleneck = { type: 'HEALTHY', text: 'Pipeline velocity operating within expected parameters.' };
-  }
+const STRATEGY_SNAPSHOT = {
+  niche: "B2B SaaS Founders",
+  offer: "Content-led client acquisition system",
+  primaryGoal: "Inbound qualified leads",
+  bottleneck: "MOF content gap",
+  lastUpdated: "2 days ago",
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+export default function AcquisitionCommandCenter() {
+  const [activeStage, setActiveStage] = useState<string | null>(null);
+  const totalPipeline = STAGES.reduce((a, s) => a + s.count, 0);
 
   return (
-    <div className="p-6 md:p-10 lg:p-12 max-w-[1360px] mx-auto w-full pb-32">
-      
-      {/* RECOMMENDED ACTION & BOTTLENECK */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        <section className="bg-foreground text-background p-6 lg:p-8 rounded-[16px] flex flex-col justify-between">
-          <div>
-            <h2 className="text-[11px] font-bold text-background/70 uppercase tracking-widest leading-none mb-4">Recommended Action</h2>
-            <h3 className="text-[18px] lg:text-[20px] font-bold mb-2">Create 3 Product-aware case-study posts this week.</h3>
-            <p className="text-[14px] font-medium text-background/80 mb-6">Your current content has strong reach but insufficient proof content. Prospects are not converting.</p>
-          </div>
-          <Link href={ACTION_MAP.openScripts()}>
-            <button className="bg-background text-foreground px-5 py-2.5 rounded-[8px] text-[13px] font-semibold w-fit hover:bg-background/90 transition">
-               Draft Script Now
-            </button>
-          </Link>
-        </section>
+    <div className="px-8 py-6 pb-16 max-w-[1400px] mx-auto">
 
-        <section className={`p-6 lg:p-8 rounded-[16px] border ${bottleneck.type === 'HEALTHY' ? 'bg-success/10 border-success/20' : 'bg-destructive/10 border-destructive/20'}`}>
-          <h2 className={`text-[11px] font-bold uppercase tracking-widest leading-none mb-4 flex items-center gap-2 ${bottleneck.type === 'HEALTHY' ? 'text-success' : 'text-destructive'}`}>
-            <span className="material-symbols-outlined text-[16px]">{bottleneck.type === 'HEALTHY' ? 'check_circle' : 'warning'}</span> {bottleneck.type === 'HEALTHY' ? 'Health Status' : 'Intelligence & Bottlenecks'}
-          </h2>
-          <h3 className="text-[18px] lg:text-[20px] font-bold text-foreground mb-2">{bottleneck.type}</h3>
-          <p className="text-[14px] font-medium text-foreground/80 mb-6">{bottleneck.text}</p>
-        </section>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Acquisition OS</p>
+          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Command Center</h1>
+          <p className="text-[12px] text-slate-500 mt-0.5">Real-time view of your acquisition machine — what's active, what's next.</p>
+        </div>
+        <Link href="/acquisition/research"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors">
+          <span className="material-symbols-outlined text-[14px]">search</span>
+          Run Research
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
-        
-        {/* ACQUISITION PULSE */}
-        <section>
-          <div className="flex justify-between items-center mb-4">
-             <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Acquisition Pulse</h2>
+      {/* Alerts strip */}
+      <div className="space-y-2 mb-6">
+        {ALERTS.map((a, i) => (
+          <div key={i} className={`flex items-start gap-2.5 px-4 py-2.5 rounded-lg border text-[12px] ${a.color}`}>
+            <span className="material-symbols-outlined text-[15px] mt-0.5 shrink-0">{a.icon}</span>
+            <span>{a.text}</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href={ACTION_MAP.openAcquisitionLeads()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Total Leads</p>
-              <span className="text-[28px] font-bold text-foreground leading-none">{leads.length}</span>
-            </Link>
-            <Link href={ACTION_MAP.openLeadQualification('QUALIFIED')} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Qualified Leads</p>
-               <span className="text-[28px] font-bold text-success leading-none">{qualifiedLeads.length}</span>
-            </Link>
-            <Link href={ACTION_MAP.openAcquisitionConversations()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Active Conversations</p>
-               <span className="text-[28px] font-bold text-cyan leading-none">{activeConversations.length}</span>
-            </Link>
-            <div className="p-5 border border-border bg-card rounded-[12px]">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Qual Rate</p>
-               <span className="text-[28px] font-bold text-tertiary leading-none">{qualRate}%</span>
-            </div>
-          </div>
-        </section>
-
-        {/* THIS WEEK / CONTENT HEALTH */}
-        <section>
-          <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Content Production Health</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <Link href={ACTION_MAP.openContentCalendar()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Planned Content</p>
-              <span className="text-[24px] font-bold text-foreground leading-none">12</span>
-            </Link>
-            <Link href={ACTION_MAP.openAcquisitionAnalytics()} className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Published</p>
-               <span className="text-[24px] font-bold text-success leading-none">5</span>
-            </Link>
-            <Link href="/acquisition/production" className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex justify-between">Review Blockers {pipelineMetrics.review > 0 && <span className="bg-destructive/20 text-destructive text-[10px] px-1 rounded">ALERT</span>}</p>
-               <span className={`text-[24px] font-bold leading-none ${pipelineMetrics.review > 0 ? 'text-destructive' : 'text-foreground'}`}>{pipelineMetrics.review} Items</span>
-            </Link>
-            <Link href="/acquisition/strategy" className="p-5 border border-border bg-card rounded-[12px] hover:border-tertiary/40 transition-colors block">
-               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Generated Ideas</p>
-               <span className="text-[24px] font-bold text-cyan leading-none">{pipelineMetrics.ideas} Output</span>
-            </Link>
-          </div>
-        </section>
-
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 mb-10">
-        
-        {/* RE-INSERT: TOP SOURCES */}
-        <section className="col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Top Sources</h2>
-            <Link href={ACTION_MAP.openAcquisitionSources()} className="text-[10px] uppercase font-bold text-foreground hover:underline">View All</Link>
-          </div>
-          <div className="flex flex-col gap-2">
-            {sources.length === 0 ? <p className="p-4 border border-border rounded-[8px] text-[13px] text-muted-foreground italic">No source data.</p> : sources.slice(0, 3).map(src => (
-               <div key={src.id} className="flex items-center justify-between p-4 border border-border bg-card rounded-[8px]">
-                 <div>
-                   <p className="text-[14px] font-semibold text-foreground">{src.name}</p>
-                   <p className="text-[11px] text-muted-foreground uppercase tracking-widest mt-1">{src.type}</p>
-                 </div>
-                 <span className="text-[14px] font-bold text-foreground">{src.leadsCount} leads</span>
-               </div>
-            ))}
-          </div>
-        </section>
+      <div className="grid grid-cols-12 gap-5">
 
-        {/* RE-INSERT: CAMPAIGNS */}
-        <section className="col-span-1">
-          <div className="flex justify-between items-center mb-4">
-             <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Active Campaigns</h2>
-             <Link href={ACTION_MAP.openAcquisitionCampaigns()} className="text-[10px] uppercase font-bold text-foreground hover:underline">View All</Link>
-          </div>
-          <div className="flex flex-col gap-2">
-            {campaigns.length === 0 ? <p className="p-4 border border-border rounded-[8px] text-[13px] text-muted-foreground italic">No campaigns active.</p> : campaigns.filter(c => c.status === 'ACTIVE').slice(0, 3).map(c => (
-               <div key={c.id} className="p-4 border border-border bg-card rounded-[8px]">
-                 <div className="flex justify-between items-start mb-2">
-                    <p className="text-[14px] font-semibold text-foreground">{c.name}</p>
-                    <span className="text-[10px] uppercase font-bold bg-success/20 text-success px-2 py-0.5 rounded">{c.status}</span>
-                 </div>
-                 <p className="text-[13px] text-muted-foreground"><span className="font-bold text-foreground">{c.leadsCount}</span> generated</p>
-               </div>
-            ))}
-          </div>
-        </section>
+        {/* ── Left: Pipeline + Next Action ── */}
+        <div className="col-span-8 space-y-5">
 
-        {/* AWARENESS COVERAGE */}
-        <section className="col-span-1">
-          <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Awareness Coverage</h2>
-          <div className="bg-card border border-border rounded-[12px] p-2">
-            {[
-              { level: "Most-Aware", p: "5%", color: "bg-tertiary" },
-              { level: "Product-Aware", p: "12%", color: "bg-cyan" },
-              { level: "Solution-Aware", p: "28%", color: "bg-success" },
-              { level: "Problem-Aware", p: "40%", color: "bg-warning" },
-              { level: "Unaware", p: "15%", color: "bg-muted-foreground" },
-            ].map(aw => (
-              <div key={aw.level} className="flex flex-col gap-1 p-3">
-                <div className="flex justify-between items-center text-[12px] font-bold">
-                  <span>{aw.level}</span>
-                  <span>{aw.p}</span>
-                </div>
-                <div className="w-full bg-secondary h-[4px] rounded-full overflow-hidden">
-                  <div className={`h-full ${aw.color}`} style={{ width: aw.p }}></div>
-                </div>
+          {/* Content Pipeline */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-[13px] font-bold text-slate-900">Content Pipeline</h2>
+                <p className="text-[11px] text-slate-400">{totalPipeline} total content items across all stages</p>
               </div>
-            ))}
-          </div>
-        </section>
-        
-        <section className="col-span-1">
-          <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Asset Pipeline</h2>
-          <div className="bg-card border border-border rounded-[12px] p-2 flex flex-col gap-1">
-            {[
-              { stage: "Ideas Queue", count: pipelineMetrics.ideas, link: "/acquisition/strategy" },
-              { stage: "Script Center", count: pipelineMetrics.scripts, link: "/acquisition/scripts" },
-              { stage: "Founder Review", count: pipelineMetrics.review, alert: pipelineMetrics.review > 0, link: "/acquisition/production" },
-              { stage: "Published", count: pipelineMetrics.published, link: "/acquisition/analytics" },
-            ].map((p, i) => (
-              <Link href={p.link} key={i} className="flex justify-between items-center p-3 border-b border-border/50 last:border-0 hover:bg-muted/50 transition-colors cursor-pointer">
-                <span className={`text-[13px] font-medium ${p.alert ? 'text-destructive font-bold' : 'text-foreground'}`}>{p.stage}</span>
-                <span className={`text-[13px] font-bold bg-secondary px-2 py-0.5 rounded ${p.alert ? 'bg-destructive/10 text-destructive' : 'text-foreground'}`}>{p.count}</span>
+              <Link href="/acquisition/content"
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700">
+                Open Kanban →
               </Link>
-            ))}
-          </div>
-        </section>
-
-      </div>
-      
-      {leads.length === 0 && (
-         <div className="p-8 border border-dashed border-border rounded-[12px] flex flex-col items-center justify-center text-center">
-            <span className="material-symbols-outlined text-[32px] text-muted-foreground mb-4 opacity-50">data_alert</span>
-            <h3 className="text-[16px] font-bold text-foreground mb-1">No acquisition activity yet.</h3>
-            <p className="text-[13px] text-muted-foreground mb-6">Connect your foundational assets to start generating Demand.</p>
-            <div className="flex gap-2">
-               <Link href={ACTION_MAP.openContentStrategy()}><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold hover:bg-muted">Create Strategy</button></Link>
-               <Link href={ACTION_MAP.openScripts()}><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold hover:bg-muted">Create Script</button></Link>
-               <Link href={ACTION_MAP.openAcquisitionCapture()}><button className="bg-secondary text-foreground px-4 py-2 rounded-[6px] text-[12px] font-bold hover:bg-muted">Create Capture Surface</button></Link>
             </div>
-         </div>
-      )}
 
+            {/* Pipeline stages */}
+            <div className="space-y-2">
+              {STAGES.map(s => {
+                const isActive = activeStage === s.key;
+                const pct = Math.round((s.count / Math.max(...STAGES.map(x => x.count))) * 100);
+                return (
+                  <div key={s.key}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${isActive ? "bg-slate-50" : "hover:bg-slate-50"}`}
+                    onClick={() => setActiveStage(isActive ? null : s.key)}>
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                    <span className="text-[12px] font-semibold text-slate-700 w-24 shrink-0">{s.label}</span>
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: s.color, opacity: 0.7 }} />
+                    </div>
+                    <span className="text-[13px] font-bold w-8 text-right shrink-0" style={{ color: s.color }}>{s.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-100 flex gap-3">
+              <Link href="/acquisition/content"
+                className="flex-1 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-lg text-center hover:bg-slate-800 transition-colors">
+                Open Full Kanban
+              </Link>
+              <Link href="/acquisition/research"
+                className="flex-1 py-2 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg text-center hover:bg-slate-50 transition-colors">
+                Research New Ideas
+              </Link>
+            </div>
+          </div>
+
+          {/* AI Next Action */}
+          <div className="bg-white border border-violet-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="material-symbols-outlined text-[16px] text-violet-500">auto_awesome</span>
+              <p className="text-[11px] font-bold text-violet-600 uppercase tracking-widest">What should I create next?</p>
+            </div>
+            <h3 className="text-[15px] font-bold text-slate-900 mb-1">{NEXT_ACTION.title}</h3>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-violet-100 text-violet-700 rounded-md">{NEXT_ACTION.funnel}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md">{NEXT_ACTION.awareness}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md">{NEXT_ACTION.pillar}</span>
+            </div>
+            <p className="text-[12px] text-slate-600 leading-relaxed mb-3">{NEXT_ACTION.reason}</p>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 mb-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Recommended Framework</p>
+              <p className="text-[12px] font-semibold text-slate-700">{NEXT_ACTION.framework}</p>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/acquisition/content"
+                className="px-4 py-2 bg-violet-600 text-white text-[11px] font-bold rounded-lg hover:bg-violet-700 transition-colors">
+                Create This Content
+              </Link>
+              <Link href="/acquisition/research"
+                className="px-4 py-2 border border-slate-200 text-slate-700 text-[11px] font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+                Explore Research
+              </Link>
+            </div>
+          </div>
+
+          {/* Performance Signals */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Performance Signals</h2>
+            <div className="grid grid-cols-5 gap-3">
+              {PERF_SIGNALS.map(p => (
+                <div key={p.label} className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{p.label}</p>
+                  <p className="text-[12px] font-bold text-slate-900">{p.value}</p>
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">{p.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: Strategy Snapshot + Quick Links ── */}
+        <div className="col-span-4 space-y-4">
+
+          {/* Strategy Snapshot */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[13px] font-bold text-slate-900">Strategy Snapshot</h2>
+              <Link href="/acquisition/strategy" className="text-[11px] font-semibold text-blue-600 hover:text-blue-700">Edit →</Link>
+            </div>
+            <div className="space-y-2.5">
+              {[
+                { label: "Niche", value: STRATEGY_SNAPSHOT.niche },
+                { label: "Offer", value: STRATEGY_SNAPSHOT.offer },
+                { label: "Primary Goal", value: STRATEGY_SNAPSHOT.primaryGoal },
+                { label: "Current Bottleneck", value: STRATEGY_SNAPSHOT.bottleneck, highlight: true },
+                { label: "Last Updated", value: STRATEGY_SNAPSHOT.lastUpdated },
+              ].map(row => (
+                <div key={row.label}>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.label}</p>
+                  <p className={`text-[12px] font-semibold mt-0.5 ${row.highlight ? "text-amber-600" : "text-slate-800"}`}>{row.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Production Status */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Production Status</h2>
+            <div className="space-y-2">
+              {[
+                { label: "In Scripting", count: 3, color: "#2563EB" },
+                { label: "In Production", count: 5, color: "#D97706" },
+                { label: "In Review", count: 2, color: "#DC2626" },
+                { label: "Scheduled", count: 6, color: "#16A34A" },
+              ].map(row => (
+                <div key={row.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: row.color }} />
+                    <span className="text-[12px] text-slate-600">{row.label}</span>
+                  </div>
+                  <span className="text-[13px] font-bold" style={{ color: row.color }}>{row.count}</span>
+                </div>
+              ))}
+            </div>
+            <Link href="/acquisition/content"
+              className="mt-3 block w-full py-2 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg text-center hover:bg-slate-50 transition-colors">
+              View All Content
+            </Link>
+          </div>
+
+          {/* Quick Nav */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Navigation</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { href: "/acquisition/strategy", label: "Strategy", icon: "flag" },
+                { href: "/acquisition/research", label: "Research", icon: "search" },
+                { href: "/acquisition/content", label: "Content", icon: "view_kanban" },
+                { href: "/acquisition/funnels", label: "Funnels", icon: "account_tree" },
+                { href: "/acquisition/library", label: "Library", icon: "local_library" },
+                { href: "/acquisition/analytics", label: "Analytics", icon: "bar_chart" },
+              ].map(item => (
+                <Link key={item.href} href={item.href}
+                  className="flex items-center gap-2 px-3 py-2 border border-slate-100 rounded-lg hover:bg-slate-50 hover:border-slate-200 transition-colors">
+                  <span className="material-symbols-outlined text-[14px] text-slate-400">{item.icon}</span>
+                  <span className="text-[11px] font-semibold text-slate-700">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -18,7 +18,24 @@ import {
   mockOperations,
   mockCalendar,
   mockSettings,
-  mockIntelligence
+  mockIntelligence,
+  mockOperatingItems,
+
+  mockCreators,
+  mockCreatorChannels,
+  mockContentReferences,
+  mockOutlierAnalyses,
+  mockResearchSignals,
+  mockContentPatterns,
+  mockContentIdeas,
+  mockContentAngles,
+  mockHooks,
+  mockScriptFrameworks,
+  mockScriptPlans,
+  mockScriptVersions,
+  mockContentPerformances,
+  mockContentLearnings,
+  mockContentItems
 } from "../mock/data";
 
 import {
@@ -154,6 +171,22 @@ export async function getIntelligence(): Promise<import("@/lib/types").Intellige
   return { ...mockIntelligence };
 }
 
+export async function getOperatingItems(): Promise<import("@/lib/types").OperatingItem[]> {
+  await delay(300);
+  return [...mockOperatingItems];
+}
+
+export async function updateOperatingItem(payload: import("@/lib/types").OperatingItem): Promise<import("@/lib/types").OperatingItem[]> {
+  await delay(300);
+  const index = mockOperatingItems.findIndex(i => i.id === payload.id);
+  if (index >= 0) {
+    mockOperatingItems[index] = payload;
+  } else {
+    mockOperatingItems.push(payload);
+  }
+  return [...mockOperatingItems];
+}
+
 // ============== SETTINGS ==============
 
 export async function getSettings(): Promise<import("@/lib/types").SettingsData> {
@@ -164,5 +197,100 @@ export async function updateSettings(
   payload: import("@/lib/types").SettingsData
 ): Promise<import("@/lib/types").SettingsData> {
   return await saveSettingsToSupabase(payload);
+}
+
+// ============== PHASE 3: RESEARCH INTELLIGENCE ==============
+
+export async function getCreators(): Promise<import("@/lib/types").Creator[]> {
+  await delay(200);
+  return [...mockCreators];
+}
+
+export async function getCreatorChannels(): Promise<import("@/lib/types").CreatorChannel[]> {
+  await delay(200);
+  return [...mockCreatorChannels];
+}
+
+export async function getContentReferences(): Promise<import("@/lib/types").ContentReference[]> {
+  await delay(200);
+  return [...mockContentReferences];
+}
+
+export async function getOutlierAnalyses(): Promise<import("@/lib/types").OutlierAnalysis[]> {
+  await delay(200);
+  return [...mockOutlierAnalyses];
+}
+
+export async function getResearchSignals(): Promise<import("@/lib/types").ResearchSignal[]> {
+  await delay(200);
+  return [...mockResearchSignals];
+}
+
+export async function getContentPatterns(): Promise<import("@/lib/types").ContentPattern[]> {
+  await delay(200);
+  return [...mockContentPatterns];
+}
+
+// ==========================================
+// PHASE 4: IDEA & HOOK INTELLIGENCE
+// ==========================================
+
+export async function getContentIdeas() {
+  await delay(200);
+  return mockContentIdeas;
+}
+
+export async function getContentAngles() {
+  await delay(200);
+  return mockContentAngles;
+}
+
+export async function getHooks() {
+  await delay(200);
+  return mockHooks;
+}
+
+// ==========================================
+// PHASE 5: SCRIPT ENGINE INTELLIGENCE
+// ==========================================
+
+export async function getScriptFrameworks() {
+  await delay(200);
+  return mockScriptFrameworks;
+}
+
+export async function getScriptPlans() {
+  await delay(200);
+  return mockScriptPlans;
+}
+
+export async function getScriptVersions() {
+  await delay(200);
+  return mockScriptVersions;
+}
+
+// ==========================================
+// PHASE 6: PRODUCTION & DISTRIBUTION
+// ==========================================
+
+export async function getContentItems() {
+  await delay(200);
+  return mockContentItems;
+}
+
+
+
+// ==========================================
+// PHASE 7: PERFORMANCE & LEARNING
+// ==========================================
+
+export async function getContentPerformances() {
+  await delay(300);
+  return mockContentPerformances;
+}
+
+export async function getContentLearnings() {
+  await delay(300);
+  return mockContentLearnings;
 }
 
