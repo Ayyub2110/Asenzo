@@ -51,9 +51,14 @@ const navGroups: NavGroup[] = [
     id: "nurture",
     title: "Nurture",
     items: [
-      { href: "/conversion/nurture", label: "Not Ready" },
-      { href: "/conversion/nurture/lost", label: "Lost Opportunities" },
-      { href: "/conversion/nurture/reactivation", label: "Reactivation" },
+      { href: "/conversion/nurture", label: "Lead Capture & Nurture" },
+    ],
+  },
+  {
+    id: "outreach",
+    title: "Outbound",
+    items: [
+      { href: "/conversion/outreach", label: "Outreach Workspace" },
     ],
   },
   {
