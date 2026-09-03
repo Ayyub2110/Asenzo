@@ -111,7 +111,6 @@ export default function ConversionLayout({ children }: { children: React.ReactNo
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
               }`}
             >
-              <span className="material-symbols-outlined text-[15px]">dashboard</span>
               Command Center
             </Link>
 

@@ -19,7 +19,7 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     id: "content",
-    title: "1. Content",
+    title: "Content",
     items: [
       { href: "/acquisition/strategy", label: "Strategy" },
       { href: "/acquisition/research", label: "Research & Ideas" },
@@ -31,7 +31,7 @@ const navGroups: NavGroup[] = [
   },
   {
     id: "distribution",
-    title: "2. Distribution",
+    title: "Distribution",
     items: [
       { href: "/acquisition/distribution", label: "Organic Social" },
       { href: "/acquisition/channels", label: "Channels" },
@@ -39,12 +39,12 @@ const navGroups: NavGroup[] = [
   },
   {
     id: "funnels",
-    title: "3. Funnels",
+    title: "Funnels",
     items: [{ href: "/acquisition/funnels", label: "Funnel Canvas" }],
   },
   {
     id: "analytics",
-    title: "4. Analytics",
+    title: "Analytics",
     items: [{ href: "/acquisition/analytics", label: "Acquisition Analytics" }],
   },
 ];
@@ -80,7 +80,6 @@ export default function AcquisitionLayout({ children }: { children: React.ReactN
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
               }`}
             >
-              <span className="material-symbols-outlined text-[15px]">dashboard</span>
               Command Center
             </Link>
 
@@ -115,7 +114,6 @@ export default function AcquisitionLayout({ children }: { children: React.ReactN
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
               }`}
             >
-              <span className="material-symbols-outlined text-[15px]">local_library</span>
               Library
             </Link>
           </div>
