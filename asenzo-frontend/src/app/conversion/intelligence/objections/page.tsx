@@ -1,22 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Opportunity } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function ObjectionsIntelligence() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/conversion/opportunities")
-      .then(r => r.json())
-      .then(data => {
-        setOpportunities(data || []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const { opportunities } = useConversionOS();
 
   // Compute aggregate objections
   const objectionMap: Record<string, { count: number; lost: number }> = {};
@@ -43,9 +33,7 @@ export default function ObjectionsIntelligence() {
 
       <div className="grid grid-cols-12 gap-6">
          <div className="col-span-8 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-h-[400px]">
-           {isLoading ? (
-              <div className="p-12 text-center text-[12px] text-slate-500">Aggregating Objections...</div>
-           ) : objections.length === 0 ? (
+           {objections.length === 0 ? (
               <div className="p-16 text-center">
                  <span className="material-symbols-outlined text-[48px] text-slate-200 mb-2">shield</span>
                  <h3 className="text-[14px] font-bold text-slate-700">No objection patterns have been detected yet.</h3>

@@ -16,21 +16,12 @@ const QUICK_ACTIONS = [
   { label: "Schedule Call", icon: "calendar_month", color: "text-orange-500", href: "/conversion/pipeline/calls" },
 ];
 
+import { useConversionOS } from "@/contexts/ConversionOSContext";
+
 export default function ConversionCommandCenter() {
   const [queue] = useState<ActionQueueItem[]>(MOCK_ACTION_QUEUE);
   
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/conversion/leads").then(r => r.json()),
-      fetch("/api/conversion/opportunities").then(r => r.json())
-    ]).then(([lData, oData]) => {
-      setLeads(lData || []);
-      setOpportunities(oData || []);
-    }).catch(console.error);
-  }, []);
+  const { leads, opportunities } = useConversionOS();
 
   const totalPipeline = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
   const qualifiedLeads = leads.filter(l => l.qualificationStatus === "QUALIFIED").length;

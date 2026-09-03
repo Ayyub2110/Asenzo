@@ -1,0 +1,25 @@
+﻿On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   src/app/acquisition/analytics/page.tsx
+	modified:   src/app/acquisition/layout.tsx
+	modified:   src/app/acquisition/nurture/page.tsx
+	modified:   src/app/acquisition/outreach/page.tsx
+	modified:   src/app/acquisition/stories/page.tsx
+	modified:   src/app/revenue/page.tsx
+	modified:   src/app/revenue/pipeline/page.tsx
+	modified:   src/lib/adapters/acquisition.ts
+	modified:   src/lib/db/conversion.ts
+	modified:   src/lib/types/acquisition.ts
+	modified:   src/lib/types/conversion.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	git_diff.txt
+	git_status.txt
+	git_status2.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

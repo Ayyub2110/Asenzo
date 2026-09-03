@@ -2,8 +2,29 @@
 
 import React from "react";
 import Link from "next/link";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function ConversionIntelligenceWorkspace() {
+  const { opportunities } = useConversionOS();
+
+  // Compute aggregate triggers
+  const triggerMap: Record<string, number> = {};
+  // Compute aggregate objections (lost reasons)
+  const reasonMap: Record<string, number> = {};
+
+  opportunities.forEach(opp => {
+     if (opp.buyingTrigger) {
+        triggerMap[opp.buyingTrigger] = (triggerMap[opp.buyingTrigger] || 0) + 1;
+     }
+     if (opp.pipelineStage === "LOST" && opp.objections && opp.objections.length > 0) {
+        opp.objections.forEach(obj => {
+           reasonMap[obj] = (reasonMap[obj] || 0) + 1;
+        });
+     }
+  });
+
+  const triggers = Object.entries(triggerMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
+  const lostReasons = Object.entries(reasonMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
   return (
     <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -53,42 +74,34 @@ export default function ConversionIntelligenceWorkspace() {
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                  <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4">Top Buying Triggers</h3>
                  <div className="space-y-3">
-                    {[
-                      { trigger: "Revenue flatlined for >2 quarters", count: 14 },
-                      { trigger: "Current agency underperforming", count: 9 },
-                      { trigger: "Recently raised funding", count: 4 }
-                    ].map((t, i) => (
+                    {triggers.length > 0 ? triggers.map(([trigger, count], i) => (
                       <div key={i} className="flex flex-col">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[12px] font-bold text-slate-900">{t.trigger}</span>
-                          <span className="text-[11px] font-bold text-slate-500">{t.count}x</span>
+                          <span className="text-[12px] font-bold text-slate-900 truncate max-w-[200px]">{trigger}</span>
+                          <span className="text-[11px] font-bold text-slate-500">{count}x</span>
                         </div>
                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                           <div className="bg-blue-500 h-full rounded-full" style={{ width: `${(t.count/14)*100}%` }} />
+                           <div className="bg-blue-500 h-full rounded-full" style={{ width: `${(count/Math.max(...triggers.map(t=>t[1])))*100}%` }} />
                         </div>
                       </div>
-                    ))}
+                    )) : <p className="text-[12px] text-slate-500">No triggers extracted yet.</p>}
                  </div>
               </div>
 
               <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                  <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4">Top Lost Reasons</h3>
                  <div className="space-y-3">
-                    {[
-                      { reason: "Lack of trust / Risk", count: 8 },
-                      { reason: "Timing not right", count: 5 },
-                      { reason: "Price objection", count: 2 }
-                    ].map((t, i) => (
+                    {lostReasons.length > 0 ? lostReasons.map(([reason, count], i) => (
                       <div key={i} className="flex flex-col">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[12px] font-bold text-slate-900">{t.reason}</span>
-                          <span className="text-[11px] font-bold text-slate-500">{t.count}x</span>
+                          <span className="text-[12px] font-bold text-slate-900 truncate max-w-[150px]">{reason}</span>
+                          <span className="text-[11px] font-bold text-slate-500">{count}x</span>
                         </div>
                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                           <div className="bg-amber-500 h-full rounded-full" style={{ width: `${(t.count/8)*100}%` }} />
+                           <div className="bg-amber-500 h-full rounded-full" style={{ width: `${(count/Math.max(...lostReasons.map(r=>r[1])))*100}%` }} />
                         </div>
                       </div>
-                    ))}
+                    )) : <p className="text-[12px] text-slate-500">No loss patterns mapped.</p>}
                  </div>
               </div>
            </div>

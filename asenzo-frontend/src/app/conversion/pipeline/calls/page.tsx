@@ -3,49 +3,47 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { SalesCall } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function SalesCallWorkspace() {
+  const { calls, updateCall, opportunities, leads } = useConversionOS();
+  const [activeCallId, setActiveCallId] = useState<string | null>(null);
+  
   const [callState, setCallState] = useState<Partial<SalesCall>>({
-    id: "active_call_1", opportunityId: "seed_opp1", scheduledDate: "2026-09-03T14:00:00Z", status: "SCHEDULED",
+    id: "", opportunityId: "", scheduledDate: "", status: "SCHEDULED",
     situation: "", problem: "", impact: "", desiredOutcome: "", previousAttempts: "",
     beliefs: "", buyingTrigger: "", objections: "", fit: ""
   });
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/conversion/calls")
-      .then(r => r.json())
-      .then(calls => {
-        if (calls && calls.length > 0) {
-          setCallState(calls[0]);
-        }
-        setIsLoaded(true);
-      })
-      .catch(() => setIsLoaded(true));
-  }, []);
+    if (calls && calls.length > 0) {
+      setCallState(calls[0]);
+      setActiveCallId(calls[0].id);
+    }
+    setIsLoaded(true);
+  }, [calls]);
 
   const handleCompleteCall = async () => {
     setIsProcessing(true);
-    try {
-      await fetch("/api/conversion/calls", {
-        method: "POST",
-        body: JSON.stringify({ ...callState, status: "COMPLETED" })
-      });
+    if (activeCallId) {
+      updateCall(activeCallId, { ...callState, status: "COMPLETED" } as any);
       alert("Call notes saved. AI extracted objections and updated the Opportunity record.");
-    } catch (e) {
-      alert("Failed to save call.");
-    } finally {
-      setIsProcessing(false);
     }
+    setIsProcessing(false);
   };
+
+  const targetOpp = opportunities.find(o => o.id === callState.opportunityId);
+  const targetLead = leads.find(l => l.id === targetOpp?.leadId);
 
   return (
     <div className="px-8 py-6 max-w-[1500px] mx-auto h-[calc(100vh-130px)] flex flex-col space-y-4">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Sales Call Workspace</h1>
-          <p className="text-[12px] text-slate-500 mt-0.5">David Miller — Apex B2B Agency</p>
+          <p className="text-[12px] text-slate-500 mt-0.5">{targetLead?.name || "Unknown Lead"} — {targetLead?.company || "Unknown Company"}</p>
         </div>
         <button 
           onClick={handleCompleteCall}
@@ -66,16 +64,16 @@ export default function SalesCallWorkspace() {
            <div className="p-4 space-y-5">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Acquisition Source</p>
-                <div className="text-[12px] font-medium text-slate-900">Inbound VSL (YouTube)</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">"How to Build an OS"</div>
+                <div className="text-[12px] font-medium text-slate-900">{targetLead?.originalSource || "Unknown"}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{targetLead?.originalContent || "Unknown"}</div>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Identified Trigger</p>
-                <div className="text-[12px] font-medium text-slate-900">Revenue flatlined in Q3</div>
+                <div className="text-[12px] font-medium text-slate-900">{targetLead?.buyingTrigger || targetOpp?.buyingTrigger || "Unknown"}</div>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Foundation Qualifying Constraint</p>
-                <div className="text-[12px] font-medium text-emerald-700">Perfect ICP Match</div>
+                <div className="text-[12px] font-medium text-emerald-700">{targetLead?.qualificationStatus || "Unknown"}</div>
               </div>
            </div>
         </div>

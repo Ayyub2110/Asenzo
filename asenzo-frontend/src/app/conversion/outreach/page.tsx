@@ -2,72 +2,19 @@
 
 import React, { useState } from "react";
 
-interface Lead {
-  id: string;
-  name: string;
-  company: string;
-  title: string;
-  temperature: "HOT" | "WARM" | "COLD";
-  icpFit: "HIGH" | "MEDIUM" | "LOW";
-  signal: string;
-  recommendedAngle: string;
-  openingMessage: string;
-  status: "QUEUED_FOR_APPROVAL" | "APPROVED" | "SENT" | "REPLIED";
-}
-
-const LEADS: Lead[] = [
-  {
-    id: "l1",
-    name: "David Miller",
-    company: "Apex B2B Agency",
-    title: "Founder & CEO",
-    temperature: "HOT",
-    icpFit: "HIGH",
-    signal: "Commented 'OS' on YouTube long-form VSL & downloaded Lead Magnet",
-    recommendedAngle: "Direct diagnostic hook referencing their agency scalability bottleneck",
-    openingMessage: "Hey David, saw your comment on our Inbound OS breakdown. Since you're running Apex, are you currently relying on outbound DMs or trying to build predictable inbound?",
-    status: "QUEUED_FOR_APPROVAL",
-  },
-  {
-    id: "l2",
-    name: "Sarah Jenkins",
-    company: "CloudScale Systems",
-    title: "Head of Growth",
-    temperature: "WARM",
-    icpFit: "HIGH",
-    signal: "Visited /vsl/acquisition-os twice in 48 hours",
-    recommendedAngle: "Value-first offer breakdown case study",
-    openingMessage: "Hi Sarah, noticed you were looking into our Acquisition OS architecture. Would it be helpful if I shared our 7-figure content-to-revenue tracking template?",
-    status: "QUEUED_FOR_APPROVAL",
-  },
-  {
-    id: "l3",
-    name: "Alex Rivera",
-    company: "SaaSify Inc",
-    title: "Co-Founder",
-    temperature: "COLD",
-    icpFit: "MEDIUM",
-    signal: "Matched B2B SaaS ICP target list (£1M-£5M ARR)",
-    recommendedAngle: "Contrarian positioning question regarding agency retention",
-    openingMessage: "Hey Alex, quick question — are you guys handling founder content in-house at SaaSify or relying on external agencies?",
-    status: "QUEUED_FOR_APPROVAL",
-  },
-];
+import { Lead } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function OutreachPage() {
   const [filterTemp, setFilterTemp] = useState<"ALL" | "HOT" | "WARM" | "COLD">("ALL");
-  const [leadsState, setLeadsState] = useState<Lead[]>(LEADS);
-  const [selectedLead, setSelectedLead] = useState<Lead>(LEADS[0]);
+  const { leads, updateLead } = useConversionOS();
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
-  const filteredLeads = leadsState.filter((l) => filterTemp === "ALL" || l.temperature === filterTemp);
+  const filteredLeads = leads.filter((l) => filterTemp === "ALL" || l.temperature === filterTemp);
+  const selectedLead = leads.find(l => l.id === selectedLeadId) || filteredLeads[0];
 
   const handleApprove = (id: string) => {
-    setLeadsState((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status: "APPROVED" } : l))
-    );
-    if (selectedLead.id === id) {
-      setSelectedLead((prev) => ({ ...prev, status: "APPROVED" }));
-    }
+    updateLead(id, { outreachStatus: "APPROVED" } as any);
   };
 
   return (
@@ -104,9 +51,9 @@ export default function OutreachPage() {
               {filteredLeads.map((lead) => (
                 <div
                   key={lead.id}
-                  onClick={() => setSelectedLead(lead)}
+                  onClick={() => setSelectedLeadId(lead.id)}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    selectedLead.id === lead.id
+                    selectedLead?.id === lead.id
                       ? "border-blue-600 bg-blue-50/40 text-slate-900"
                       : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
@@ -125,8 +72,8 @@ export default function OutreachPage() {
                       {lead.temperature}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500">{lead.title} at <b>{lead.company}</b></p>
-                  <div className="mt-2 text-[10px] text-slate-400 truncate">Signal: {lead.signal}</div>
+                  <p className="text-[11px] text-slate-500">{lead.role || "Founder"} at <b>{lead.company || "Unknown"}</b></p>
+                  <div className="mt-2 text-[10px] text-slate-400 truncate">Signal: {lead.buyingTrigger || (lead as any).icpFit || "Matched ICP list"}</div>
                 </div>
               ))}
             </div>
@@ -135,14 +82,15 @@ export default function OutreachPage() {
 
         {/* Right: Agent Intelligence & Human Review */}
         <div className="col-span-7 space-y-5">
+          {selectedLead ? (
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <span className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Outreach Intelligence Agent</span>
-                <h3 className="text-[16px] font-bold text-slate-900">{selectedLead.name} ({selectedLead.company})</h3>
+                <h3 className="text-[16px] font-bold text-slate-900">{selectedLead.name} ({selectedLead.company || "Unknown"})</h3>
               </div>
               <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md">
-                ICP Fit: {selectedLead.icpFit}
+                ICP Fit: {(selectedLead as any).icpFit || "HIGH"}
               </span>
             </div>
 
@@ -150,24 +98,23 @@ export default function OutreachPage() {
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Buying Signal Identified</label>
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-[12px] text-slate-700 font-medium">
-                  {selectedLead.signal}
+                  {selectedLead.buyingTrigger || (selectedLead as any).icpFit || "Matched ICP list"}
                 </div>
               </div>
 
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Agent Recommended Strategy Angle</label>
                 <div className="p-3 bg-violet-50/60 border border-violet-100 rounded-lg text-[12px] text-violet-900 font-medium">
-                  {selectedLead.recommendedAngle}
+                  {(selectedLead as any).recommendedAngle || "Direct diagnostic hook referencing their specific role"}
                 </div>
               </div>
 
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Personalized Opening Message Draft</label>
                 <textarea
-                  value={selectedLead.openingMessage}
+                  value={(selectedLead as any).openingMessage || `Hey ${selectedLead.name}, saw you were looking into OS stuff...`}
                   onChange={(e) => {
-                    const val = e.target.value;
-                    setSelectedLead((prev) => ({ ...prev, openingMessage: val }));
+                    updateLead(selectedLead.id, { openingMessage: e.target.value } as any);
                   }}
                   rows={4}
                   className="w-full p-3 border border-slate-200 rounded-lg text-[12px] font-mono leading-relaxed focus:outline-none focus:border-slate-400"
@@ -181,7 +128,7 @@ export default function OutreachPage() {
                 Human-in-the-Loop Approval Required Before Outbound Send
               </span>
 
-              {selectedLead.status === "APPROVED" ? (
+              { (selectedLead as any).outreachStatus === "APPROVED" ? (
                 <span className="px-4 py-2 bg-emerald-100 text-emerald-800 text-[12px] font-bold rounded-lg flex items-center gap-1">
                   <span className="material-symbols-outlined text-[16px]">check_circle</span>
                   Approved & Dispatched
@@ -197,6 +144,13 @@ export default function OutreachPage() {
               )}
             </div>
           </div>
+          ) : (
+            <div className="bg-white border text-center p-12 border-slate-200 rounded-xl shadow-sm">
+                <span className="material-symbols-outlined text-[32px] text-slate-300 mb-2">person_search</span>
+                <h3 className="text-[14px] font-bold text-slate-700">No Lead Selected</h3>
+                <p className="text-[12px] text-slate-500 mt-1">Select a lead from the queue to review AI outreach suggestions.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Opportunity, PipelineStage } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 const STAGES: { id: PipelineStage; label: string }[] = [
   { id: "QUALIFIED", label: "Qualified" },
@@ -13,24 +14,7 @@ const STAGES: { id: PipelineStage; label: string }[] = [
 ];
 
 export default function PipelineWorkspace() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchOpps = async () => {
-    try {
-      const res = await fetch("/api/conversion/opportunities");
-      const data = await res.json();
-      setOpportunities(data || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOpps();
-  }, []);
+  const { opportunities, leads } = useConversionOS();
 
   const totalValue = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
 
@@ -54,8 +38,7 @@ export default function PipelineWorkspace() {
       </div>
 
       <div className="flex gap-4 flex-1 overflow-x-auto min-h-[500px] pb-4">
-        {isLoading && <div className="text-[12px] p-8 text-slate-500">Loading Pipeline...</div>}
-        {!isLoading && STAGES.map(stage => {
+        {STAGES.map(stage => {
           const stageOpps = opportunities.filter(o => o.pipelineStage === stage.id);
           const stageTotal = stageOpps.reduce((sum, opp) => sum + opp.estimatedValue, 0);
 
@@ -67,11 +50,13 @@ export default function PipelineWorkspace() {
               </div>
               
               <div className="p-3 space-y-3 overflow-y-auto flex-1">
-                {stageOpps.map(opp => (
+                {stageOpps.map(opp => {
+                  const lead = leads.find(l => l.id === opp.leadId);
+                  return (
                   <div key={opp.id} className="bg-white border border-slate-200 p-4 rounded-lg shadow-sm hover:border-slate-300 transition-all cursor-pointer group">
                     <div className="flex justify-between items-start mb-2">
-                       <span className="text-[13px] font-bold text-slate-900">{opp.leadId}</span>
-                       <span className="text-[11px] font-bold text-emerald-600">£{(opp.estimatedValue/1000).toFixed(1)}k</span>
+                       <span className="text-[13px] font-bold text-slate-900">{lead?.name || opp.leadId}</span>
+                       <span className="text-[11px] font-bold text-emerald-600">${(opp.estimatedValue/1000).toFixed(1)}k</span>
                     </div>
                     <div className="space-y-1 mb-3">
                       <p className="text-[11px] text-slate-500 truncate"><span className="font-semibold text-slate-700">Trigger:</span> {opp.buyingTrigger || "Unknown"}</p>
@@ -91,7 +76,7 @@ export default function PipelineWorkspace() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           )

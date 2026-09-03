@@ -1,0 +1,1602 @@
+﻿diff --git a/asenzo-frontend/src/app/acquisition/analytics/page.tsx b/asenzo-frontend/src/app/acquisition/analytics/page.tsx
+index 455ab14..740507b 100644
+--- a/asenzo-frontend/src/app/acquisition/analytics/page.tsx
++++ b/asenzo-frontend/src/app/acquisition/analytics/page.tsx
+@@ -1,25 +1,38 @@
+ "use client";
+ 
+-import React, { useState } from "react";
+-
+-const CONTENT_PERF = [
+-  { title: "Why consistency isn't your problem", awareness: "Problem-Aware", funnel: "TOF", views: 95400, reach: 180000, likes: 4200, comments: 890, saves: 1340, profileVisits: 2800, dms: 47, leads: 14, calls: 4, sales: 1, revenue: 5000 },
+-  { title: "The reason your agency didn't work", awareness: "Solution-Aware", funnel: "MOF", views: 67200, reach: 112000, likes: 3100, comments: 620, saves: 980, profileVisits: 1900, dms: 38, leads: 12, calls: 3, sales: 1, revenue: 5000 },
+-  { title: "5 signs your content is attracting wrong clients", awareness: "Problem-Aware", funnel: "MOF", views: 84300, reach: 140000, likes: 5600, comments: 1240, saves: 2100, profileVisits: 3200, dms: 58, leads: 19, calls: 6, sales: 2, revenue: 10000 },
+-  { title: "From 0 to 12 inbound DMs/week", awareness: "Product-Aware", funnel: "BOF", views: 24600, reach: 38000, likes: 1100, comments: 280, saves: 540, profileVisits: 1400, dms: 31, leads: 10, calls: 4, sales: 2, revenue: 10000 },
+-  { title: "I wasted ┬ú12,000 on ads", awareness: "Solution-Aware", funnel: "MOF", views: 41000, reach: 68000, likes: 2800, comments: 510, saves: 780, profileVisits: 1600, dms: 22, leads: 7, calls: 2, sales: 0, revenue: 0 },
+-];
++import React, { useState, useMemo } from "react";
++import { SystemEventType } from "@/lib/types/acquisition";
+ 
+-const FUNNEL_CONV = [
+-  { stage: "Content Reach", value: 1826000, icon: "visibility" },
+-  { stage: "Profile Visits", value: 18600, icon: "person", rate: "1.0%" },
+-  { stage: "DMs / Leads", value: 350, icon: "chat", rate: "1.9%" },
+-  { stage: "Applications", value: 287, icon: "description", rate: "82%" },
+-  { stage: "Calls Booked", value: 97, icon: "call", rate: "34%" },
+-  { stage: "Showed", value: 75, icon: "video_call", rate: "77%" },
+-  { stage: "Closed", value: 17, icon: "handshake", rate: "23%" },
+-  { stage: "Revenue", value: "┬ú51,000", icon: "payments", rate: "" },
+-];
++// Mock Event Sourced Analytics Data
++interface AnalyticsEvent {
++  id: string;
++  type: SystemEventType;
++  assetId: string;
++  assetTitle: string;
++  value?: number;
++  timestamp: string;
++}
++
++const generateMockEvents = (): AnalyticsEvent[] => {
++  const events: AnalyticsEvent[] = [];
++  
++  const generateBatch = (title: string, views: number, dms: number, leads: number, calls: number, won: number, revenue: number) => {
++    for (let i=0; i<views; i++) events.push({ id: `e${Math.random()}`, type: "CONTENT_VIEW", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
++    for (let i=0; i<dms; i++) events.push({ id: `e${Math.random()}`, type: "CONVERSATION_CREATED", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
++    for (let i=0; i<leads; i++) events.push({ id: `e${Math.random()}`, type: "LEAD_CREATED", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
++    for (let i=0; i<calls; i++) events.push({ id: `e${Math.random()}`, type: "CALL_BOOKED", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
++    for (let i=0; i<won; i++) events.push({ id: `e${Math.random()}`, type: "DEAL_WON", assetId: title, assetTitle: title, value: revenue, timestamp: new Date().toISOString() });
++  };
++
++  generateBatch("Why consistency isn't your problem", 250, 48, 14, 4, 1, 5000);
++  generateBatch("The reason your agency didn't work", 120, 38, 12, 3, 1, 5000);
++  generateBatch("5 signs your content is attracting wrong clients", 110, 58, 19, 6, 2, 10000);
++  generateBatch("I wasted ┬ú12,000 on ads", 310, 22, 7, 2, 0, 0);
++
++  return events;
++};
++
++const MOCK_EVENTS = generateMockEvents();
+ 
+ const BOTTLENECK_CHAIN = [
+   { q: "Strategy clear?", status: "pass" },
+@@ -35,19 +48,64 @@ const BOTTLENECK_CHAIN = [
+ 
+ export default function AnalyticsPage() {
+   const [view, setView] = useState<"overview"|"content"|"funnel"|"attribution">("overview");
+-  const totalRevenue = CONTENT_PERF.reduce((a, c) => a + c.revenue, 0);
+-  const totalLeads = CONTENT_PERF.reduce((a, c) => a + c.leads, 0);
+-  const totalViews = CONTENT_PERF.reduce((a, c) => a + c.views, 0);
+-  const totalCalls = CONTENT_PERF.reduce((a, c) => a + c.calls, 0);
++
++  // Derive Metrics from Events
++  const aggregatedStats = useMemo(() => {
++    const assetStats: Record<string, any> = {};
++    let totalViews = 0, totalLeads = 0, totalCalls = 0, totalRevenue = 0, totalClosed = 0;
++
++    MOCK_EVENTS.forEach(ev => {
++      if (!assetStats[ev.assetTitle]) {
++        assetStats[ev.assetTitle] = { title: ev.assetTitle, views: 0, dms: 0, leads: 0, calls: 0, sales: 0, revenue: 0 };
++      }
++      
++      switch (ev.type) {
++        case "CONTENT_VIEW":
++          assetStats[ev.assetTitle].views++;
++          totalViews++;
++          break;
++        case "CONVERSATION_CREATED":
++          assetStats[ev.assetTitle].dms++;
++          break;
++        case "LEAD_CREATED":
++          assetStats[ev.assetTitle].leads++;
++          totalLeads++;
++          break;
++        case "CALL_BOOKED":
++          assetStats[ev.assetTitle].calls++;
++          totalCalls++;
++          break;
++        case "DEAL_WON":
++          assetStats[ev.assetTitle].sales++;
++          assetStats[ev.assetTitle].revenue += (ev.value || 0);
++          totalClosed++;
++          totalRevenue += (ev.value || 0);
++          break;
++      }
++    });
++
++    return {
++      contentPerf: Object.values(assetStats),
++      totals: { views: totalViews, leads: totalLeads, calls: totalCalls, closed: totalClosed, revenue: totalRevenue }
++    };
++  }, []);
++
++  const FUNNEL_CONV = [
++    { stage: "Content Views", value: aggregatedStats.totals.views, icon: "visibility" },
++    { stage: "Leads Captured", value: aggregatedStats.totals.leads, icon: "person", rate: ((aggregatedStats.totals.leads / aggregatedStats.totals.views) * 100).toFixed(1) + "%" },
++    { stage: "Calls Booked", value: aggregatedStats.totals.calls, icon: "call", rate: ((aggregatedStats.totals.calls / aggregatedStats.totals.leads) * 100).toFixed(1) + "%" },
++    { stage: "Closed Won", value: aggregatedStats.totals.closed, icon: "handshake", rate: ((aggregatedStats.totals.closed / aggregatedStats.totals.calls) * 100).toFixed(1) + "%" },
++    { stage: "Revenue", value: `┬ú${aggregatedStats.totals.revenue.toLocaleString()}`, icon: "payments", rate: "" },
++  ];
+ 
+   return (
+-    <div className="flex h-full">
+-      <aside className="w-44 shrink-0 border-r border-slate-100 pt-6 px-3 space-y-0.5 bg-white sticky top-0 h-[calc(100vh-128px)]">
++    <div className="flex h-[calc(100vh-72px)] overflow-hidden">
++      <aside className="w-44 shrink-0 border-r border-slate-100 pt-6 px-3 space-y-0.5 bg-white h-full overflow-y-auto">
+         {[
+           { id: "overview", label: "Overview", icon: "dashboard" },
+-          { id: "content", label: "Content", icon: "view_list" },
+-          { id: "funnel", label: "Funnel", icon: "account_tree" },
+-          { id: "attribution", label: "Attribution", icon: "insights" },
++          { id: "content", label: "Content Matrix", icon: "view_list" },
++          { id: "funnel", label: "Funnel Velocity", icon: "account_tree" },
++          { id: "attribution", label: "Event Attribution", icon: "insights" },
+         ].map(s => (
+           <button key={s.id} onClick={() => setView(s.id as typeof view)}
+             className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold flex items-center gap-2 ${view === s.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+@@ -61,17 +119,18 @@ export default function AnalyticsPage() {
+         {view === "overview" && (
+           <div className="space-y-5">
+             <div>
+-              <h2 className="text-[16px] font-bold text-slate-900">Analytics</h2>
+-              <p className="text-[12px] text-slate-500">Content performance ΓåÆ funnel ΓåÆ leads ΓåÆ revenue attribution.</p>
++              <h2 className="text-[16px] font-bold text-slate-900">Unified Analytics</h2>
++              <p className="text-[12px] text-slate-500">Fully event-sourced reporting engine directly mapping content views to closed revenue.</p>
+             </div>
++            
+             {/* Top metrics */}
+             <div className="grid grid-cols-5 gap-3">
+               {[
+-                { label: "Total Views", value: totalViews.toLocaleString(), color: "#2563EB" },
+-                { label: "Total Leads", value: totalLeads.toString(), color: "#8B5CF6" },
+-                { label: "Calls Booked", value: totalCalls.toString(), color: "#D97706" },
+-                { label: "Closed", value: "17", color: "#16A34A" },
+-                { label: "Revenue", value: `┬ú${(totalRevenue/1000).toFixed(0)}K`, color: "#7C3AED" },
++                { label: "Total Views", value: aggregatedStats.totals.views.toLocaleString(), color: "#2563EB" },
++                { label: "Total Leads", value: aggregatedStats.totals.leads.toString(), color: "#8B5CF6" },
++                { label: "Calls Booked", value: aggregatedStats.totals.calls.toString(), color: "#D97706" },
++                { label: "Closed Won", value: aggregatedStats.totals.closed.toString(), color: "#16A34A" },
++                { label: "Pipeline Revenue", value: `┬ú${(aggregatedStats.totals.revenue/1000).toFixed(0)}K`, color: "#7C3AED" },
+               ].map(m => (
+                 <div key={m.label} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{m.label}</p>
+@@ -82,7 +141,7 @@ export default function AnalyticsPage() {
+ 
+             {/* Bottleneck diagnostic */}
+             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+-              <h3 className="text-[13px] font-bold text-slate-900 mb-3">Bottleneck Diagnostic</h3>
++              <h3 className="text-[13px] font-bold text-slate-900 mb-3">AI Bottleneck Diagnostic</h3>
+               <div className="space-y-2">
+                 {BOTTLENECK_CHAIN.map((item, i) => (
+                   <div key={i} className="flex items-center gap-3">
+@@ -98,7 +157,7 @@ export default function AnalyticsPage() {
+               </div>
+               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                 <p className="text-[11px] font-bold text-red-700">Primary bottleneck: Lead ΓåÆ Application conversion (7.2% vs 12ΓÇô18% target)</p>
+-                <p className="text-[11px] text-red-600 mt-0.5">Consider adding a case-study bridge and 5-day email nurture between Lead Magnet and Application.</p>
++                <p className="text-[11px] text-red-600 mt-0.5">Automated outreach agent recommends adding a high-urgency proof asset to the Email Sequence CRM.</p>
+               </div>
+             </div>
+           </div>
+@@ -108,19 +167,18 @@ export default function AnalyticsPage() {
+         {view === "content" && (
+           <div>
+             <div className="mb-5">
+-              <h2 className="text-[16px] font-bold text-slate-900">Content Performance</h2>
+-              <p className="text-[12px] text-slate-500">Every content piece linked to its acquisition outcomes.</p>
++              <h2 className="text-[16px] font-bold text-slate-900">Content Matrix Scorecard</h2>
++              <p className="text-[12px] text-slate-500">Events aggregated by original content asset source.</p>
+             </div>
+             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+               <table className="w-full text-[11px]">
+                 <thead><tr className="border-b border-slate-100 bg-slate-50">
+-                  {["Content","Funnel","Views","DMs","Leads","Calls","Sales","Revenue"].map(h => <th key={h} className="text-left p-3 text-slate-400 font-semibold">{h}</th>)}
++                  {["Content Source Asset","Views","DMs","Leads","Calls Booked","Sales","Attributed Revenue"].map(h => <th key={h} className="text-left p-3 text-slate-400 font-semibold">{h}</th>)}
+                 </tr></thead>
+                 <tbody className="divide-y divide-slate-50">
+-                  {CONTENT_PERF.map(c => (
++                  {aggregatedStats.contentPerf.map((c: any) => (
+                     <tr key={c.title} className="hover:bg-slate-50">
+-                      <td className="p-3 font-semibold text-slate-800 max-w-[200px] truncate">{c.title}</td>
+-                      <td className="p-3"><span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${c.funnel==="TOF"?"bg-slate-100 text-slate-600":c.funnel==="MOF"?"bg-violet-100 text-violet-700":"bg-emerald-100 text-emerald-700"}`}>{c.funnel}</span></td>
++                      <td className="p-3 font-bold text-slate-800 max-w-[200px] truncate">{c.title}</td>
+                       <td className="p-3 text-slate-700">{c.views.toLocaleString()}</td>
+                       <td className="p-3 text-slate-700">{c.dms}</td>
+                       <td className="p-3 text-slate-700">{c.leads}</td>
+@@ -139,11 +197,11 @@ export default function AnalyticsPage() {
+         {view === "funnel" && (
+           <div>
+             <div className="mb-5">
+-              <h2 className="text-[16px] font-bold text-slate-900">Funnel Performance</h2>
+-              <p className="text-[12px] text-slate-500">Conversion waterfall from reach to revenue.</p>
++              <h2 className="text-[16px] font-bold text-slate-900">Event Funnel Velocity</h2>
++              <p className="text-[12px] text-slate-500">Stage to stage conversion based on timestamped event tracking.</p>
+             </div>
+             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-2">
+-              {FUNNEL_CONV.map((stage, i) => {
++              {FUNNEL_CONV.map((stage) => {
+                 const max = FUNNEL_CONV[0].value as number;
+                 const val = typeof stage.value === "number" ? stage.value : null;
+                 const pct = val ? Math.round((val / max) * 100) : 0;
+@@ -152,11 +210,11 @@ export default function AnalyticsPage() {
+                     <span className="material-symbols-outlined text-[16px] text-slate-400 w-5">{stage.icon}</span>
+                     <div className="w-36 shrink-0">
+                       <p className="text-[11px] font-semibold text-slate-700">{stage.stage}</p>
+-                      {stage.rate && <p className="text-[10px] text-slate-400">{stage.rate}</p>}
++                      {stage.rate && <p className="text-[10px] font-bold text-slate-400">{stage.rate}</p>}
+                     </div>
+                     {val && (
+                       <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
+-                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
++                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${Math.max(1, pct)}%` }} />
+                       </div>
+                     )}
+                     <div className="w-24 text-right">
+@@ -173,26 +231,24 @@ export default function AnalyticsPage() {
+         {view === "attribution" && (
+           <div>
+             <div className="mb-5">
+-              <h2 className="text-[16px] font-bold text-slate-900">Attribution</h2>
+-              <p className="text-[12px] text-slate-500">Which ideas actually made money?</p>
++              <h2 className="text-[16px] font-bold text-slate-900">Full-Stack Attribution Mapping</h2>
++              <p className="text-[12px] text-slate-500">Tracing closed revenue backwards through all event touchpoints.</p>
+             </div>
+             <div className="space-y-3">
+-              {CONTENT_PERF.filter(c => c.revenue > 0).map(c => (
++              {aggregatedStats.contentPerf.filter((c: any) => c.revenue > 0).map((c: any) => (
+                 <div key={c.title} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                   <div className="flex items-center justify-between mb-3">
+-                    <h3 className="text-[12px] font-bold text-slate-900">{c.title}</h3>
+-                    <span className="text-[14px] font-bold text-emerald-700">┬ú{c.revenue.toLocaleString()}</span>
++                    <h3 className="text-[12px] font-bold text-slate-900">{c.title} (Asset Route)</h3>
++                    <span className="text-[14px] font-extrabold text-emerald-700">┬ú{c.revenue.toLocaleString()}</span>
+                   </div>
+                   <div className="flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
+-                    <span className="font-semibold">{c.views.toLocaleString()} views</span>
+-                    <span>ΓåÆ</span>
+-                    <span>{c.dms} DMs</span>
+-                    <span>ΓåÆ</span>
+-                    <span>{c.leads} leads</span>
+-                    <span>ΓåÆ</span>
+-                    <span>{c.calls} calls</span>
+-                    <span>ΓåÆ</span>
+-                    <span className="font-bold text-emerald-700">{c.sales} sales</span>
++                    <span className="font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600">{c.views.toLocaleString()} VIEW EVENTS</span>
++                    <span className="material-symbols-outlined text-[12px]">arrow_right_alt</span>
++                    <span className="font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600">{c.leads} CAPTURE EVENTS</span>
++                    <span className="material-symbols-outlined text-[12px]">arrow_right_alt</span>
++                    <span className="font-semibold bg-slate-100 px-2 py-0.5 rounded text-slate-600">{c.calls} BOOK EVENTS</span>
++                    <span className="material-symbols-outlined text-[12px]">arrow_right_alt</span>
++                    <span className="font-extrabold bg-emerald-100 px-2 py-0.5 rounded text-emerald-800">{c.sales} CLOSED EVENTS</span>
+                   </div>
+                 </div>
+               ))}
+diff --git a/asenzo-frontend/src/app/acquisition/layout.tsx b/asenzo-frontend/src/app/acquisition/layout.tsx
+index 33cb3d5..9d8d58a 100644
+--- a/asenzo-frontend/src/app/acquisition/layout.tsx
++++ b/asenzo-frontend/src/app/acquisition/layout.tsx
+@@ -44,8 +44,8 @@ const navGroups: NavGroup[] = [
+   },
+   {
+     id: "nurture",
+-    title: "4. Lead Capture & Nurture",
+-    items: [{ href: "/acquisition/nurture", label: "Lead Capture & Nurture" }],
++    title: "4. Email Sequence",
++    items: [{ href: "/acquisition/nurture", label: "Email Sequence" }],
+   },
+   {
+     id: "outreach",
+diff --git a/asenzo-frontend/src/app/acquisition/nurture/page.tsx b/asenzo-frontend/src/app/acquisition/nurture/page.tsx
+index 721a528..3c95e2a 100644
+--- a/asenzo-frontend/src/app/acquisition/nurture/page.tsx
++++ b/asenzo-frontend/src/app/acquisition/nurture/page.tsx
+@@ -2,97 +2,199 @@
+ 
+ import React, { useState } from "react";
+ 
+-const DM_KEYWORDS = [
+-  { id: "kw1", keyword: "OS", trigger: "Instagram / X DM", sequence: "Inbound OS Blueprint Delivery", leadsCaptured: 148, active: true },
+-  { id: "kw2", keyword: "AUDIT", trigger: "LinkedIn DM", sequence: "Founder Drag Self-Audit Link", leadsCaptured: 94, active: true },
+-  { id: "kw3", keyword: "SYSTEM", trigger: "YouTube Comment", sequence: "7-Figure Acquisition Case Study", leadsCaptured: 215, active: true },
+-];
++type CRMStage = "NEW" | "CAPTURED" | "EMAIL_SEQUENCE" | "ENGAGED" | "QUALIFIED" | "BOOKING_INTENT" | "BOOKED" | "OPPORTUNITY" | "CUSTOMER" | "UNSUBSCRIBED" | "DORMANT";
++
++interface SequenceContact {
++  id: string;
++  name: string;
++  email: string;
++  source: string;
++  originalContent: string;
++  keyword: string;
++  campaign: string;
++  sequence: string;
++  stage: CRMStage;
++  lastInteraction: string;
++  engagement: string;
++  nextEmail: string;
++  owner: string;
++  leadScore: number;
++}
+ 
+-const NURTURE_SEQUENCES = [
+-  { id: "seq1", name: "Problem-Aware 5-Day Email Breakdowns", targetStage: "Problem-Aware", emailsCount: 5, openRate: "48.2%", clickRate: "14.5%", leadsEnrolled: 312 },
+-  { id: "seq2", name: "Solution-Aware Inbound Proof Series", targetStage: "Solution-Aware", emailsCount: 4, openRate: "52.1%", clickRate: "19.8%", leadsEnrolled: 184 },
+-  { id: "seq3", name: "Most-Aware Founder Case Study & VSL Offer", targetStage: "Most-Aware", emailsCount: 3, openRate: "61.4%", clickRate: "28.3%", leadsEnrolled: 95 },
++const MOCK_CONTACTS: SequenceContact[] = [
++  {
++    id: "c1", name: "David Kim", email: "david@nextgen.ai", source: "LinkedIn Organic", originalContent: "Q3 Founder Burnout Post",
++    keyword: "SYSTEM", campaign: "Founder Independence", sequence: "Inbound OS Blueprint Delivery", stage: "OPPORTUNITY",
++    lastInteraction: "Opened Email 4", engagement: "High (4 Opens, 2 Clicks)", nextEmail: "N/A (In Opportunity)", owner: "John Founder", leadScore: 92
++  },
++  {
++    id: "c2", name: "Sarah Jenkins", email: "s.jenkins@acmecorp.com", source: "Instagram Reel #42", originalContent: "Agency Scaling Bottlenecks",
++    keyword: "OS", campaign: "Growth Fallacies", sequence: "7-Figure Case Study", stage: "BOOKED",
++    lastInteraction: "Clicked Booking Link", engagement: "High (3 Opens, 1 Click)", nextEmail: "N/A (Call Booked)", owner: "Automated", leadScore: 84
++  },
++  {
++    id: "c3", name: "Elena Rodriguez", email: "elena@finscale.io", source: "YouTube Video", originalContent: "Stop Doing Outbound",
++    keyword: "BLUEPRINT", campaign: "Inbound Transition", sequence: "Problem-Aware 5-Day Drill", stage: "ENGAGED",
++    lastInteraction: "Replied to Email 2", engagement: "Medium (2 Opens, 1 Reply)", nextEmail: "Email 3: The Talent Trap", owner: "Automated", leadScore: 68
++  },
++  {
++    id: "c4", name: "Mike Ross", email: "mike@technova.com", source: "Website Direct", originalContent: "Lead Magnet Opt-In",
++    keyword: "-", campaign: "Organic Search", sequence: "Solution-Aware Proof Series", stage: "CUSTOMER",
++    lastInteraction: "Signed Agreement", engagement: "Maximum", nextEmail: "N/A", owner: "John Founder", leadScore: 99
++  },
++  {
++    id: "c5", name: "Alex Mercer", email: "alex@mercerconsulting.com", source: "X Thread", originalContent: "5 Growth Mistakes",
++    keyword: "SYSTEM", campaign: "Founder Independence", sequence: "Inbound OS Blueprint Delivery", stage: "QUALIFIED",
++    lastInteraction: "Completed Profile Form", engagement: "High (Completed Form)", nextEmail: "Pitch Preparation", owner: "Sales Team", leadScore: 78
++  },
++  {
++    id: "c6", name: "Jessica Walsh", email: "jessica@walshmedia.net", source: "Instagram Reel #31", originalContent: "Hiring SDRs vs OS",
++    keyword: "SYSTEM", campaign: "Growth Fallacies", sequence: "Problem-Aware 5-Day Drill", stage: "EMAIL_SEQUENCE",
++    lastInteraction: "Received Email 1", engagement: "Low (No opens yet)", nextEmail: "Email 2: Why Outbound Fails", owner: "Automated", leadScore: 24
++  }
+ ];
+ 
+-export default function NurturePage() {
+-  const [newKeyword, setNewKeyword] = useState("");
++export default function EmailSequencePage() {
++  const [filterStage, setFilterStage] = useState<CRMStage | "ALL">("ALL");
++
++  const metrics = {
++    total: 314,
++    new: 28,
++    engaged: 84,
++    qualified: 32,
++    nurturing: 142,
++    bookingIntent: 15,
++    booked: 9,
++    customer: 4,
++    unsubscribed: 22
++  };
++
++  const filteredContacts = filterStage === "ALL" 
++    ? MOCK_CONTACTS 
++    : MOCK_CONTACTS.filter(c => c.stage === filterStage);
+ 
+   return (
+-    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6">
+-      <div>
+-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Pillar 4 ΓÇö Lead Capture & Nurture</p>
+-        <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">DM Keywords, Capture & Email Sequences</h1>
+-        <p className="text-[12px] text-slate-500 mt-0.5">Automate lead capture triggers, automated DM routing, and awareness-based nurture campaigns.</p>
++    <div className="px-8 py-6 max-w-[1500px] mx-auto space-y-6">
++      <div className="flex items-center justify-between">
++        <div>
++          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Acquisition OS</p>
++          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Email Sequence CRM</h1>
++          <p className="text-[12px] text-slate-500 mt-0.5">Manage identified leads from first touch to booking. AI automatically scores interaction and stops sequences on conversion.</p>
++        </div>
++        <div className="flex items-center gap-2">
++          <button className="px-3 py-1.5 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50">
++            Export View
++          </button>
++          <button className="px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800">
++            Create Sequence
++          </button>
++        </div>
+       </div>
+ 
+-      <div className="grid grid-cols-12 gap-6">
+-        {/* Left: DM Keyword Triggers */}
+-        <div className="col-span-5 space-y-4">
+-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+-            <h2 className="text-[14px] font-bold text-slate-900">Active DM Keyword Triggers</h2>
+-            <div className="flex gap-2">
+-              <input
+-                type="text"
+-                value={newKeyword}
+-                onChange={(e) => setNewKeyword(e.target.value)}
+-                placeholder="New Keyword (e.g. BLUEPRINT)"
+-                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-[12px] uppercase font-bold focus:outline-none"
+-              />
+-              <button className="px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800">
+-                Add Keyword
+-              </button>
+-            </div>
+-            <div className="space-y-3">
+-              {DM_KEYWORDS.map((kw) => (
+-                <div key={kw.id} className="p-3.5 border border-slate-200 rounded-xl bg-slate-50/50 flex items-center justify-between">
+-                  <div>
+-                    <div className="flex items-center gap-2">
+-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-extrabold text-[12px] rounded">
+-                        "{kw.keyword}"
+-                      </span>
+-                      <span className="text-[11px] text-slate-500">{kw.trigger}</span>
+-                    </div>
+-                    <p className="text-[11px] text-slate-600 mt-1">Routes to: <b>{kw.sequence}</b></p>
+-                  </div>
+-                  <div className="text-right">
+-                    <div className="text-[13px] font-bold text-slate-900">{kw.leadsCaptured}</div>
+-                    <div className="text-[10px] text-slate-400 font-semibold">Leads</div>
+-                  </div>
+-                </div>
+-              ))}
+-            </div>
++      {/* Top Metrics Row */}
++      <div className="grid grid-cols-9 gap-3">
++        {[
++          { label: "Total Contacts", val: metrics.total, stage: "ALL" },
++          { label: "New", val: metrics.new, stage: "NEW" },
++          { label: "Engaged", val: metrics.engaged, stage: "ENGAGED" },
++          { label: "Qualified", val: metrics.qualified, stage: "QUALIFIED" },
++          { label: "Nurturing", val: metrics.nurturing, stage: "EMAIL_SEQUENCE" },
++          { label: "Booking Intent", val: metrics.bookingIntent, stage: "BOOKING_INTENT" },
++          { label: "Booked", val: metrics.booked, stage: "BOOKED" },
++          { label: "Customer", val: metrics.customer, stage: "CUSTOMER" },
++          { label: "Unsubscribed", val: metrics.unsubscribed, stage: "UNSUBSCRIBED" },
++        ].map((m, i) => (
++          <div 
++            key={i} 
++            onClick={() => setFilterStage(m.stage as CRMStage | "ALL")}
++            className={`p-3 bg-white border rounded-xl cursor-pointer transition-colors ${filterStage === m.stage ? "border-slate-800 ring-1 ring-slate-800 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}
++          >
++            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate mb-1">{m.label}</div>
++            <div className="text-[18px] font-bold text-slate-900">{m.val}</div>
++          </div>
++        ))}
++      </div>
++
++      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
++        {/* CRM Toolbar */}
++        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
++          <div className="flex gap-2 items-center">
++            <input 
++              type="text" 
++              placeholder="Filter by name, email, keyword..." 
++              className="px-3 py-1.5 border border-slate-200 rounded-lg text-[12px] min-w-[250px] outline-none focus:border-slate-400"
++            />
++            <select className="px-3 py-1.5 border border-slate-200 rounded-lg text-[12px] outline-none text-slate-600 bg-white">
++               <option>All Sources</option>
++               <option>Instagram</option>
++               <option>LinkedIn</option>
++               <option>YouTube</option>
++            </select>
++          </div>
++          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
++            {filteredContacts.length} Contacts {filterStage !== "ALL" ? `in ${filterStage.replace(/_/g, ' ')}` : ""}
+           </div>
+         </div>
+ 
+-        {/* Right: Nurture Sequences */}
+-        <div className="col-span-7 space-y-4">
+-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+-            <div className="flex items-center justify-between">
+-              <h2 className="text-[14px] font-bold text-slate-900">Awareness Nurture Sequences</h2>
+-              <button className="px-3 py-1.5 border border-slate-200 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50">
+-                + New Sequence
+-              </button>
+-            </div>
+-            <div className="space-y-3">
+-              {NURTURE_SEQUENCES.map((seq) => (
+-                <div key={seq.id} className="p-4 border border-slate-200 rounded-xl bg-white shadow-xs space-y-2">
+-                  <div className="flex items-start justify-between">
+-                    <div>
+-                      <h3 className="text-[13px] font-bold text-slate-900">{seq.name}</h3>
+-                      <p className="text-[11px] text-slate-500">{seq.emailsCount} Emails ΓÇó Target: {seq.targetStage}</p>
+-                    </div>
+-                    <span className="text-[11px] font-bold text-emerald-600 px-2 py-0.5 bg-emerald-50 rounded">
+-                      {seq.leadsEnrolled} Active Leads
++        {/* Data Table */}
++        <div className="overflow-x-auto">
++          <table className="w-full text-left border-collapse whitespace-nowrap">
++            <thead>
++              <tr className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider border-b border-slate-200">
++                <th className="px-4 py-3 font-bold">Contact</th>
++                <th className="px-4 py-3 font-bold">Orig. Source</th>
++                <th className="px-4 py-3 font-bold">Content Asset</th>
++                <th className="px-4 py-3 font-bold">Keyword</th>
++                <th className="px-4 py-3 font-bold">Stage</th>
++                <th className="px-4 py-3 font-bold">Engagement</th>
++                <th className="px-4 py-3 font-bold">Next Action / Email</th>
++                <th className="px-4 py-3 font-bold text-right">Score</th>
++              </tr>
++            </thead>
++            <tbody className="divide-y divide-slate-100">
++              {filteredContacts.map((c) => (
++                <tr key={c.id} className="hover:bg-slate-50/50 cursor-pointer">
++                  <td className="px-4 py-3">
++                    <div className="text-[13px] font-bold text-slate-900">{c.name}</div>
++                    <div className="text-[11px] text-slate-500">{c.email}</div>
++                  </td>
++                  <td className="px-4 py-3 text-[12px] font-medium text-slate-700">{c.source}</td>
++                  <td className="px-4 py-3">
++                    <div className="text-[12px] font-bold text-slate-800 truncate max-w-[150px]">{c.originalContent}</div>
++                    <div className="text-[10px] text-slate-500">{c.campaign}</div>
++                  </td>
++                  <td className="px-4 py-3">
++                    <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded font-mono text-[10px] font-bold text-slate-600">
++                      {c.keyword || "-"}
+                     </span>
+-                  </div>
+-                  <div className="flex items-center gap-4 text-[11px] font-semibold text-slate-600 pt-2 border-t border-slate-100">
+-                    <span>Avg Open Rate: <b className="text-slate-900">{seq.openRate}</b></span>
+-                    <span>Avg Click Rate: <b className="text-blue-600">{seq.clickRate}</b></span>
+-                  </div>
+-                </div>
++                  </td>
++                  <td className="px-4 py-3">
++                    <span className={`px-2 py-1 text-[10px] font-extrabold uppercase rounded ${
++                      c.stage === 'CUSTOMER' ? 'bg-emerald-100 text-emerald-800' :
++                      c.stage === 'OPPORTUNITY' || c.stage === 'BOOKED' ? 'bg-blue-100 text-blue-800' :
++                      c.stage === 'ENGAGED' || c.stage === 'QUALIFIED' ? 'bg-amber-100 text-amber-800' :
++                      c.stage === 'UNSUBSCRIBED' ? 'bg-red-100 text-red-800' :
++                      'bg-slate-100 text-slate-700'
++                    }`}>
++                      {c.stage.replace(/_/g, ' ')}
++                    </span>
++                  </td>
++                  <td className="px-4 py-3">
++                    <div className="text-[12px] font-semibold text-slate-800">{c.engagement}</div>
++                    <div className="text-[10px] text-slate-500">{c.lastInteraction}</div>
++                  </td>
++                  <td className="px-4 py-3 text-[12px] font-medium text-slate-700 max-w-[150px] truncate">
++                    {c.nextEmail}
++                  </td>
++                  <td className="px-4 py-3 text-right">
++                    <span className={`text-[13px] font-extrabold ${c.leadScore > 80 ? 'text-emerald-600' : c.leadScore > 50 ? 'text-amber-500' : 'text-slate-400'}`}>
++                      {c.leadScore}
++                    </span>
++                  </td>
++                </tr>
+               ))}
+-            </div>
+-          </div>
++            </tbody>
++          </table>
+         </div>
+       </div>
+     </div>
+diff --git a/asenzo-frontend/src/app/acquisition/outreach/page.tsx b/asenzo-frontend/src/app/acquisition/outreach/page.tsx
+index 946aa4c..93ee564 100644
+--- a/asenzo-frontend/src/app/acquisition/outreach/page.tsx
++++ b/asenzo-frontend/src/app/acquisition/outreach/page.tsx
+@@ -2,202 +2,239 @@
+ 
+ import React, { useState } from "react";
+ 
+-interface Lead {
++interface OutreachTarget {
+   id: string;
+   name: string;
+-  company: string;
+   title: string;
+-  temperature: "HOT" | "WARM" | "COLD";
+-  icpFit: "HIGH" | "MEDIUM" | "LOW";
+-  signal: string;
++  company: string;
++  
++  // Cross-module linkage
++  originalSource: string;
++  originalContent: string;
++  engagementContext: string;
++  
++  // ICP Analysis (AI)
++  icpFit: "HIGH" | "MEDIUM" | "LOW" | "UNQUALIFIED";
++  icpScore: number;
++  aiAnalysis: {
++    revenueEstimate: string;
++    headcount: string;
++    techStack: string[];
++    buyingPower: "DECISION_MAKER" | "INFLUENCER" | "UNKNOWN";
++  };
++  
++  // Outreach Action
+   recommendedAngle: string;
+   openingMessage: string;
+-  status: "QUEUED_FOR_APPROVAL" | "APPROVED" | "SENT" | "REPLIED";
++  status: "ANALYZING" | "QUEUED_FOR_APPROVAL" | "APPROVED" | "SENT" | "REPLIED";
+ }
+ 
+-const LEADS: Lead[] = [
++const MOCK_TARGETS: OutreachTarget[] = [
+   {
+-    id: "l1",
++    id: "out1",
+     name: "David Miller",
+-    company: "Apex B2B Agency",
+     title: "Founder & CEO",
+-    temperature: "HOT",
++    company: "Apex B2B Agency",
++    originalSource: "YouTube",
++    originalContent: "Stop Doing Outbound",
++    engagementContext: "Commented: 'How does this map to high-ticket service operations?'",
+     icpFit: "HIGH",
+-    signal: "Commented 'OS' on YouTube long-form VSL & downloaded Lead Magnet",
+-    recommendedAngle: "Direct diagnostic hook referencing their agency scalability bottleneck",
+-    openingMessage: "Hey David, saw your comment on our Inbound OS breakdown. Since you're running Apex, are you currently relying on outbound DMs or trying to build predictable inbound?",
+-    status: "QUEUED_FOR_APPROVAL",
++    icpScore: 92,
++    aiAnalysis: {
++      revenueEstimate: "$1.2M - $2M",
++      headcount: "12-15",
++      techStack: ["HubSpot", "Apollo", "Stripe"],
++      buyingPower: "DECISION_MAKER"
++    },
++    recommendedAngle: "Direct diagnostic regarding their agency scalability bottleneck and reliance on Apollo.",
++    openingMessage: "Hey David, saw your comment on the 'Stop Doing Outbound' video. Since you're running Apex, are you still relying on Apollo for volume, or are you trying to build predictable inbound right now?",
++    status: "QUEUED_FOR_APPROVAL"
+   },
+   {
+-    id: "l2",
++    id: "out2",
+     name: "Sarah Jenkins",
+-    company: "CloudScale Systems",
+     title: "Head of Growth",
+-    temperature: "WARM",
+-    icpFit: "HIGH",
+-    signal: "Visited /vsl/acquisition-os twice in 48 hours",
+-    recommendedAngle: "Value-first offer breakdown case study",
+-    openingMessage: "Hi Sarah, noticed you were looking into our Acquisition OS architecture. Would it be helpful if I shared our 7-figure content-to-revenue tracking template?",
+-    status: "QUEUED_FOR_APPROVAL",
+-  },
+-  {
+-    id: "l3",
+-    name: "Alex Rivera",
+-    company: "SaaSify Inc",
+-    title: "Co-Founder",
+-    temperature: "COLD",
++    company: "CloudScale Systems",
++    originalSource: "LinkedIn",
++    originalContent: "Growth Fallacies (Carousel)",
++    engagementContext: "Liked and viewed 3 times in 48 hours",
+     icpFit: "MEDIUM",
+-    signal: "Matched B2B SaaS ICP target list (┬ú1M-┬ú5M ARR)",
+-    recommendedAngle: "Contrarian positioning question regarding agency retention",
+-    openingMessage: "Hey Alex, quick question ΓÇö are you guys handling founder content in-house at SaaSify or relying on external agencies?",
+-    status: "QUEUED_FOR_APPROVAL",
+-  },
++    icpScore: 74,
++    aiAnalysis: {
++      revenueEstimate: "$5M+",
++      headcount: "45-60",
++      techStack: ["Salesforce", "Marketo"],
++      buyingPower: "INFLUENCER"
++    },
++    recommendedAngle: "Value-first template drop referencing their scale.",
++    openingMessage: "Hi Sarah, noticed you checked out the Growth Fallacies breakdown. Would it be helpful if I shared our 7-figure content-to-revenue tracking template?",
++    status: "QUEUED_FOR_APPROVAL"
++  }
+ ];
+ 
+ export default function OutreachPage() {
+-  const [filterTemp, setFilterTemp] = useState<"ALL" | "HOT" | "WARM" | "COLD">("ALL");
+-  const [leadsState, setLeadsState] = useState<Lead[]>(LEADS);
+-  const [selectedLead, setSelectedLead] = useState<Lead>(LEADS[0]);
++  const [filterFit, setFilterFit] = useState<"ALL" | "HIGH" | "MEDIUM" | "LOW">("ALL");
++  const [targets, setTargets] = useState<OutreachTarget[]>(MOCK_TARGETS);
++  const [selectedTarget, setSelectedTarget] = useState<OutreachTarget>(MOCK_TARGETS[0]);
+ 
+-  const filteredLeads = leadsState.filter((l) => filterTemp === "ALL" || l.temperature === filterTemp);
++  const filteredTargets = targets.filter(t => filterFit === "ALL" || t.icpFit === filterFit);
+ 
+   const handleApprove = (id: string) => {
+-    setLeadsState((prev) =>
+-      prev.map((l) => (l.id === id ? { ...l, status: "APPROVED" } : l))
+-    );
+-    if (selectedLead.id === id) {
+-      setSelectedLead((prev) => ({ ...prev, status: "APPROVED" }));
+-    }
++    setTargets(prev => prev.map(t => t.id === id ? { ...t, status: "APPROVED" } : t));
++    if (selectedTarget.id === id) setSelectedTarget({ ...selectedTarget, status: "APPROVED" });
+   };
+ 
+   return (
+     <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6">
+       <div className="flex items-center justify-between">
+         <div>
+-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Pillar 5 ΓÇö Outbound / Direct Acquisition</p>
+-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Outreach Intelligence & Lead Workspace</h1>
+-          <p className="text-[12px] text-slate-500 mt-0.5">AI Outreach Agent lead research with mandatory Human-in-the-Loop review before sending.</p>
++          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Acquisition OS</p>
++          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">AI Outbound Workflow</h1>
++          <p className="text-[12px] text-slate-500 mt-0.5">Automated signal capture ΓåÆ ICP enrichment ΓåÆ personalized drafting ΓåÆ human approval.</p>
+         </div>
+-        <div className="flex items-center gap-2">
+-          {(["ALL", "HOT", "WARM", "COLD"] as const).map((t) => (
++        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
++          {(["ALL", "HIGH", "MEDIUM", "LOW"] as const).map(f => (
+             <button
+-              key={t}
+-              onClick={() => setFilterTemp(t)}
+-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+-                filterTemp === t
+-                  ? "bg-slate-900 text-white"
+-                  : "border border-slate-200 text-slate-600 hover:bg-slate-50"
++              key={f}
++              onClick={() => setFilterFit(f)}
++              className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${
++                filterFit === f ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+               }`}
+             >
+-              {t}
++              {f === "ALL" ? "All Targets" : `${f} ICP Fit`}
+             </button>
+           ))}
+         </div>
+       </div>
+ 
+       <div className="grid grid-cols-12 gap-6">
+-        {/* Left: Lead Queue */}
+-        <div className="col-span-5 space-y-3">
+-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+-            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Segmented Leads ({filteredLeads.length})</h2>
+-            <div className="space-y-2">
+-              {filteredLeads.map((lead) => (
++        {/* Queue */}
++        <div className="col-span-4 space-y-3">
++          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm h-[calc(100vh-200px)] flex flex-col">
++            <h2 className="text-[13px] font-bold text-slate-900 mb-3 shrink-0">Outreach Queue ({filteredTargets.length})</h2>
++            
++            <div className="space-y-2 overflow-y-auto flex-1 pr-1">
++              {filteredTargets.map(t => (
+                 <div
+-                  key={lead.id}
+-                  onClick={() => setSelectedLead(lead)}
++                  key={t.id}
++                  onClick={() => setSelectedTarget(t)}
+                   className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+-                    selectedLead.id === lead.id
+-                      ? "border-blue-600 bg-blue-50/40 text-slate-900"
+-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
++                    selectedTarget.id === t.id 
++                      ? "border-slate-800 bg-slate-900 text-white" 
++                      : "border-slate-200 bg-white hover:bg-slate-50"
+                   }`}
+                 >
+                   <div className="flex items-center justify-between mb-1">
+-                    <span className="font-bold text-[13px]">{lead.name}</span>
+-                    <span
+-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+-                        lead.temperature === "HOT"
+-                          ? "bg-red-100 text-red-700"
+-                          : lead.temperature === "WARM"
+-                          ? "bg-amber-100 text-amber-700"
+-                          : "bg-blue-100 text-blue-700"
+-                      }`}
+-                    >
+-                      {lead.temperature}
++                    <span className="font-bold text-[13px]">{t.name}</span>
++                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wide ${
++                      t.icpFit === "HIGH" ? "bg-emerald-100 text-emerald-800" :
++                      t.icpFit === "MEDIUM" ? "bg-amber-100 text-amber-800" :
++                      "bg-red-100 text-red-800"
++                    }`}>
++                      {t.icpScore} Score
++                    </span>
++                  </div>
++                  <p className={`text-[11px] ${selectedTarget.id === t.id ? "text-slate-300" : "text-slate-500"}`}>
++                    {t.title} @ <b>{t.company}</b>
++                  </p>
++                  
++                  <div className="flex items-center gap-1 mt-3">
++                    <span className={`h-2 w-2 rounded-full ${t.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-amber-400'}`} />
++                    <span className={`text-[10px] font-medium ${selectedTarget.id === t.id ? "text-slate-400" : "text-slate-400"}`}>
++                      {t.status.replace(/_/g, ' ')}
+                     </span>
+                   </div>
+-                  <p className="text-[11px] text-slate-500">{lead.title} at <b>{lead.company}</b></p>
+-                  <div className="mt-2 text-[10px] text-slate-400 truncate">Signal: {lead.signal}</div>
+                 </div>
+               ))}
+             </div>
+           </div>
+         </div>
+ 
+-        {/* Right: Agent Intelligence & Human Review */}
+-        <div className="col-span-7 space-y-5">
+-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+-              <div>
+-                <span className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Outreach Intelligence Agent</span>
+-                <h3 className="text-[16px] font-bold text-slate-900">{selectedLead.name} ({selectedLead.company})</h3>
+-              </div>
+-              <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md">
+-                ICP Fit: {selectedLead.icpFit}
+-              </span>
++        {/* Intelligence Workspace */}
++        <div className="col-span-8 flex flex-col space-y-4">
++          
++          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-5">
++            {/* Context & Signal */}
++            <div>
++               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">1. Origin Signal</h3>
++               <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex gap-4">
++                  <div className="h-10 w-10 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg shrink-0">
++                    <span className="material-symbols-outlined">forum</span>
++                  </div>
++                  <div>
++                    <div className="text-[14px] font-bold text-slate-900">Interaction via {selectedTarget.originalSource}</div>
++                    <div className="text-[12px] text-slate-600 mt-0.5">Content: <b>{selectedTarget.originalContent}</b></div>
++                    <div className="text-[12px] text-slate-800 mt-2 p-2 bg-white border border-slate-200 rounded-md shadow-sm border-l-4 border-l-blue-400">
++                      "{selectedTarget.engagementContext}"
++                    </div>
++                  </div>
++               </div>
+             </div>
+ 
+-            <div className="space-y-3">
+-              <div>
+-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Buying Signal Identified</label>
+-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-[12px] text-slate-700 font-medium">
+-                  {selectedLead.signal}
+-                </div>
+-              </div>
++            {/* AI ICP Qualifications */}
++            <div>
++               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">2. AI ICP Profile Enrichment</h3>
++               <div className="grid grid-cols-4 gap-3">
++                 <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
++                   <div className="text-[10px] text-slate-500 font-bold mb-1">REVENUE EST.</div>
++                   <div className="text-[13px] font-bold text-slate-900">{selectedTarget.aiAnalysis.revenueEstimate}</div>
++                 </div>
++                 <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
++                   <div className="text-[10px] text-slate-500 font-bold mb-1">HEADCOUNT</div>
++                   <div className="text-[13px] font-bold text-slate-900">{selectedTarget.aiAnalysis.headcount}</div>
++                 </div>
++                 <div className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
++                   <div className="text-[10px] text-slate-500 font-bold mb-1">BUYING POWER</div>
++                   <div className="text-[13px] font-bold text-slate-900">{selectedTarget.aiAnalysis.buyingPower.replace(/_/g, ' ')}</div>
++                 </div>
++                 <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg shadow-sm">
++                   <div className="text-[10px] text-emerald-800 font-bold mb-1">FINAL ICP FIT</div>
++                   <div className="text-[13px] font-extrabold text-emerald-900">{selectedTarget.icpFit} ({selectedTarget.icpScore}/100)</div>
++                 </div>
++               </div>
++            </div>
+ 
+-              <div>
+-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Agent Recommended Strategy Angle</label>
+-                <div className="p-3 bg-violet-50/60 border border-violet-100 rounded-lg text-[12px] text-violet-900 font-medium">
+-                  {selectedLead.recommendedAngle}
+-                </div>
+-              </div>
++            {/* Draft & Approve */}
++            <div className="border-t border-slate-100 pt-5">
++               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">3. AI Drafted Outreach</h3>
++               
++               <div className="mb-3 px-3 py-2 bg-violet-50 border border-violet-100 rounded-lg flex gap-2 items-center">
++                 <span className="material-symbols-outlined text-[16px] text-violet-600">psychology</span>
++                 <span className="text-[11px] font-bold text-violet-900">Angle: {selectedTarget.recommendedAngle}</span>
++               </div>
+ 
+-              <div>
+-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Personalized Opening Message Draft</label>
+-                <textarea
+-                  value={selectedLead.openingMessage}
++               <textarea 
++                  value={selectedTarget.openingMessage}
+                   onChange={(e) => {
+                     const val = e.target.value;
+-                    setSelectedLead((prev) => ({ ...prev, openingMessage: val }));
++                    setSelectedTarget(prev => ({ ...prev, openingMessage: val }));
+                   }}
+-                  rows={4}
+-                  className="w-full p-3 border border-slate-200 rounded-lg text-[12px] font-mono leading-relaxed focus:outline-none focus:border-slate-400"
+-                />
+-              </div>
++                  className="w-full h-28 p-4 bg-white border border-slate-200 focus:border-slate-400 rounded-xl outline-none text-[13px] leading-relaxed text-slate-800 shadow-inner"
++               />
++               
++               <div className="mt-4 flex items-center justify-between">
++                 <p className="text-[11px] text-slate-500 font-medium">Message will be sent via original source channel ({selectedTarget.originalSource}).</p>
++                 
++                 {selectedTarget.status === 'APPROVED' ? (
++                   <span className="px-5 py-2.5 bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-[13px] rounded-lg flex items-center gap-2">
++                     <span className="material-symbols-outlined text-[18px]">done_all</span>
++                     Approved & Sent
++                   </span>
++                 ) : (
++                   <button 
++                     onClick={() => handleApprove(selectedTarget.id)}
++                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] rounded-lg transition-colors flex items-center gap-2 shadow-sm"
++                   >
++                     <span className="material-symbols-outlined text-[18px]">send</span>
++                     Approve & Send Now
++                   </button>
++                 )}
++               </div>
+             </div>
+ 
+-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+-              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
+-                <span className="material-symbols-outlined text-[16px] text-amber-500">lock</span>
+-                Human-in-the-Loop Approval Required Before Outbound Send
+-              </span>
+-
+-              {selectedLead.status === "APPROVED" ? (
+-                <span className="px-4 py-2 bg-emerald-100 text-emerald-800 text-[12px] font-bold rounded-lg flex items-center gap-1">
+-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+-                  Approved & Dispatched
+-                </span>
+-              ) : (
+-                <button
+-                  onClick={() => handleApprove(selectedLead.id)}
+-                  className="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+-                >
+-                  <span className="material-symbols-outlined text-[16px]">send</span>
+-                  Approve & Send Outreach
+-                </button>
+-              )}
+-            </div>
+           </div>
+         </div>
++
+       </div>
+     </div>
+   );
+diff --git a/asenzo-frontend/src/app/acquisition/stories/page.tsx b/asenzo-frontend/src/app/acquisition/stories/page.tsx
+index cba39eb..37aea0d 100644
+--- a/asenzo-frontend/src/app/acquisition/stories/page.tsx
++++ b/asenzo-frontend/src/app/acquisition/stories/page.tsx
+@@ -1,109 +1,272 @@
+ "use client";
+ 
+ import React, { useState } from "react";
++import { ContentEngineJob } from "@/lib/types/acquisition";
+ 
+-const STORY_SEQUENCES = [
++type Frame = {
++  num: number;
++  type: string;
++  text: string;
++  media?: boolean;
++};
++
++type Story = {
++  id: string;
++  title: string;
++  objective: string;
++  type: string;
++  status: "DRAFT" | "READY" | "PROCESSING" | "AI_VERSION_AVAILABLE";
++  frames: Frame[];
++};
++
++const INITIAL_STORIES: Story[] = [
+   {
+     id: "st1",
+     title: "Behind the Scenes ΓÇö Inbound OS Architecture",
+     objective: "Lead Magnet Opt-In",
+-    awarenessStage: "Problem-Aware",
+-    slides: [
++    type: "Behind the Scenes",
++    status: "READY",
++    frames: [
+       { num: 1, type: "Context Hook", text: "Inside the exact system we use to run Acquisition without daily content grind..." },
+       { num: 2, type: "Poll", text: "Are you relying on outbound cold DMs or predictable inbound?" },
+-      { num: 3, type: "Objection Reframing", text: "Most founders think they lack content volume. The truth is they lack positioning clarity." },
++      { num: 3, type: "Insight", text: "Most founders think they lack content volume. The truth is they lack positioning clarity." },
+       { num: 4, type: "CTA", text: "Reply 'OS' to get the full 7-Pillar Architecture Diagram sent straight to your DMs." }
+     ]
+-  },
+-  {
+-    id: "st2",
+-    title: "Client Case Study & Proof Teaser",
+-    objective: "VSL Landing Page Click",
+-    awarenessStage: "Solution-Aware",
+-    slides: [
+-      { num: 1, type: "Proof Teaser", text: "How Lara scaled inbound pipeline from ┬ú8k to ┬ú34k MRR in 60 days." },
+-      { num: 2, type: "Question Sticker", text: "What's your single biggest growth bottleneck right now?" },
+-      { num: 3, type: "CTA", text: "Tap the link below to watch the 8-minute case study breakdown." }
+-    ]
+   }
+ ];
+ 
+ export default function StoriesPage() {
+-  const [selectedSequence, setSelectedSequence] = useState(STORY_SEQUENCES[0]);
++  const [stories, setStories] = useState<Story[]>(INITIAL_STORIES);
++  const [selectedStory, setSelectedStory] = useState<Story | null>(INITIAL_STORIES[0]);
++  const [isCreating, setIsCreating] = useState(false);
++  const [processingJobs, setProcessingJobs] = useState<Record<string, ContentEngineJob>>({});
++
++  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
++    e.preventDefault();
++    const formData = new FormData(e.currentTarget);
++    const newStory: Story = {
++      id: `st${Date.now()}`,
++      title: formData.get("title") as string,
++      objective: formData.get("objective") as string,
++      type: formData.get("type") as string,
++      status: "DRAFT",
++      frames: [
++        { num: 1, type: "Hook", text: "" },
++        { num: 2, type: "Context", text: "" }
++      ]
++    };
++    setStories([newStory, ...stories]);
++    setSelectedStory(newStory);
++    setIsCreating(false);
++  };
++
++  const handleSendToContentEngine = () => {
++    if (!selectedStory) return;
++
++    // Simulate Job Creation
++    const jobId = `job_${Date.now()}`;
++    const newJob: ContentEngineJob = {
++      id: jobId,
++      storyId: selectedStory.id,
++      source: "Story Framework",
++      requestedOutput: "Expanded 7-Frame Workflow",
++      status: "PROCESSING",
++      createdAt: new Date().toISOString()
++    };
++    
++    setProcessingJobs({ ...processingJobs, [selectedStory.id]: newJob });
++    
++    setStories(stories.map(s => s.id === selectedStory.id ? { ...s, status: "PROCESSING" } : s));
++    setSelectedStory({ ...selectedStory, status: "PROCESSING" });
++
++    // Mock completion
++    setTimeout(() => {
++      setProcessingJobs(prev => ({
++        ...prev,
++        [selectedStory.id]: { ...prev[selectedStory.id], status: "COMPLETED", completedAt: new Date().toISOString() }
++      }));
++      setStories(curr => curr.map(s => s.id === selectedStory.id ? {
++        ...s,
++        status: "AI_VERSION_AVAILABLE",
++        frames: [
++          ...s.frames,
++          { num: 3, type: "Problem", text: "Generated problem frame..." },
++          { num: 4, type: "Solution", text: "Generated solution frame..." }
++        ]
++      } : s));
++      if (selectedStory.id) {
++        setSelectedStory(curr => curr ? {
++          ...curr, status: "AI_VERSION_AVAILABLE", frames: [
++            ...curr.frames,
++            { num: 3, type: "Problem", text: "Generated problem frame..." },
++            { num: 4, type: "Solution", text: "Generated solution frame..." }
++          ]
++        } : null);
++      }
++    }, 4000);
++  };
+ 
+   return (
+     <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6">
+       <div className="flex items-center justify-between">
+         <div>
+-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Content System ΓÇö Rapid Response</p>
+-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Stories & Ephemeral Sequences</h1>
+-          <p className="text-[12px] text-slate-500 mt-0.5">Build high-converting Instagram & LinkedIn story sequences with integrated poll stickers and DM triggers.</p>
++          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Acquisition OS</p>
++          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Story Content Editor</h1>
++          <p className="text-[12px] text-slate-500 mt-0.5">Design structured ephemeral workflows that convert attention into identified leads.</p>
+         </div>
+-        <button className="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1">
++        <button 
++          onClick={() => { setIsCreating(true); setSelectedStory(null); }}
++          className="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1">
+           <span className="material-symbols-outlined text-[16px]">add</span>
+-          New Story Sequence
++          Create Story
+         </button>
+       </div>
+ 
+       <div className="grid grid-cols-12 gap-6">
+         <div className="col-span-4 space-y-3">
+           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+-            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Story Sequences</h2>
+-            <div className="space-y-2">
+-              {STORY_SEQUENCES.map((seq) => (
+-                <div
+-                  key={seq.id}
+-                  onClick={() => setSelectedSequence(seq)}
+-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+-                    selectedSequence.id === seq.id
+-                      ? "border-slate-900 bg-slate-900 text-white"
+-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+-                  }`}
+-                >
+-                  <div className="font-bold text-[13px] mb-1">{seq.title}</div>
+-                  <div className="flex items-center justify-between text-[10px]">
+-                    <span className={selectedSequence.id === seq.id ? "text-slate-300" : "text-slate-500"}>Obj: {seq.objective}</span>
+-                    <span className={`px-2 py-0.5 rounded font-bold ${selectedSequence.id === seq.id ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+-                      {seq.awarenessStage}
+-                    </span>
++            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Your Stories</h2>
++            {stories.length === 0 ? (
++               <div className="p-6 text-center text-slate-500 text-[12px] font-medium border border-dashed rounded-xl">
++                 No stories created yet.<br/><br/>
++                 <button className="text-blue-600 font-bold hover:underline" onClick={() => setIsCreating(true)}>Create your first story</button>
++               </div>
++            ) : (
++              <div className="space-y-2">
++                {stories.map((seq) => (
++                  <div
++                    key={seq.id}
++                    onClick={() => { setSelectedStory(seq); setIsCreating(false); }}
++                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
++                      selectedStory?.id === seq.id
++                        ? "border-slate-900 bg-slate-900 text-white"
++                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
++                    }`}
++                  >
++                    <div className="font-bold text-[13px] mb-1">{seq.title}</div>
++                    <div className="flex items-center justify-between text-[10px]">
++                      <span className={selectedStory?.id === seq.id ? "text-slate-300" : "text-slate-500"}>{seq.type}</span>
++                      <span className={`px-2 py-0.5 rounded font-bold ${
++                        seq.status === 'PROCESSING' ? 'bg-amber-100 text-amber-900' :
++                        seq.status === 'AI_VERSION_AVAILABLE' ? 'bg-emerald-100 text-emerald-900' :
++                        selectedStory?.id === seq.id ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-700"
++                      }`}>
++                        {seq.status.replace(/_/g, ' ')}
++                      </span>
++                    </div>
+                   </div>
+-                </div>
+-              ))}
+-            </div>
++                ))}
++              </div>
++            )}
+           </div>
+         </div>
+ 
+         <div className="col-span-8 space-y-4">
+-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+-              <div>
+-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sequence Story Arc</span>
+-                <h3 className="text-[15px] font-bold text-slate-900">{selectedSequence.title}</h3>
+-              </div>
+-              <button className="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-bold rounded-lg hover:bg-blue-700">
+-                Send to Content Engine
+-              </button>
++          {isCreating ? (
++            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
++              <h3 className="text-[15px] font-bold text-slate-900 border-b border-slate-100 pb-3">New Story Context</h3>
++              <form onSubmit={handleCreate} className="space-y-4">
++                <div className="grid grid-cols-2 gap-4 text-[12px]">
++                  <div>
++                    <label className="block font-bold text-slate-700 mb-1">Story Topic / Subject</label>
++                    <input name="title" required className="w-full border rounded-lg p-2" placeholder="e.g. Scaling bottlenecks" />
++                  </div>
++                  <div>
++                    <label className="block font-bold text-slate-700 mb-1">Story Type</label>
++                    <select name="type" className="w-full border rounded-lg p-2 bg-white">
++                      <option>Educational</option>
++                      <option>Contrarian</option>
++                      <option>Behind the Scenes</option>
++                      <option>Lead Generation</option>
++                      <option>Social Proof</option>
++                    </select>
++                  </div>
++                  <div>
++                    <label className="block font-bold text-slate-700 mb-1">Story Objective & CTA</label>
++                    <select name="objective" className="w-full border rounded-lg p-2 bg-white">
++                      <option>DM_KEYWORD</option>
++                      <option>LEAD_MAGNET</option>
++                      <option>BOOK_CALL</option>
++                      <option>OFFER</option>
++                    </select>
++                  </div>
++                  <div>
++                    <label className="block font-bold text-slate-700 mb-1">Target Audience</label>
++                    <input name="audience" required className="w-full border rounded-lg p-2" placeholder="e.g. B2B Founders" />
++                  </div>
++                </div>
++                <div className="pt-2 flex justify-end gap-2">
++                  <button type="button" onClick={() => setIsCreating(false)} className="px-4 py-2 border rounded-lg text-[12px] font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
++                  <button type="submit" className="px-4 py-2 bg-slate-900 border border-slate-900 text-white rounded-lg text-[12px] font-bold hover:bg-slate-800">Initialize Canvas</button>
++                </div>
++              </form>
+             </div>
++          ) : selectedStory ? (
++            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
++              
++              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
++                <div>
++                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedStory.type}</span>
++                  <h3 className="text-[15px] font-bold text-slate-900">{selectedStory.title}</h3>
++                </div>
++                
++                <div className="flex items-center gap-2">
++                  {selectedStory.status === 'PROCESSING' && (
++                    <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[11px] font-bold border border-amber-200">
++                      <span className="material-symbols-outlined text-[14px] animate-spin">refresh</span>
++                      Engine Processing (Job: {processingJobs[selectedStory.id]?.id})
++                    </div>
++                  )}
++                  {selectedStory.status === 'AI_VERSION_AVAILABLE' && (
++                    <div className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-bold border border-emerald-200">
++                      AI Build Complete
++                    </div>
++                  )}
++                  {(selectedStory.status === 'DRAFT' || selectedStory.status === 'READY') && (
++                    <button onClick={handleSendToContentEngine} className="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-bold rounded-lg hover:bg-blue-700 flex items-center gap-1">
++                      <span className="material-symbols-outlined text-[14px]">smart_toy</span>
++                      Send to Content Engine
++                    </button>
++                  )}
++                </div>
++              </div>
+ 
+-            <div className="grid grid-cols-2 gap-4">
+-              {selectedSequence.slides.map((slide) => (
+-                <div key={slide.num} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 flex flex-col justify-between h-44">
+-                  <div>
+-                    <div className="flex items-center justify-between mb-2">
+-                      <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-200 text-slate-800 rounded">
+-                        Slide {slide.num}
+-                      </span>
+-                      <span className="text-[10px] font-bold text-blue-600 uppercase">{slide.type}</span>
++              <div className="grid grid-cols-2 gap-4">
++                {selectedStory.frames.map((frame, index) => (
++                  <div key={index} className="p-4 border border-slate-200 rounded-xl bg-slate-50 flex flex-col justify-between min-h-[160px]">
++                    <div>
++                      <div className="flex items-center justify-between mb-2">
++                        <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-200 text-slate-800 rounded">
++                          Frame {index + 1}
++                        </span>
++                        <input defaultValue={frame.type} className="text-[10px] font-bold text-blue-600 uppercase bg-transparent text-right outline-none w-24" />
++                      </div>
++                      <textarea 
++                        defaultValue={frame.text} 
++                        className="w-full bg-white border border-slate-200 rounded p-2 text-[12px] text-slate-800 font-medium leading-relaxed resize-none h-20 outline-none focus:border-blue-500" 
++                        placeholder="Draft frame script here..."
++                      />
+                     </div>
+-                    <p className="text-[12px] text-slate-800 font-medium leading-relaxed">{slide.text}</p>
++                    {frame.type === "CTA" && (
++                       <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-200/60 font-semibold mt-2">
++                         Destination: {selectedStory.objective}
++                       </div>
++                    )}
+                   </div>
+-                  <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-200/60 font-semibold">
+-                    Sticker: {slide.type === "Poll" ? "Poll Sticker [Inbound vs Outbound]" : slide.type === "CTA" ? "DM Keyword Trigger ['OS']" : "Text Overlay"}
++                ))}
++                
++                {selectedStory.status !== 'PROCESSING' && (
++                  <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center min-h-[160px] cursor-pointer hover:border-slate-400 transition-colors hover:bg-slate-50" onClick={() => setSelectedStory({...selectedStory, frames: [...selectedStory.frames, {num: selectedStory.frames.length + 1, type: "Standard", text: ""}]})}>
++                    <div className="text-center">
++                      <span className="material-symbols-outlined text-slate-400 text-[24px]">add_circle</span>
++                      <p className="text-[11px] font-bold text-slate-500 mt-1">Add Frame</p>
++                    </div>
+                   </div>
+-                </div>
+-              ))}
++                )}
++              </div>
++
+             </div>
+-          </div>
++          ) : null}
+         </div>
+       </div>
+     </div>
+diff --git a/asenzo-frontend/src/app/revenue/page.tsx b/asenzo-frontend/src/app/revenue/page.tsx
+index 4de4f3b..b4f0952 100644
+--- a/asenzo-frontend/src/app/revenue/page.tsx
++++ b/asenzo-frontend/src/app/revenue/page.tsx
+@@ -95,16 +95,38 @@ export default function RevenueCommandPage() {
+                        <span className="text-[11px] text-muted-foreground">Confidence: <span className="font-bold">{d.confidence}</span></span>
+                      </div>
+                   </div>
++                  
++                  {/* Attribution Lineage injected here (Phase 6) */}
++                  <div className="px-4 py-2 bg-muted/20 border-t border-border rounded-b-[10px] flex items-center justify-between text-[10px] text-muted-foreground">
++                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
++                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
++                      <span className="font-semibold uppercase tracking-wider">Source: </span> {d.source || "Unknown"}
++                    </div>
++                    {d.originalContent && (
++                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground max-w-[200px]">
++                        <span className="material-symbols-outlined text-[12px]">article</span>
++                        <span className="truncate">{d.originalContent}</span>
++                      </div>
++                    )}
++                  </div>
+                 </Link>
+              ))}
+            </div>
+          </section>
+          <section>
+              <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Recent Losses (Learning)</h2>
+-             <Link href={ACTION_MAP.openClosedLost()} className="block p-4 border border-border rounded-[10px] bg-card hover:opacity-80">
+-                 <p className="text-[14px] font-bold text-foreground">Pending Brand Restructure</p>
+-                 <p className="text-[12px] font-medium text-muted-foreground mb-3">{formatCurrency(200000)} ΓÇó Lost in NEGOTIATION</p>
+-                 <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold p-2 flex uppercase tracking-wide rounded">Reason: Price (Too expensive for Q3 Budget)</div>
++             <Link href={ACTION_MAP.openClosedLost()} className="block border border-border rounded-[10px] bg-card hover:opacity-80 overflow-hidden">
++                 <div className="p-4 bg-card">
++                   <p className="text-[14px] font-bold text-foreground">Pending Brand Restructure</p>
++                   <p className="text-[12px] font-medium text-muted-foreground mb-3">{formatCurrency(200000)} ΓÇó Lost in NEGOTIATION</p>
++                   <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold p-2 flex uppercase tracking-wide rounded">Reason: Price (Too expensive for Q3 Budget)</div>
++                 </div>
++                 <div className="px-4 py-2 bg-muted/20 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground">
++                    <div className="flex items-center gap-1.5">
++                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
++                      <span className="font-semibold uppercase tracking-wider">Source: </span> Outbound AI Agent
++                    </div>
++                 </div>
+              </Link>
+          </section>
+        </div>
+diff --git a/asenzo-frontend/src/app/revenue/pipeline/page.tsx b/asenzo-frontend/src/app/revenue/pipeline/page.tsx
+index e965171..e47fd53 100644
+--- a/asenzo-frontend/src/app/revenue/pipeline/page.tsx
++++ b/asenzo-frontend/src/app/revenue/pipeline/page.tsx
+@@ -48,11 +48,26 @@ export default function PipelinePage() {
+                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                    {stageDeals.map(d => (
+                      <div key={d.id} className="p-4 border border-border bg-card rounded-[8px] cursor-grab hover:border-foreground/30 transition-colors">
+-                        <div className="flex justify-between items-start mb-2">
++                       <div className="flex justify-between items-start mb-2">
+                           <p className="text-[13px] font-bold text-foreground leading-tight">{d.company}</p>
+                           <span className={`w-2 h-2 rounded-full ${d.confidence === 'HIGH' ? 'bg-success' : d.confidence === 'MEDIUM' ? 'bg-warning' : 'bg-destructive'}`}></span>
+                         </div>
+                         <p className="text-[15px] font-bold text-foreground mb-3">{formatCurrency(d.value)}</p>
++                        
++                        {/* Attribution Lineage injected here (Phase 6 Tracking) */}
++                        <div className="bg-muted/30 p-2 rounded-md mb-3 space-y-1">
++                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
++                            <span className="material-symbols-outlined text-[12px]">account_tree</span>
++                            <span className="font-semibold uppercase tracking-wider">Source: </span> {d.source || "Unknown"}
++                          </div>
++                          {d.originalContent && (
++                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
++                              <span className="material-symbols-outlined text-[12px]">article</span>
++                              <span className="truncate">{d.originalContent}</span>
++                            </div>
++                          )}
++                        </div>
++
+                         <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pt-3 border-t border-border/50 flex justify-between items-center">
+                           <span>{d.nextAction}</span>
+                         </div>
+diff --git a/asenzo-frontend/src/lib/adapters/acquisition.ts b/asenzo-frontend/src/lib/adapters/acquisition.ts
+index 22dc17f..b40eb4e 100644
+--- a/asenzo-frontend/src/lib/adapters/acquisition.ts
++++ b/asenzo-frontend/src/lib/adapters/acquisition.ts
+@@ -187,7 +187,7 @@ export async function createLeadEvent(payload: Omit<LeadEvent, 'id' | 'timestamp
+ 
+ export async function getAttributionJourney(leadId: string): Promise<AttributionEvent[]> {
+   const db = await getDb();
+-  return (db.attributionEvents || []).filter((e: AttributionEvent) => e.leadId === leadId).sort((a: AttributionEvent, b: AttributionEvent) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
++  return (db.attributionEvents || []).filter((e: AttributionEvent) => e.leadId === leadId).sort((a: AttributionEvent, b: AttributionEvent) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
+ }
+ 
+ export async function createAttributionEvent(payload: Omit<AttributionEvent, 'id'>): Promise<AttributionEvent> {
+diff --git a/asenzo-frontend/src/lib/db/conversion.ts b/asenzo-frontend/src/lib/db/conversion.ts
+index 42e9e53..050e0ca 100644
+--- a/asenzo-frontend/src/lib/db/conversion.ts
++++ b/asenzo-frontend/src/lib/db/conversion.ts
+@@ -14,15 +14,17 @@ interface ConversionDB {
+ const DEFAULT_DB: ConversionDB = {
+   leads: [
+     {
+-      id: "seed_l1", name: "[DEMO] David Miller", contactInfo: "david@apexb2b.demo", source: "Inbound VSL", acquisitionChannel: "YouTube", acquisitionCampaign: "Organic Scaling",
+-      originalContent: "How to Build an OS", lastTouch: "Form Submit", temperature: "HOT", qualificationStatus: "INTENT_DETECTED",
++      id: "seed_l1", name: "[DEMO] David Miller", email: "david@apexb2b.demo", contactInfo: "david@apexb2b.demo", source: "Inbound VSL", acquisitionChannel: "YouTube", acquisitionCampaign: "Organic Scaling",
++      originalSource: "YouTube", originalContent: "How to Build an OS", originalKeyword: "founder scaling", originalFunnel: "Phase 1 Webinar",
++      lastTouch: "Form Submit", temperature: "HOT", qualificationStatus: "INTENT_DETECTED",
+       problem: "Agency operations scaling bottleneck", desiredOutcome: "Predictable fulfillment", buyingTrigger: "Revenue flatlined in Q3",
+       objections: [], offerInterest: "Custom Build out", ownerAction: "Admin", nextAction: "Qualify Lead",
+       createdAt: "2026-09-02T10:00:00Z", updatedAt: "2026-09-02T10:00:00Z"
+     },
+     {
+-      id: "seed_l2", name: "[DEMO] Sarah Jenkins", contactInfo: "sarah@cloudscale.demo", source: "Direct Message", acquisitionChannel: "LinkedIn", acquisitionCampaign: "Outbound Pilot",
+-      originalContent: "DM Sequence A", lastTouch: "Replied Positively", temperature: "WARM", qualificationStatus: "QUALIFIED",
++      id: "seed_l2", name: "[DEMO] Sarah Jenkins", email: "sarah@cloudscale.demo", contactInfo: "sarah@cloudscale.demo", source: "Direct Message", acquisitionChannel: "LinkedIn", acquisitionCampaign: "Outbound Pilot",
++      originalSource: "LinkedIn", originalContent: "DM Sequence A", originalKeyword: "growth os", originalFunnel: "Outbound Campaign",
++      lastTouch: "Replied Positively", temperature: "WARM", qualificationStatus: "QUALIFIED",
+       problem: "Lead quality is too low", desiredOutcome: "High intent inbound", buyingTrigger: "Recently raised Series A",
+       objections: ["Price"], offerInterest: "Acquisition OS", ownerAction: "Admin", nextAction: "Send Info Pack",
+       createdAt: "2026-09-01T15:30:00Z", updatedAt: "2026-09-02T09:15:00Z"
+diff --git a/asenzo-frontend/src/lib/types/acquisition.ts b/asenzo-frontend/src/lib/types/acquisition.ts
+index e914af9..811bf3d 100644
+--- a/asenzo-frontend/src/lib/types/acquisition.ts
++++ b/asenzo-frontend/src/lib/types/acquisition.ts
+@@ -257,6 +257,7 @@ export interface Hook {
+ export interface Lead {
+   id: string;
+   workspaceId: string;
++  anonymousVisitorId?: string;
+   name: string;
+   email: string;
+   phone?: string;
+@@ -266,6 +267,15 @@ export interface Lead {
+   campaignId?: string;
+   leadMagnetId?: string;
+   ctaId?: string;
++  
++  // Cross-module Tracking fields (New)
++  originalSource?: string;
++  originalContent?: string;
++  originalKeyword?: string;
++  originalFunnel?: string;
++  icpScore?: number;
++  icpSegment?: string;
++
+   firstTouchAt?: string;
+   latestTouchAt?: string;
+   status: AcquisitionStatus;
+@@ -307,21 +317,54 @@ export interface CTA {
+   url: string;
+ }
+ 
++export type SystemEventType = 
++  | 'CONTENT_VIEW'
++  | 'CONTENT_ENGAGEMENT'
++  | 'COMMENT'
++  | 'KEYWORD_COMMENT'
++  | 'CTA_CLICK'
++  | 'LANDING_PAGE_VIEW'
++  | 'FORM_STARTED'
++  | 'FORM_SUBMITTED'
++  | 'EMAIL_CAPTURED'
++  | 'BOOKING_STARTED'
++  | 'BOOKING_COMPLETED'
++  | 'LEAD_CREATED'
++  | 'LEAD_QUALIFIED'
++  | 'OUTREACH_CREATED'
++  | 'OUTREACH_SENT'
++  | 'CONVERSATION_CREATED'
++  | 'CALL_BOOKED'
++  | 'CALL_COMPLETED'
++  | 'PROPOSAL_CREATED'
++  | 'PROPOSAL_SENT'
++  | 'DEAL_WON'
++  | 'DEAL_LOST';
++
+ export interface AttributionEvent {
+   id: string;
+-  leadId: string;
+-  type: 'FIRST_TOUCH' | 'LAST_TOUCH' | 'MULTI_TOUCH';
+-  sourceId?: string;
++  anonymousVisitorId?: string;
++  leadId?: string;
++  sessionId?: string;
++  source?: string;
++  platform?: string;
++  channel?: string;
+   campaignId?: string;
+-  ctaId?: string;
+-  timestamp: string;
+-  confidence: 'KNOWN' | 'INFERRED' | 'UNKNOWN';
++  contentId?: string;
++  contentType?: string;
++  contentTitle?: string;
++  assetId?: string;
++  funnelId?: string;
++  keyword?: string;
++  eventType: SystemEventType;
++  metadata?: any;
++  occurredAt: string;
+ }
+ 
+ export interface LeadEvent {
+   id: string;
+   leadId: string;
+-  type: 'content_clicked' | 'cta_clicked' | 'landing_viewed' | 'form_started' | 'form_submitted' | 'lead_created' | 'lead_updated' | 'lead_qualified' | 'lead_unqualified' | 'conversation_started' | 'conversation_replied' | 'handoff_created';
++  type: SystemEventType; // Synced with SystemEventType
+   data?: any;
+   timestamp: string;
+ }
+@@ -369,6 +412,51 @@ export interface Handoff {
+   createdAt: string;
+ }
+ 
++// Added for Phase 4: Job Tracking & Funnels
++export interface ContentEngineJob {
++  id: string;
++  storyId: string;
++  source: string;
++  requestedOutput: string;
++  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVIEW_REQUIRED';
++  createdAt: string;
++  completedAt?: string;
++  generatedVersionId?: string;
++}
++
++export interface FunnelNode {
++  id: string;
++  funnelId: string;
++  type: 'SOURCE' | 'CONTENT' | 'ENGAGEMENT' | 'DM' | 'LANDING_PAGE' | 'LEAD_CAPTURE' | 'EMAIL_SEQUENCE' | 'QUALIFICATION' | 'OUTREACH' | 'CONVERSATION' | 'BOOKING' | 'CALL' | 'OFFER' | 'PROPOSAL' | 'WON' | 'LOST';
++  name: string;
++  metadata?: any;
++  position?: { x: number, y: number };
++}
++
++export interface FunnelEdge {
++  id: string;
++  funnelId: string;
++  sourceNodeId: string;
++  targetNodeId: string;
++  conversionRate?: number;
++}
++
++export interface Funnel {
++  id: string;
++  name: string;
++  description?: string;
++  primarySource?: string;
++  primaryCta?: string;
++  conversionGoal?: string;
++  offer?: string;
++  audience?: string;
++  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
++  nodes: FunnelNode[];
++  edges: FunnelEdge[];
++  createdAt: string;
++  updatedAt: string;
++}
++
+ export interface AcquisitionRecommendation {
+   id: string;
+   title: string;
+diff --git a/asenzo-frontend/src/lib/types/conversion.ts b/asenzo-frontend/src/lib/types/conversion.ts
+index fc34952..d474265 100644
+--- a/asenzo-frontend/src/lib/types/conversion.ts
++++ b/asenzo-frontend/src/lib/types/conversion.ts
+@@ -36,24 +36,40 @@ export type ObjectionCategory =
+ 
+ export interface Lead {
+   id: string;
++  anonymousVisitorId?: string;
+   name: string;
+-  contactInfo: string;
+-  source: string;
+-  acquisitionChannel: string;
+-  acquisitionCampaign: string;
++  email: string;
++  phone?: string;
++  company?: string;
++  role?: string;
++  
++  // Cross-module Data Lineage
++  originalSource: string;
+   originalContent: string;
++  originalKeyword: string;
++  originalFunnel: string;
++  
++  // Legacy / Mock Compatibility
++  contactInfo?: string;
++  source?: string;
++  acquisitionChannel?: string;
++  acquisitionCampaign?: string;
++  
+   lastTouch: string;
+   temperature: LeadTemperature;
+   qualificationStatus: QualificationStatus;
++  
++  // Conversion state
+   problem: string;
+   desiredOutcome: string;
+   buyingTrigger: string;
+   objections: string[];
+   offerInterest: string;
+   ownerAction: string;
++  nextAction: string;
++
+   createdAt: string;
+   updatedAt: string;
+-  nextAction: string;
+ }
+ 
+ export interface LeadQualification {

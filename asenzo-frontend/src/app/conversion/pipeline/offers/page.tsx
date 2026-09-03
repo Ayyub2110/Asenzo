@@ -1,22 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Opportunity } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function OffersWorkspace() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/conversion/opportunities")
-      .then(r => r.json())
-      .then(data => {
-        setOpportunities(data || []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const { opportunities, leads } = useConversionOS();
 
   const offerOpportunities = opportunities.filter(o => o.pipelineStage === "OFFER_PRESENTED" || o.pipelineStage === "DECISION");
 
@@ -31,9 +21,7 @@ export default function OffersWorkspace() {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-8 space-y-4">
-           {isLoading ? (
-             <div className="p-8 text-[12px] text-slate-500 text-center">Loading Offers...</div>
-           ) : offerOpportunities.length === 0 ? (
+           {offerOpportunities.length === 0 ? (
              <div className="bg-white border text-center p-12 border-slate-200 rounded-xl shadow-sm">
                <span className="material-symbols-outlined text-[32px] text-slate-300 mb-2">description</span>
                <h3 className="text-[14px] font-bold text-slate-700">No active proposals in Pipeline.</h3>
@@ -42,10 +30,12 @@ export default function OffersWorkspace() {
              </div>
            ) : (
              <div className="space-y-4">
-               {offerOpportunities.map(opp => (
+               {offerOpportunities.map(opp => {
+                 const lead = leads.find(l => l.id === opp.leadId);
+                 return (
                  <div key={opp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
                     <div>
-                      <h3 className="text-[14px] font-bold text-slate-900">{opp.leadId} — {opp.offerId || "Custom Build"}</h3>
+                      <h3 className="text-[14px] font-bold text-slate-900">{lead?.name || opp.leadId} — {opp.offerId || "Custom Build"}</h3>
                       <p className="text-[12px] text-slate-500 mt-0.5">Value: <span className="font-semibold text-emerald-600">£{(opp.estimatedValue || 0).toLocaleString()}</span></p>
                       <div className="mt-2 flex items-center gap-2">
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold text-[10px] rounded uppercase">{opp.pipelineStage.replace('_', ' ')}</span>
@@ -56,7 +46,7 @@ export default function OffersWorkspace() {
                       <span className="text-[10px] text-slate-400">Needs Follow-up: {opp.followUpState || "None"}</span>
                     </div>
                  </div>
-               ))}
+               )})}
              </div>
            )}
         </div>

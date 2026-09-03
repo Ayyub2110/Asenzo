@@ -1,22 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Lead } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function ConversationsInbox() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/conversion/leads")
-      .then(r => r.json())
-      .then(data => {
-        setLeads(data || []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const { leads } = useConversionOS();
 
   return (
     <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6 h-full flex flex-col">
@@ -38,9 +28,7 @@ export default function ConversationsInbox() {
                <input type="text" placeholder="Search conversations..." className="w-full px-3 py-1.5 text-[12px] border border-slate-200 rounded-lg outline-none focus:border-slate-400 transition-colors" />
             </div>
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-               {isLoading ? (
-                  <div className="p-4 text-center text-[12px] text-slate-500">Loading...</div>
-               ) : leads.map(lead => (
+               {leads.map(lead => (
                   <div key={lead.id} className="p-4 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
                      <div className="flex justify-between items-start mb-1">
                         <span className="text-[13px] font-bold text-slate-900">{lead.name}</span>
@@ -52,7 +40,7 @@ export default function ConversationsInbox() {
                      </div>
                   </div>
                ))}
-               {leads.length === 0 && !isLoading && (
+               {leads.length === 0 && (
                   <div className="p-8 text-center text-[12px] text-slate-400">No active threads.</div>
                )}
             </div>

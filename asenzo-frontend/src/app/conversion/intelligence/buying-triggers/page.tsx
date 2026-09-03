@@ -1,22 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Opportunity } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function BuyingTriggersIntelligence() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/conversion/opportunities")
-      .then(r => r.json())
-      .then(data => {
-        setOpportunities(data || []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const { opportunities } = useConversionOS();
 
   // Compute aggregate triggers
   const triggerMap: Record<string, { count: number; won: number; value: number }> = {};
@@ -43,9 +33,7 @@ export default function BuyingTriggersIntelligence() {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden min-h-[400px]">
-        {isLoading ? (
-            <div className="p-12 text-center text-[12px] text-slate-500">Analyzing Event Patterns...</div>
-        ) : triggers.length === 0 ? (
+        {triggers.length === 0 ? (
             <div className="p-16 text-center">
                 <span className="material-symbols-outlined text-[48px] text-slate-200 mb-2">radar</span>
                 <h3 className="text-[14px] font-bold text-slate-700">Not enough conversion data to identify buying triggers yet.</h3>

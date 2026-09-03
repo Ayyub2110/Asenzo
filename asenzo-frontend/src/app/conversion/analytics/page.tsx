@@ -1,23 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Lead, Opportunity } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function AnalyticsWorkspace() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/conversion/leads").then(r => r.json()),
-      fetch("/api/conversion/opportunities").then(r => r.json())
-    ]).then(([lData, oData]) => {
-      setLeads(lData || []);
-      setOpportunities(oData || []);
-      setIsLoading(false);
-    }).catch(() => setIsLoading(false));
-  }, []);
+  const { leads, opportunities } = useConversionOS();
 
   // Calculate Funnel Metrics
   const metricLeads = leads.length;
@@ -48,9 +36,7 @@ export default function AnalyticsWorkspace() {
             <span className="material-symbols-outlined text-[18px]">filter_alt_off</span>
             End-To-End Funnel Conversion
         </h2>
-        {isLoading ? (
-            <div className="py-12 text-center text-[12px] text-slate-500">Compiling funnel data...</div>
-        ) : metricLeads === 0 ? (
+        {metricLeads === 0 ? (
             <div className="py-24 flex flex-col justify-center items-center">
                 <span className="material-symbols-outlined text-[48px] text-slate-200 mb-2">trending_flat</span>
                 <h3 className="text-[14px] font-bold text-slate-700">No conversion data yet.</h3>

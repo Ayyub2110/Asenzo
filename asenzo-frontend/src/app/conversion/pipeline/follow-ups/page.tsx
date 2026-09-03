@@ -1,22 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Opportunity } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function FollowUpsWorkspace() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/conversion/opportunities")
-      .then(r => r.json())
-      .then(data => {
-        setOpportunities(data || []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const { opportunities, leads } = useConversionOS();
 
   const requiresFollowUp = opportunities.filter(o => o.followUpState === "DUE" || o.followUpState === "OVERDUE");
 
@@ -31,9 +21,7 @@ export default function FollowUpsWorkspace() {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-8 space-y-4">
-           {isLoading ? (
-             <div className="p-8 text-[12px] text-slate-500 text-center">Loading Follow-ups...</div>
-           ) : requiresFollowUp.length === 0 ? (
+           {requiresFollowUp.length === 0 ? (
              <div className="bg-white border text-center p-12 border-slate-200 rounded-xl shadow-sm">
                <span className="material-symbols-outlined text-[32px] text-slate-300 mb-2">done_all</span>
                <h3 className="text-[14px] font-bold text-slate-700">Inbox Zero.</h3>
@@ -41,7 +29,9 @@ export default function FollowUpsWorkspace() {
              </div>
            ) : (
              <div className="space-y-4">
-               {requiresFollowUp.map(opp => (
+               {requiresFollowUp.map(opp => {
+                 const lead = leads.find(l => l.id === opp.leadId);
+                 return (
                  <div key={opp.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between group hover:border-amber-300 transition-colors">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -50,7 +40,7 @@ export default function FollowUpsWorkspace() {
                         </span>
                         <span className="text-[11px] font-semibold text-slate-500">{opp.nextAction || "Action required"}</span>
                       </div>
-                      <h3 className="text-[14px] font-bold text-slate-900">{opp.leadId}</h3>
+                      <h3 className="text-[14px] font-bold text-slate-900">{lead?.name || opp.leadId}</h3>
                       <p className="text-[12px] text-slate-500 mt-0.5">Stage: {opp.pipelineStage.replace('_', ' ')} • Value: £{(opp.estimatedValue || 0).toLocaleString()}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -58,7 +48,7 @@ export default function FollowUpsWorkspace() {
                       <button className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] rounded-lg">Open Deal</button>
                     </div>
                  </div>
-               ))}
+               )})}
              </div>
            )}
         </div>

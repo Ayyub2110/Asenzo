@@ -1,22 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Lead } from "@/lib/types/conversion";
 import Link from "next/link";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function DMsWorkspace() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/conversion/leads")
-      .then(r => r.json())
-      .then(data => {
-        setLeads(data.filter((l: Lead) => l.source === "Direct Message") || []);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const { leads: allLeads } = useConversionOS();
+  const leads = allLeads.filter((l: Lead) => l.originalSource === "Direct Message");
 
   return (
     <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6 flex flex-col h-full">
@@ -31,9 +22,7 @@ export default function DMsWorkspace() {
        <div className="bg-white flex-1 border border-slate-200 shadow-sm rounded-xl overflow-hidden flex">
           {/* List */}
           <div className="w-[300px] border-r border-slate-200 bg-slate-50/50">
-             {isLoading ? (
-               <div className="p-8 text-center text-slate-400 text-[12px]">Loading DM Threads...</div>
-             ) : leads.length === 0 ? (
+             {leads.length === 0 ? (
                <div className="p-8 text-center text-[12px] text-slate-400">
                   No active DMs linked to conversion OS right now.
                </div>

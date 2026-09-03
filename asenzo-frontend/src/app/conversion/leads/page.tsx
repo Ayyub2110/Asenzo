@@ -1,47 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Lead } from "@/lib/types/conversion";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function LeadsWorkspace() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { leads, addLead } = useConversionOS();
   const [isCreating, setIsCreating] = useState(false);
   
   const [newLead, setNewLead] = useState<Partial<Lead>>({
-    name: "", contactInfo: "", source: "Website", temperature: "HOT", qualificationStatus: "NEW", problem: "", buyingTrigger: ""
+    name: "", email: "", originalSource: "Website", temperature: "HOT", qualificationStatus: "NEW", problem: "", buyingTrigger: ""
   });
 
-  const fetchLeads = async () => {
-    try {
-      const res = await fetch("/api/conversion/leads");
-      const data = await res.json();
-      setLeads(data || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLeads();
-  }, []);
-
-  const handleCreateLead = async (e: React.FormEvent) => {
+  const handleCreateLead = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await fetch("/api/conversion/leads", {
-        method: "POST",
-        body: JSON.stringify(newLead)
-      });
-      setIsCreating(false);
-      setNewLead({ name: "", contactInfo: "", source: "Website", temperature: "HOT", qualificationStatus: "NEW", problem: "", buyingTrigger: "" });
-      fetchLeads();
-    } catch (error) {
-      alert("Failed to create lead.");
-    }
+    addLead(newLead as any);
+    setIsCreating(false);
+    setNewLead({ name: "", email: "", originalSource: "Website", temperature: "HOT", qualificationStatus: "NEW", problem: "", buyingTrigger: "" });
   };
 
   return (
@@ -68,7 +44,7 @@ export default function LeadsWorkspace() {
           <h3 className="text-[14px] font-bold text-slate-900 mb-4">Create New Lead</h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <input required placeholder="Lead Name" value={newLead.name} onChange={e => setNewLead({...newLead, name: e.target.value})} className="px-3 py-2 border border-slate-200 rounded text-[12px]" />
-            <input required placeholder="Email or Phone" value={newLead.contactInfo} onChange={e => setNewLead({...newLead, contactInfo: e.target.value})} className="px-3 py-2 border border-slate-200 rounded text-[12px]" />
+            <input required placeholder="Email or Phone" value={newLead.email} onChange={e => setNewLead({...newLead, email: e.target.value})} className="px-3 py-2 border border-slate-200 rounded text-[12px]" />
             <input placeholder="Buying Trigger" value={newLead.buyingTrigger} onChange={e => setNewLead({...newLead, buyingTrigger: e.target.value})} className="px-3 py-2 border border-slate-200 rounded text-[12px]" />
             <input placeholder="Identified Problem" value={newLead.problem} onChange={e => setNewLead({...newLead, problem: e.target.value})} className="px-3 py-2 border border-slate-200 rounded text-[12px]" />
             <select value={newLead.temperature} onChange={e => setNewLead({...newLead, temperature: e.target.value as any})} className="px-3 py-2 border border-slate-200 rounded text-[12px]">
@@ -101,11 +77,11 @@ export default function LeadsWorkspace() {
               <tr key={lead.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-5 py-4">
                   <div className="font-bold text-slate-900">{lead.name}</div>
-                  <div className="text-slate-500 mt-0.5">{lead.contactInfo}</div>
+                  <div className="text-slate-500 mt-0.5">{lead.email}</div>
                 </td>
                 <td className="px-5 py-4">
-                  <div className="font-medium text-slate-700">{lead.source}</div>
-                  <div className="text-slate-400 mt-0.5">{lead.acquisitionChannel} • {lead.originalContent}</div>
+                  <div className="font-medium text-slate-700">{lead.originalSource}</div>
+                  <div className="text-slate-400 mt-0.5">{lead.originalFunnel} • {lead.originalContent}</div>
                 </td>
                 <td className="px-5 py-4">
                   <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
@@ -137,9 +113,7 @@ export default function LeadsWorkspace() {
             ))}
           </tbody>
         </table>
-        {isLoading ? (
-          <div className="p-12 text-center text-[12px] text-slate-500">Loading leads...</div>
-        ) : leads.length === 0 ? (
+        {leads.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-[13px] font-medium text-slate-600">No leads in the system yet.</p>
           </div>
