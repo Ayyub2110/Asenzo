@@ -38,18 +38,13 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    id: "outreach",
-    title: "3. Outbound",
-    items: [{ href: "/acquisition/outreach", label: "Outreach Workspace" }],
-  },
-  {
     id: "funnels",
-    title: "4. Funnels",
+    title: "3. Funnels",
     items: [{ href: "/acquisition/funnels", label: "Funnel Canvas" }],
   },
   {
     id: "analytics",
-    title: "5. Analytics",
+    title: "4. Analytics",
     items: [
       { href: "/acquisition/analytics", label: "Acquisition Analytics" },
       { href: "/acquisition/channels", label: "Channels" },
