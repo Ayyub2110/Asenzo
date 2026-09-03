@@ -83,8 +83,6 @@ export default function AcquisitionLayout({ children }: { children: React.ReactN
               Command Center
             </Link>
 
-            <div className="h-4 w-[1px] bg-slate-200 mx-1 shrink-0" />
-
             {navGroups.map((group) => {
               const isGroupActive = currentGroup === group.id;
               const primaryHref = group.items[0]?.href || "/acquisition";
@@ -103,8 +101,6 @@ export default function AcquisitionLayout({ children }: { children: React.ReactN
                 </Link>
               );
             })}
-
-            <div className="h-4 w-[1px] bg-slate-200 mx-1 shrink-0" />
 
             <Link
               href="/acquisition/library"

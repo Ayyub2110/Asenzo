@@ -114,8 +114,6 @@ export default function ConversionLayout({ children }: { children: React.ReactNo
               Command Center
             </Link>
 
-            <div className="h-4 w-[1px] bg-slate-200 mx-1 shrink-0" />
-
             {navGroups.map((group) => {
               const isGroupActive = currentGroup === group.id;
               const primaryHref = group.items[0]?.href || "/conversion";
