@@ -49,7 +49,7 @@ const BOTTLENECK_CHAIN = [
 ];
 
 export default function AnalyticsPage() {
-  const [view, setView] = useState<"overview"|"content"|"funnel"|"attribution"|"channels"|"revenue">("overview");
+  const [view, setView] = useState<"overview"|"content"|"funnel"|"channels"|"revenue">("overview");
 
   // Load backend intelligence data for Channels / Content-Revenue
   const { localData, loading, error } = useAdapter(getIntelligence);
@@ -110,7 +110,6 @@ export default function AnalyticsPage() {
           { id: "overview", label: "Overview", icon: "dashboard" },
           { id: "content", label: "Content Matrix", icon: "view_list" },
           { id: "funnel", label: "Funnel Velocity", icon: "account_tree" },
-          { id: "attribution", label: "Event Attribution", icon: "insights" },
           { id: "channels", label: "Channel Performance", icon: "share" },
           { id: "revenue", label: "Content → Revenue", icon: "move_up" },
         ].map(s => (
@@ -237,35 +236,6 @@ export default function AnalyticsPage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* ── Event Attribution ── */}
-        {view === "attribution" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Full-Stack Attribution Mapping</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5 max-w-2xl">Tracing closed revenue backwards through all digital event touchpoints to uncover canonical acquisition paths.</p>
-            </div>
-            <div className="space-y-4">
-              {aggregatedStats.contentPerf.filter((c: any) => c.revenue > 0).map((c: any) => (
-                <div key={c.title} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-colors">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[15px] font-bold text-slate-900 flex items-center gap-2"><span className="material-symbols-outlined text-slate-400 text-[18px]">account_tree</span> {c.title}</h3>
-                    <span className="text-[18px] font-black tracking-tight text-emerald-600">£{c.revenue.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] text-slate-500 flex-wrap">
-                    <span className="font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 shadow-sm border border-slate-200">{c.views.toLocaleString()} VIEW EVENTS</span>
-                    <span className="material-symbols-outlined text-[16px] text-slate-300">double_arrow</span>
-                    <span className="font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 shadow-sm border border-slate-200">{c.leads} CAPTURE EVENTS</span>
-                    <span className="material-symbols-outlined text-[16px] text-slate-300">double_arrow</span>
-                    <span className="font-bold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 shadow-sm border border-slate-200">{c.calls} BOOK EVENTS</span>
-                    <span className="material-symbols-outlined text-[16px] text-slate-300">double_arrow</span>
-                    <span className="font-black tracking-widest bg-emerald-100/50 px-3 py-1.5 rounded-lg text-emerald-700 shadow-sm border border-emerald-200">{c.sales} CLOSED DEALS</span>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         )}
