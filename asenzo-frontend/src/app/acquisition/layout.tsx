@@ -45,11 +45,7 @@ const navGroups: NavGroup[] = [
   {
     id: "analytics",
     title: "4. Analytics",
-    items: [
-      { href: "/acquisition/analytics", label: "Acquisition Analytics" },
-      { href: "/acquisition/channels", label: "Channels" },
-      { href: "/acquisition/content-revenue", label: "Content → Revenue" },
-    ],
+    items: [{ href: "/acquisition/analytics", label: "Acquisition Analytics" }],
   },
 ];
 
