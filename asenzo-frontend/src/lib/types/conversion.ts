@@ -36,24 +36,40 @@ export type ObjectionCategory =
 
 export interface Lead {
   id: string;
+  anonymousVisitorId?: string;
   name: string;
-  contactInfo: string;
-  source: string;
-  acquisitionChannel: string;
-  acquisitionCampaign: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  role?: string;
+  
+  // Cross-module Data Lineage
+  originalSource: string;
   originalContent: string;
+  originalKeyword: string;
+  originalFunnel: string;
+  
+  // Legacy / Mock Compatibility
+  contactInfo?: string;
+  source?: string;
+  acquisitionChannel?: string;
+  acquisitionCampaign?: string;
+  
   lastTouch: string;
   temperature: LeadTemperature;
   qualificationStatus: QualificationStatus;
+  
+  // Conversion state
   problem: string;
   desiredOutcome: string;
   buyingTrigger: string;
   objections: string[];
   offerInterest: string;
   ownerAction: string;
+  nextAction: string;
+
   createdAt: string;
   updatedAt: string;
-  nextAction: string;
 }
 
 export interface LeadQualification {

@@ -257,6 +257,7 @@ export interface Hook {
 export interface Lead {
   id: string;
   workspaceId: string;
+  anonymousVisitorId?: string;
   name: string;
   email: string;
   phone?: string;
@@ -266,6 +267,15 @@ export interface Lead {
   campaignId?: string;
   leadMagnetId?: string;
   ctaId?: string;
+  
+  // Cross-module Tracking fields (New)
+  originalSource?: string;
+  originalContent?: string;
+  originalKeyword?: string;
+  originalFunnel?: string;
+  icpScore?: number;
+  icpSegment?: string;
+
   firstTouchAt?: string;
   latestTouchAt?: string;
   status: AcquisitionStatus;
@@ -307,21 +317,54 @@ export interface CTA {
   url: string;
 }
 
+export type SystemEventType = 
+  | 'CONTENT_VIEW'
+  | 'CONTENT_ENGAGEMENT'
+  | 'COMMENT'
+  | 'KEYWORD_COMMENT'
+  | 'CTA_CLICK'
+  | 'LANDING_PAGE_VIEW'
+  | 'FORM_STARTED'
+  | 'FORM_SUBMITTED'
+  | 'EMAIL_CAPTURED'
+  | 'BOOKING_STARTED'
+  | 'BOOKING_COMPLETED'
+  | 'LEAD_CREATED'
+  | 'LEAD_QUALIFIED'
+  | 'OUTREACH_CREATED'
+  | 'OUTREACH_SENT'
+  | 'CONVERSATION_CREATED'
+  | 'CALL_BOOKED'
+  | 'CALL_COMPLETED'
+  | 'PROPOSAL_CREATED'
+  | 'PROPOSAL_SENT'
+  | 'DEAL_WON'
+  | 'DEAL_LOST';
+
 export interface AttributionEvent {
   id: string;
-  leadId: string;
-  type: 'FIRST_TOUCH' | 'LAST_TOUCH' | 'MULTI_TOUCH';
-  sourceId?: string;
+  anonymousVisitorId?: string;
+  leadId?: string;
+  sessionId?: string;
+  source?: string;
+  platform?: string;
+  channel?: string;
   campaignId?: string;
-  ctaId?: string;
-  timestamp: string;
-  confidence: 'KNOWN' | 'INFERRED' | 'UNKNOWN';
+  contentId?: string;
+  contentType?: string;
+  contentTitle?: string;
+  assetId?: string;
+  funnelId?: string;
+  keyword?: string;
+  eventType: SystemEventType;
+  metadata?: any;
+  occurredAt: string;
 }
 
 export interface LeadEvent {
   id: string;
   leadId: string;
-  type: 'content_clicked' | 'cta_clicked' | 'landing_viewed' | 'form_started' | 'form_submitted' | 'lead_created' | 'lead_updated' | 'lead_qualified' | 'lead_unqualified' | 'conversation_started' | 'conversation_replied' | 'handoff_created';
+  type: SystemEventType; // Synced with SystemEventType
   data?: any;
   timestamp: string;
 }
@@ -367,6 +410,51 @@ export interface Handoff {
   status: 'PENDING' | 'COMPLETED';
   notes?: string;
   createdAt: string;
+}
+
+// Added for Phase 4: Job Tracking & Funnels
+export interface ContentEngineJob {
+  id: string;
+  storyId: string;
+  source: string;
+  requestedOutput: string;
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVIEW_REQUIRED';
+  createdAt: string;
+  completedAt?: string;
+  generatedVersionId?: string;
+}
+
+export interface FunnelNode {
+  id: string;
+  funnelId: string;
+  type: 'SOURCE' | 'CONTENT' | 'ENGAGEMENT' | 'DM' | 'LANDING_PAGE' | 'LEAD_CAPTURE' | 'EMAIL_SEQUENCE' | 'QUALIFICATION' | 'OUTREACH' | 'CONVERSATION' | 'BOOKING' | 'CALL' | 'OFFER' | 'PROPOSAL' | 'WON' | 'LOST';
+  name: string;
+  metadata?: any;
+  position?: { x: number, y: number };
+}
+
+export interface FunnelEdge {
+  id: string;
+  funnelId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  conversionRate?: number;
+}
+
+export interface Funnel {
+  id: string;
+  name: string;
+  description?: string;
+  primarySource?: string;
+  primaryCta?: string;
+  conversionGoal?: string;
+  offer?: string;
+  audience?: string;
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  nodes: FunnelNode[];
+  edges: FunnelEdge[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AcquisitionRecommendation {

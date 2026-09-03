@@ -187,7 +187,7 @@ export async function createLeadEvent(payload: Omit<LeadEvent, 'id' | 'timestamp
 
 export async function getAttributionJourney(leadId: string): Promise<AttributionEvent[]> {
   const db = await getDb();
-  return (db.attributionEvents || []).filter((e: AttributionEvent) => e.leadId === leadId).sort((a: AttributionEvent, b: AttributionEvent) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  return (db.attributionEvents || []).filter((e: AttributionEvent) => e.leadId === leadId).sort((a: AttributionEvent, b: AttributionEvent) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
 }
 
 export async function createAttributionEvent(payload: Omit<AttributionEvent, 'id'>): Promise<AttributionEvent> {

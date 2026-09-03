@@ -131,21 +131,45 @@ export default function ResearchPage() {
                 </div>
                 {researchState !== "loading" ? (
                   <div className="flex gap-3">
-                    <button onClick={() => { setResearchState("loading"); setTimeout(() => setResearchState("done"), 2500); }} className="flex-1 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800">Research All</button>
-                    <button className="px-5 py-2.5 border border-slate-200 text-slate-700 text-[12px] font-semibold rounded-lg hover:bg-slate-50">Research Selected Creator</button>
+                    <button onClick={() => { setResearchState("loading"); setTimeout(() => setResearchState("done"), 2500); }} className="flex-1 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800">Analyze Research Subject</button>
                   </div>
                 ) : (
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-blue-500 animate-spin text-[16px]">progress_activity</span><p className="text-[12px] font-bold text-blue-700">Researching...</p></div>
-                    {["Analysing creators in your niche...","Comparing content performance...","Finding cross-creator references...","Ranking by strategic fit..."].map((s,i) => <p key={i} className="text-[11px] text-blue-600 pl-5">↳ {s}</p>)}
+                    <div className="flex items-center gap-2 mb-2"><span className="material-symbols-outlined text-blue-500 animate-spin text-[16px]">progress_activity</span><p className="text-[12px] font-bold text-blue-700">AI Extracting Knowledge Base...</p></div>
+                    {["Extracting key ideas and themes...","Finding audience pain points & desires...","Detecting outlier patterns...","Distinguishing source facts from inferences..."].map((s,i) => <p key={i} className="text-[11px] text-blue-600 pl-5">↳ {s}</p>)}
                   </div>
                 )}
               </div>
-              <div className="col-span-4 space-y-3">
+              <div className="col-span-4 space-y-4">
+                <div className="bg-slate-900 rounded-xl p-5 shadow-lg border border-slate-800 text-white">
+                  <h3 className="text-[14px] font-bold mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span> Add Research Source
+                  </h3>
+                  <div className="space-y-3">
+                    <select className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-[12px] font-semibold focus:outline-none">
+                      <option>URL (Article, YouTube, Social)</option>
+                      <option>Keyword / Topic</option>
+                      <option>Creator Profile</option>
+                    </select>
+                    <input className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-[12px] focus:outline-none focus:border-slate-500" placeholder="Paste URL or keyword..." />
+                    <button className="w-full py-2 bg-white text-slate-900 text-[12px] font-bold rounded-lg hover:bg-slate-200">Add Source</button>
+                  </div>
+                </div>
+
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Scoring Signals</p>
-                  <div className="space-y-1 text-[11px] text-slate-600">
-                    {["Virality (views, engagement)","Creator baseline outperformance","Cross-creator validation (3+ = strong)","Recency (7 days prioritised)","Strategic & audience fit","Funnel fit"].map(s => <p key={s}>• {s}</p>)}
+                  <div className="flex items-center justify-between mb-3"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Creators</p><span className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">Select All</span></div>
+                  <div className="space-y-2 text-[11px] text-slate-700 font-semibold h-40 overflow-y-auto">
+                    {[
+                      {name:"Alex Hormozi", state:true}, {name:"Lara Davies", state:true}, 
+                      {name:"Jay Yang", state:false}, {name:"Mark Metry", state:false},
+                      {name:"Justin Welsh", state:true}
+                    ].map(c => (
+                      <label key={c.name} className="flex items-center gap-2.5 p-1.5 rounded hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" defaultChecked={c.state} className="rounded text-blue-600" />
+                        <span>{c.name}</span>
+                      </label>
+                    ))}
+                    <div className="pt-2"><input placeholder="Search creators..." className="w-full px-2 py-1.5 border border-slate-200 rounded text-[10px] bg-slate-50" /></div>
                   </div>
                 </div>
               </div>
@@ -198,25 +222,34 @@ export default function ResearchPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {[
-                {t:"Summary",c:"The video argues that the reason most founders fail at content isn't frequency — it's messaging clarity. Contrarian hook, belief dismantled, mechanism delivered, keyword CTA."},
-                {t:"Why It Matters Strategically",c:"This idea directly addresses the most common unconverted buyer's objection: 'I've been consistent for months.' Reframing the problem from execution to strategy creates a belief shift that opens the sale."},
-                {t:"Transferable Pattern",c:"Contrarian Hook → Self-Identification → Belief Shift → Mechanism → Soft Proof → Keyword CTA. Use the contrarian framing around a belief your ICP holds incorrectly. Make them feel understood before changing their mind."},
+                {t:"Source Fact",c:"The creator stated they wasted £12,000 on ads before discovering organic positioning content.", tag:"fact", bg:"bg-slate-100"},
+                {t:"Inference",c:"Audience responds significantly better to failure stories and transparent numbers than pure 'how to' content.", tag:"inf", bg:"bg-blue-50"},
+                {t:"AI Recommendation",c:"Use the 'Expensive Mistake' framework. Highlight a common financial mistake your ICP is making right now before revealing your mechanism.", tag:"ai", bg:"bg-violet-50/50"},
               ].map(s => (
-                <div key={s.t} className="bg-slate-50 rounded-lg p-4">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{s.t}</p>
-                  <p className="text-[12px] text-slate-700 leading-relaxed">{s.c}</p>
+                <div key={s.t} className={`${s.bg} rounded-lg p-4 border border-slate-200/50`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="material-symbols-outlined text-[13px] text-slate-400">{s.tag === 'ai' ? 'smart_toy' : s.tag === 'inf' ? 'psychology' : 'fact_check'}</span>
+                    <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">{s.t}</p>
+                  </div>
+                  <p className="text-[12px] text-slate-800 font-medium leading-relaxed">{s.c}</p>
                 </div>
               ))}
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Structure</p>
-                {[["Hook","Contrarian + Pain"],["Opening","Common belief dismantled"],["Value","Diagnosis + mechanism"],["Payoff","Personal proof"],["CTA","Keyword → Lead Magnet"]].map(([k,v]) => (
-                  <div key={k} className="flex gap-2 mb-1"><span className="text-[10px] font-bold text-slate-400 uppercase w-16 shrink-0 mt-0.5">{k}</span><span className="text-[11px] text-slate-700">{v}</span></div>
-                ))}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Extracted Hooks & Angles</p>
+                <div className="space-y-2">
+                   {[
+                     "I wasted £12,000 to learn this one content truth...",
+                     "The agency illusion: Why your £5k retainer is buying silence.",
+                     "Stop building funnels if your message isn't validated."
+                   ].map(hx => <div key={hx} className="text-[11px] font-bold text-slate-700 bg-white p-2 rounded shadow-sm border border-slate-100">{hx}</div> )}
+                </div>
               </div>
             </div>
             <div className="px-5 py-3 border-t border-slate-100 shrink-0 flex gap-2">
-              <button className="flex-1 py-2 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800">Shortlist → Content Card</button>
-              <button className="px-4 py-2 border border-slate-200 text-slate-600 text-[11px] rounded-lg hover:bg-slate-50">Save to Library</button>
+              <button className="flex-1 py-2 bg-slate-900 flex items-center justify-center gap-2 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800">
+                <span className="material-symbols-outlined text-[14px]">auto_awesome</span> Create Idea
+              </button>
+              <button className="px-4 py-2 border border-slate-200 text-slate-600 text-[11px] font-bold rounded-lg hover:bg-slate-50">Save to Library</button>
             </div>
           </div>
         </div>

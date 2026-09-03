@@ -95,16 +95,38 @@ export default function RevenueCommandPage() {
                        <span className="text-[11px] text-muted-foreground">Confidence: <span className="font-bold">{d.confidence}</span></span>
                      </div>
                   </div>
+                  
+                  {/* Attribution Lineage injected here (Phase 6) */}
+                  <div className="px-4 py-2 bg-muted/20 border-t border-border rounded-b-[10px] flex items-center justify-between text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
+                      <span className="font-semibold uppercase tracking-wider">Source: </span> {d.source || "Unknown"}
+                    </div>
+                    {d.originalContent && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground max-w-[200px]">
+                        <span className="material-symbols-outlined text-[12px]">article</span>
+                        <span className="truncate">{d.originalContent}</span>
+                      </div>
+                    )}
+                  </div>
                 </Link>
              ))}
            </div>
          </section>
          <section>
              <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Recent Losses (Learning)</h2>
-             <Link href={ACTION_MAP.openClosedLost()} className="block p-4 border border-border rounded-[10px] bg-card hover:opacity-80">
-                 <p className="text-[14px] font-bold text-foreground">Pending Brand Restructure</p>
-                 <p className="text-[12px] font-medium text-muted-foreground mb-3">{formatCurrency(200000)} • Lost in NEGOTIATION</p>
-                 <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold p-2 flex uppercase tracking-wide rounded">Reason: Price (Too expensive for Q3 Budget)</div>
+             <Link href={ACTION_MAP.openClosedLost()} className="block border border-border rounded-[10px] bg-card hover:opacity-80 overflow-hidden">
+                 <div className="p-4 bg-card">
+                   <p className="text-[14px] font-bold text-foreground">Pending Brand Restructure</p>
+                   <p className="text-[12px] font-medium text-muted-foreground mb-3">{formatCurrency(200000)} • Lost in NEGOTIATION</p>
+                   <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold p-2 flex uppercase tracking-wide rounded">Reason: Price (Too expensive for Q3 Budget)</div>
+                 </div>
+                 <div className="px-4 py-2 bg-muted/20 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
+                      <span className="font-semibold uppercase tracking-wider">Source: </span> Outbound AI Agent
+                    </div>
+                 </div>
              </Link>
          </section>
        </div>

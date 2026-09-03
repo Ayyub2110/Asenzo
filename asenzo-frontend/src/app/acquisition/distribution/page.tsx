@@ -99,18 +99,32 @@ export default function DistributionPage() {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-            <h2 className="text-[14px] font-bold text-slate-900">Distribution Execution Checklist</h2>
-            <div className="space-y-2 text-[12px] text-slate-700">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h2 className="text-[14px] font-bold text-slate-900">Reach & Impact Tracking</h2>
+              <span className="text-[11px] font-bold text-blue-600">Last 7 Days</span>
+            </div>
+            <div className="space-y-3 pt-1">
               {[
-                "Attach direct keyword CTA (e.g. 'Comment OS') to long-form YouTube descriptions",
-                "Format LinkedIn posts with first-comment proof link to prevent reach throttling",
-                "Post Instagram Reels with 3-slide Story sequence directing to Lead Magnet VSL",
-                "Cross-post X high-performing thread to LinkedIn article format"
-              ].map((step, idx) => (
-                <label key={idx} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-100 hover:bg-slate-50 cursor-pointer">
-                  <input type="checkbox" defaultChecked={idx < 2} className="rounded text-slate-900" />
-                  <span>{step}</span>
-                </label>
+                {t: "The £12k Agency Mistake", ch: "LinkedIn", views: "14.2K", eng: "3.4%", leads: 12, trend: "+24%"},
+                {t: "How to Build an OS (VSL)", ch: "YouTube", views: "2.1K", eng: "8.1%", leads: 45, trend: "+12%"},
+                {t: "Stop building funnels without...", ch: "X (Twitter)", views: "4.8K", eng: "1.2%", leads: 2, trend: "-5%"},
+              ].map((p, idx) => (
+                <div key={idx} className="p-3 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-[12px] font-bold text-slate-900 mb-0.5">{p.t}</h4>
+                    <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-semibold">{p.ch}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <div className="text-[12px] font-extrabold text-slate-900">{p.views}</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Views</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] font-extrabold text-emerald-700">{p.leads}</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Leads</div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

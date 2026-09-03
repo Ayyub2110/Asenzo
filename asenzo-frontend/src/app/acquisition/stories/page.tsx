@@ -1,111 +1,98 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { ContentEngineJob } from "@/lib/types/acquisition";
 
-const STORY_SEQUENCES = [
-  {
-    id: "st1",
-    title: "Behind the Scenes — Inbound OS Architecture",
-    objective: "Lead Magnet Opt-In",
-    awarenessStage: "Problem-Aware",
-    slides: [
-      { num: 1, type: "Context Hook", text: "Inside the exact system we use to run Acquisition without daily content grind..." },
-      { num: 2, type: "Poll", text: "Are you relying on outbound cold DMs or predictable inbound?" },
-      { num: 3, type: "Objection Reframing", text: "Most founders think they lack content volume. The truth is they lack positioning clarity." },
-      { num: 4, type: "CTA", text: "Reply 'OS' to get the full 7-Pillar Architecture Diagram sent straight to your DMs." }
-    ]
-  },
-  {
-    id: "st2",
-    title: "Client Case Study & Proof Teaser",
-    objective: "VSL Landing Page Click",
-    awarenessStage: "Solution-Aware",
-    slides: [
-      { num: 1, type: "Proof Teaser", text: "How Lara scaled inbound pipeline from £8k to £34k MRR in 60 days." },
-      { num: 2, type: "Question Sticker", text: "What's your single biggest growth bottleneck right now?" },
-      { num: 3, type: "CTA", text: "Tap the link below to watch the 8-minute case study breakdown." }
-    ]
-  }
-];
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-export default function StoriesPage() {
-  const [selectedSequence, setSelectedSequence] = useState(STORY_SEQUENCES[0]);
+const MOCK_PLANNER = {
+  "Monday": [{ id: "p1", title: "Why consistency isn't your problem", format: "LinkedIn Carousel", funnel: "TOF", status: "SCHEDULED" }],
+  "Tuesday": [{ id: "p2", title: "Predictable Inbound Architecture", format: "YouTube Longform", funnel: "MOF", status: "READY" }],
+  "Wednesday": [{ id: "p3", title: "Stop doing cold outreach", format: "X Thread", funnel: "TOF", status: "DRAFT" }],
+  "Thursday": [{ id: "p4", title: "Story: Agency Mistake", format: "Instagram Reel", funnel: "BOF", status: "GENERATING" }],
+  "Friday": [{ id: "p5", title: "Scale Readiness Application", format: "Newsletter", funnel: "MOF", status: "READY" }],
+  "Saturday": [],
+  "Sunday": []
+};
+
+export default function ContentPlannerPage() {
+  const [planner, setPlanner] = useState<Record<string, any[]>>(MOCK_PLANNER);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateWeek = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      setIsGenerating(false);
+      setPlanner({
+        ...planner,
+        "Saturday": [{ id: "p6", title: "Founder Weekly Wrap-up", format: "LinkedIn Post", funnel: "TOF", status: "DRAFT" }],
+        "Sunday": [{ id: "p7", title: "Preparing for scale (Mindset)", format: "X Thread", funnel: "TOF", status: "DRAFT" }]
+      });
+    }, 2500);
+  };
 
   return (
     <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Content System — Rapid Response</p>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Stories & Ephemeral Sequences</h1>
-          <p className="text-[12px] text-slate-500 mt-0.5">Build high-converting Instagram & LinkedIn story sequences with integrated poll stickers and DM triggers.</p>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Pillar 1 — Content</p>
+          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Weekly Content Planner</h1>
+          <p className="text-[12px] text-slate-500 mt-0.5">Orchestrate and schedule content across channels using AI-driven queue generation.</p>
         </div>
-        <button className="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1">
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          New Story Sequence
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleGenerateWeek}
+            disabled={isGenerating}
+            className="px-4 py-2 bg-blue-600 text-white text-[12px] font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+            <span className={`material-symbols-outlined text-[16px] ${isGenerating ? 'animate-spin' : ''}`}>smart_toy</span>
+            {isGenerating ? "Engine Generating..." : "AI Auto-Fill Queue"}
+          </button>
+          <button className="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Add Manual Slot
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-4 space-y-3">
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Story Sequences</h2>
-            <div className="space-y-2">
-              {STORY_SEQUENCES.map((seq) => (
-                <div
-                  key={seq.id}
-                  onClick={() => setSelectedSequence(seq)}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    selectedSequence.id === seq.id
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="font-bold text-[13px] mb-1">{seq.title}</div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className={selectedSequence.id === seq.id ? "text-slate-300" : "text-slate-500"}>Obj: {seq.objective}</span>
-                    <span className={`px-2 py-0.5 rounded font-bold ${selectedSequence.id === seq.id ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
-                      {seq.awarenessStage}
-                    </span>
-                  </div>
-                </div>
-              ))}
+      <div className="grid grid-cols-7 gap-4">
+        {DAYS.map((day) => (
+          <div key={day} className="bg-slate-50 border border-slate-200 rounded-xl flex flex-col h-[600px] overflow-hidden">
+            <div className="bg-white border-b border-slate-200 p-3 flex items-center justify-between">
+              <h3 className="text-[12px] font-extrabold text-slate-900">{day}</h3>
+              <span className="text-[10px] font-bold text-slate-400">{planner[day].length} posts</span>
             </div>
-          </div>
-        </div>
-
-        <div className="col-span-8 space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sequence Story Arc</span>
-                <h3 className="text-[15px] font-bold text-slate-900">{selectedSequence.title}</h3>
-              </div>
-              <button className="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-bold rounded-lg hover:bg-blue-700">
-                Send to Content Engine
+            <div className="p-3 flex-1 overflow-y-auto space-y-3">
+              {planner[day].length === 0 ? (
+                <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">Empty Slot</div>
+              ) : (
+                planner[day].map((post) => (
+                  <div key={post.id} className="bg-white border border-slate-200 shadow-sm rounded-lg p-3 cursor-pointer hover:border-blue-400 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`px-1.5 py-0.5 text-[9px] font-extrabold rounded uppercase ${
+                        post.funnel === 'TOF' ? 'bg-slate-100 text-slate-600' : 
+                        post.funnel === 'MOF' ? 'bg-violet-100 text-violet-700' : 'bg-emerald-100 text-emerald-700'
+                      }`}>{post.funnel}</span>
+                      <span className={`text-[9px] font-bold uppercase ${post.status==='SCHEDULED'?'text-blue-600':post.status==='READY'?'text-emerald-600':post.status==='GENERATING'?'text-amber-500':'text-slate-400'}`}>{post.status}</span>
+                    </div>
+                    <h4 className="text-[11px] font-bold text-slate-900 leading-snug">{post.title}</h4>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[12px] text-slate-400">devices</span>
+                      <span className="text-[10px] font-semibold text-slate-500">{post.format}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-2 border-t border-slate-200 bg-white">
+              <button className="w-full py-1.5 text-[10px] font-bold text-slate-500 hover:bg-slate-50 rounded flex items-center justify-center gap-1">
+                <span className="material-symbols-outlined text-[13px]">add</span> Add
               </button>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {selectedSequence.slides.map((slide) => (
-                <div key={slide.num} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 flex flex-col justify-between h-44">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 bg-slate-200 text-slate-800 rounded">
-                        Slide {slide.num}
-                      </span>
-                      <span className="text-[10px] font-bold text-blue-600 uppercase">{slide.type}</span>
-                    </div>
-                    <p className="text-[12px] text-slate-800 font-medium leading-relaxed">{slide.text}</p>
-                  </div>
-                  <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-200/60 font-semibold">
-                    Sticker: {slide.type === "Poll" ? "Poll Sticker [Inbound vs Outbound]" : slide.type === "CTA" ? "DM Keyword Trigger ['OS']" : "Text Overlay"}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-        </div>
+        ))}
       </div>
+
     </div>
   );
 }

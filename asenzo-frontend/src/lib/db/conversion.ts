@@ -14,15 +14,17 @@ interface ConversionDB {
 const DEFAULT_DB: ConversionDB = {
   leads: [
     {
-      id: "seed_l1", name: "[DEMO] David Miller", contactInfo: "david@apexb2b.demo", source: "Inbound VSL", acquisitionChannel: "YouTube", acquisitionCampaign: "Organic Scaling",
-      originalContent: "How to Build an OS", lastTouch: "Form Submit", temperature: "HOT", qualificationStatus: "INTENT_DETECTED",
+      id: "seed_l1", name: "[DEMO] David Miller", email: "david@apexb2b.demo", contactInfo: "david@apexb2b.demo", source: "Inbound VSL", acquisitionChannel: "YouTube", acquisitionCampaign: "Organic Scaling",
+      originalSource: "YouTube", originalContent: "How to Build an OS", originalKeyword: "founder scaling", originalFunnel: "Phase 1 Webinar",
+      lastTouch: "Form Submit", temperature: "HOT", qualificationStatus: "INTENT_DETECTED",
       problem: "Agency operations scaling bottleneck", desiredOutcome: "Predictable fulfillment", buyingTrigger: "Revenue flatlined in Q3",
       objections: [], offerInterest: "Custom Build out", ownerAction: "Admin", nextAction: "Qualify Lead",
       createdAt: "2026-09-02T10:00:00Z", updatedAt: "2026-09-02T10:00:00Z"
     },
     {
-      id: "seed_l2", name: "[DEMO] Sarah Jenkins", contactInfo: "sarah@cloudscale.demo", source: "Direct Message", acquisitionChannel: "LinkedIn", acquisitionCampaign: "Outbound Pilot",
-      originalContent: "DM Sequence A", lastTouch: "Replied Positively", temperature: "WARM", qualificationStatus: "QUALIFIED",
+      id: "seed_l2", name: "[DEMO] Sarah Jenkins", email: "sarah@cloudscale.demo", contactInfo: "sarah@cloudscale.demo", source: "Direct Message", acquisitionChannel: "LinkedIn", acquisitionCampaign: "Outbound Pilot",
+      originalSource: "LinkedIn", originalContent: "DM Sequence A", originalKeyword: "growth os", originalFunnel: "Outbound Campaign",
+      lastTouch: "Replied Positively", temperature: "WARM", qualificationStatus: "QUALIFIED",
       problem: "Lead quality is too low", desiredOutcome: "High intent inbound", buyingTrigger: "Recently raised Series A",
       objections: ["Price"], offerInterest: "Acquisition OS", ownerAction: "Admin", nextAction: "Send Info Pack",
       createdAt: "2026-09-01T15:30:00Z", updatedAt: "2026-09-02T09:15:00Z"

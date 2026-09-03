@@ -48,11 +48,26 @@ export default function PipelinePage() {
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                    {stageDeals.map(d => (
                      <div key={d.id} className="p-4 border border-border bg-card rounded-[8px] cursor-grab hover:border-foreground/30 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
+                       <div className="flex justify-between items-start mb-2">
                           <p className="text-[13px] font-bold text-foreground leading-tight">{d.company}</p>
                           <span className={`w-2 h-2 rounded-full ${d.confidence === 'HIGH' ? 'bg-success' : d.confidence === 'MEDIUM' ? 'bg-warning' : 'bg-destructive'}`}></span>
                         </div>
                         <p className="text-[15px] font-bold text-foreground mb-3">{formatCurrency(d.value)}</p>
+                        
+                        {/* Attribution Lineage injected here (Phase 6 Tracking) */}
+                        <div className="bg-muted/30 p-2 rounded-md mb-3 space-y-1">
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="material-symbols-outlined text-[12px]">account_tree</span>
+                            <span className="font-semibold uppercase tracking-wider">Source: </span> {d.source || "Unknown"}
+                          </div>
+                          {d.originalContent && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                              <span className="material-symbols-outlined text-[12px]">article</span>
+                              <span className="truncate">{d.originalContent}</span>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pt-3 border-t border-border/50 flex justify-between items-center">
                           <span>{d.nextAction}</span>
                         </div>
