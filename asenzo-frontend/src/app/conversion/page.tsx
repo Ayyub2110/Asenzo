@@ -71,6 +71,19 @@ export default function ConversionCommandCenter() {
          </div>
       </div>
 
+      {/* Existing Main Stats Grid */}
+      <div className="grid grid-cols-6 gap-4">
+        {stats.map((stat, i) => (
+          <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+            <p className="text-[11px] font-bold text-slate-500">{stat.label}</p>
+            <div className="mt-2">
+              <span className="text-[20px] font-bold text-slate-900">{stat.value}</span>
+              <span className="text-[10px] text-emerald-600 font-semibold ml-2">{stat.change}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Call Performance KPI Section */}
       <div className="space-y-4">
          <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5">
