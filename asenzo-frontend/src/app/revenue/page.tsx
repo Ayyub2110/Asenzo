@@ -2,134 +2,148 @@
 
 import React from "react";
 import Link from "next/link";
-import { getRevenue } from "@/lib/adapters";
-import { ACTION_MAP } from "@/lib/routing";
-import { useAdapter } from "@/hooks/useAdapter";
+import { useRevenueOS } from "@/contexts/RevenueOSContext";
 
-export default function RevenueCommandPage() {
-  const { localData, loading, error } = useAdapter(getRevenue);
+export default function RevenueCommandCenter() {
+  const { metrics, customers, renewals } = useRevenueOS();
 
-  if (loading) return <div className="p-10 animate-pulse h-96 w-full max-w-[1200px] mx-auto bg-muted/20 rounded-[16px]" />;
-  if (error || !localData) return <div className="p-10">Error loading Revenue OS.</div>;
-
-  const { deals, proposals, followUps, expectedRevenue, closedWon, closedLost, winRate } = localData;
-
-  const activeDeals = deals.filter(d => !["CLOSED_WON", "CLOSED_LOST"].includes(d.stage));
-  const qualifiedPipelineNum = activeDeals.reduce((sum, d) => sum + d.value, 0);
-
-  const formatCurrency = (val: number) => `₹${(val / 100000).toFixed(1)}L`;
+  // Sort renewals to find closest
+  const upcomingRenewals = renewals.filter(r => r.status === "UPCOMING").sort((a,b) => new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime()).slice(0, 3);
+  
+  // Find At-Risk customers
+  const atRiskCustomers = customers.filter(c => c.health === "CRITICAL" || c.health === "AT_RISK").slice(0, 3);
 
   return (
-    <div className="p-6 md:p-10 mx-auto w-full max-w-[1500px] pb-32">
+    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8">
       
-      {/* 1. REVENUE PULSE */}
-      <section className="mb-12">
-        <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Revenue Pulse</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-          {[
-            { label: "Active Deals", val: activeDeals.length, href: ACTION_MAP.openSalesPipeline() },
-            { label: "Pipeline", val: formatCurrency(qualifiedPipelineNum), href: ACTION_MAP.openSalesPipeline() },
-            { label: "Expected Rev", val: formatCurrency(expectedRevenue), href: ACTION_MAP.openSalesPipeline() },
-            { label: "Proposals Out", val: proposals.filter(p => p.status === 'SENT' || p.status === 'VIEWED' || p.status === 'NEGOTIATION').length, href: ACTION_MAP.openProposals() },
-            { label: "Follow-ups Due", val: followUps.filter(f => f.status === 'DUE' || f.status === 'OVERDUE').length, alert: followUps.some(f => f.status === 'OVERDUE'), href: ACTION_MAP.openFollowUps() },
-            { label: "Closed Won", val: formatCurrency(closedWon), highlight: true, href: ACTION_MAP.openSalesPipeline('closed_won') },
-            { label: "Closed Lost", val: formatCurrency(closedLost), href: ACTION_MAP.openClosedLost() },
-            { label: "Win Rate", val: `${winRate}%`, highlight: true, href: ACTION_MAP.openRevenueDashboard() },
-          ].map((m, i) => (
-             <Link href={m.href} key={i} className={`block p-4 rounded-[12px] border hover:opacity-80 transition-opacity ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
-               <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 mx-auto max-w-full text-clip overflow-hidden whitespace-nowrap ${m.alert ? 'text-destructive' : 'text-muted-foreground'}`}>{m.label}</p>
-               <p className={`text-[20px] font-bold leading-none ${m.highlight ? 'text-success' : 'text-foreground'}`}>{m.val}</p>
-             </Link>
-          ))}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span className="material-symbols-outlined text-[32px] text-emerald-500">account_balance</span>
+            REVENUE COMMAND CENTER
+          </h1>
+          <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
+            Realized value, forecasting, and post-sale retention intelligence.
+          </p>
         </div>
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-        
-        {/* TODAY'S REVENUE ACTIONS */}
-        <section className="lg:col-span-1 bg-card border border-border p-6 rounded-[16px] flex flex-col shadow-sm">
-          <h2 className="text-[11px] font-bold text-foreground uppercase tracking-widest leading-none mb-6">Today's Revenue Actions</h2>
-          <div className="flex flex-col gap-4">
-             <Link href={ACTION_MAP.openProposals()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Proposals to Send</span>
-                <span className="bg-destructive text-destructive-foreground px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </Link>
-             <Link href={ACTION_MAP.openFollowUps()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Follow-ups Due</span>
-                <span className="bg-warning text-warning-foreground px-2 py-0.5 rounded text-[11px] font-bold">{followUps.filter(f => f.status === 'OVERDUE' || f.status === 'DUE').length}</span>
-             </Link>
-             <Link href={ACTION_MAP.openSalesPipeline('at_risk')} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Deals at Risk</span>
-                <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">0</span>
-             </Link>
-          </div>
-        </section>
-
-        {/* REVENUE BOTTLENECKS */}
-        <section className="lg:col-span-2 bg-foreground text-background p-6 rounded-[16px] shadow-sm flex flex-col justify-center">
-            <h2 className="text-[11px] font-bold text-background/70 uppercase tracking-widest leading-none mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[16px]">warning</span> Revenue Bottlenecks
-            </h2>
-            <h3 className="text-[20px] font-bold mb-2">Proposal Bottleneck</h3>
-            <p className="text-[14px] font-medium text-background/80">3 qualified opportunities are stalling at the proposal drafting stage.</p>
-        </section>
+        <div className="flex gap-2">
+           <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-800">
+              <span className="material-symbols-outlined text-[16px]">add</span> Record Transaction
+           </button>
+           <button className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-50">
+              <span className="material-symbols-outlined text-[16px]">sync</span> Sync Conversion Deals
+           </button>
+        </div>
       </div>
 
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-         <section>
-            <div className="flex justify-between items-center mb-4">
-               <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none">Top Active Deals</h2>
-               <Link href={ACTION_MAP.openSalesPipeline()} className="text-[11px] font-bold uppercase text-foreground bg-secondary px-2 py-1 rounded hover:bg-muted transition-colors">View Pipeline</Link>
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Monthly Recurring (MRR)</p>
+          <div className="flex items-end gap-2">
+            <p className="text-[32px] font-black text-slate-900 tracking-tight leading-none">${metrics.mrr.toLocaleString()}</p>
+          </div>
+          <div className="mt-3 flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-flex">
+            <span className="material-symbols-outlined text-[14px]">trending_up</span>
+            Target £15k
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Annual Recurring (ARR)</p>
+          <div className="flex items-end gap-2">
+            <p className="text-[32px] font-black text-slate-900 tracking-tight leading-none">${metrics.arr.toLocaleString()}</p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+            <span className="text-slate-500">Churn Rate</span>
+            <span className="text-red-500">{metrics.churnRate}%</span>
+          </div>
+        </div>
+        
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
+          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Total Lifetime Revenue</p>
+          <div className="flex items-end gap-2">
+            <p className="text-[32px] font-black text-emerald-600 tracking-tight leading-none">${metrics.totalRevenue.toLocaleString()}</p>
+          </div>
+          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold">
+            <span className="text-slate-500">NRR</span>
+            <span className="text-blue-600">{metrics.netRevenueRetention}%</span>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+             <span className="material-symbols-outlined text-[80px]">receipt_long</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Outstanding Revenue</p>
+            <p className="text-[32px] font-black tracking-tight leading-none text-red-400">${metrics.outstandingRevenue.toLocaleString()}</p>
+          </div>
+          <Link href="/revenue/billing" className="text-[11px] font-bold uppercase tracking-widest text-slate-300 hover:text-white transition-colors relative z-10 flex items-center justify-end gap-1 mt-6">
+            Resolve Invoices <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6 mt-6">
+         {/* At Risk Customers */}
+         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+               <h3 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px] text-red-500">warning</span> Health: Requires Attention</h3>
+               <Link href="/revenue/customers" className="text-[11px] font-bold text-blue-600 hover:underline">View All Customers</Link>
             </div>
             
-            <div className="flex flex-col gap-3">
-             {activeDeals.map(d => (
-                <Link href={ACTION_MAP.openSalesPipeline()} key={d.id} className="block hover:opacity-80">
-                  <div className="p-4 border border-border rounded-[10px] bg-card flex justify-between items-center">
-                     <div>
-                       <p className="text-[14px] font-bold text-foreground">{d.company}</p>
-                       <p className="text-[12px] font-medium text-muted-foreground">{formatCurrency(d.value)} • Expected {new Date(d.expectedCloseDate).toLocaleDateString()}</p>
+            <div className="space-y-4">
+               {atRiskCustomers.length > 0 ? atRiskCustomers.map(c => (
+                  <div key={c.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                     <div className="flex justify-between items-start mb-2">
+                        <div>
+                           <div className="text-[13px] font-black text-slate-900">{c.name}</div>
+                           <div className="text-[11px] font-bold text-slate-500">{c.offerPurchased}</div>
+                        </div>
+                        <span className={`px-2 py-1 text-[9px] font-extrabold uppercase rounded ${c.health === 'CRITICAL' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>{c.health.replace("_", " ")}</span>
                      </div>
-                     <div className="text-right flex flex-col items-end">
-                       <span className="text-[10px] font-bold tracking-widest uppercase bg-secondary text-foreground px-2 py-0.5 rounded mb-1">{d.stage.replace('_', ' ')}</span>
-                       <span className="text-[11px] text-muted-foreground">Confidence: <span className="font-bold">{d.confidence}</span></span>
+                     <p className="text-[12px] font-medium text-slate-700 bg-white p-3 border border-slate-100 rounded-lg shadow-sm">
+                        {c.healthReasoning}
+                     </p>
+                  </div>
+               )) : (
+                 <div className="p-8 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl">No active customers currently flagged as at risk.</div>
+               )}
+            </div>
+         </div>
+
+         {/* Upcoming Renewals */}
+         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+               <h3 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px] text-blue-500">autorenew</span> Upcoming Renewals</h3>
+               <Link href="/revenue/expansion" className="text-[11px] font-bold text-blue-600 hover:underline">Manage Renewals</Link>
+            </div>
+            
+            <div className="space-y-3">
+               {upcomingRenewals.length > 0 ? upcomingRenewals.map(r => {
+                  const customer = customers.find(c => c.id === r.customerId);
+                  if(!customer) return null;
+                  return (
+                     <div key={r.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                        <div>
+                           <div className="text-[13px] font-black text-slate-900">{customer.name}</div>
+                           <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 mt-0.5">
+                              Renewal: <span className="text-slate-800">{new Date(r.renewalDate).toLocaleDateString()}</span>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                           <div className="text-[14px] font-black text-emerald-600">${r.currentValue.toLocaleString()}</div>
+                           <div className={`text-[10px] font-bold mt-1 uppercase ${r.riskLevel === 'HIGH' ? 'text-red-600' : r.riskLevel === 'MEDIUM' ? 'text-amber-600' : 'text-emerald-600'}`}>{r.riskLevel} RISK</div>
+                        </div>
                      </div>
-                  </div>
-                  
-                  {/* Attribution Lineage injected here (Phase 6) */}
-                  <div className="px-4 py-2 bg-muted/20 border-t border-border rounded-b-[10px] flex items-center justify-between text-[10px] text-muted-foreground">
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
-                      <span className="font-semibold uppercase tracking-wider">Source: </span> {d.source || "Unknown"}
-                    </div>
-                    {d.originalContent && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground max-w-[200px]">
-                        <span className="material-symbols-outlined text-[12px]">article</span>
-                        <span className="truncate">{d.originalContent}</span>
-                      </div>
-                    )}
-                  </div>
-                </Link>
-             ))}
-           </div>
-         </section>
-         <section>
-             <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Recent Losses (Learning)</h2>
-             <Link href={ACTION_MAP.openClosedLost()} className="block border border-border rounded-[10px] bg-card hover:opacity-80 overflow-hidden">
-                 <div className="p-4 bg-card">
-                   <p className="text-[14px] font-bold text-foreground">Pending Brand Restructure</p>
-                   <p className="text-[12px] font-medium text-muted-foreground mb-3">{formatCurrency(200000)} • Lost in NEGOTIATION</p>
-                   <div className="bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-bold p-2 flex uppercase tracking-wide rounded">Reason: Price (Too expensive for Q3 Budget)</div>
-                 </div>
-                 <div className="px-4 py-2 bg-muted/20 border-t border-border flex justify-between items-center text-[10px] text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
-                      <span className="font-semibold uppercase tracking-wider">Source: </span> Outbound AI Agent
-                    </div>
-                 </div>
-             </Link>
-         </section>
-       </div>
+                  );
+               }) : (
+                 <div className="p-8 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl">No renewals coming up in the next 30 days.</div>
+               )}
+            </div>
+         </div>
+      </div>
+
     </div>
   );
 }
