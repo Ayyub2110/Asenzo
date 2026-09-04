@@ -21,7 +21,7 @@ import { useConversionOS } from "@/contexts/ConversionOSContext";
 export default function ConversionCommandCenter() {
   const [queue] = useState<ActionQueueItem[]>(MOCK_ACTION_QUEUE);
   
-  const { leads, opportunities } = useConversionOS();
+  const { leads, opportunities, dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate, calls } = useConversionOS();
 
   const totalPipeline = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
   const qualifiedLeads = leads.filter(l => l.qualificationStatus === "QUALIFIED").length;
@@ -35,32 +35,143 @@ export default function ConversionCommandCenter() {
     { label: "Win Rate", value: "68%", change: "Last 30d" },
   ];
 
+  const totalScheduled = calculateTotalCallsScheduled();
+  const totalShowed = calculateTotalCallsShowed();
+  const showRate = calculateShowRate();
+  const totalClosed = calculateTotalCallsClosed();
+  const closedRate = calculateClosedRate();
+
+  const handleKpiClick = (route: string) => {
+     window.location.href = route;
+  };
+
   return (
-    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-8">
+    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[14px]">track_changes</span>
-          Pillar 3 — Conversion OS
-        </p>
-        <h1 className="text-[24px] font-bold text-slate-900 tracking-tight mt-1">Command Center</h1>
-        <p className="text-[12px] text-slate-500 mt-1">Operating hub for turning qualified attention into closed revenue.</p>
+      <div className="flex items-center justify-between">
+         <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[14px]">track_changes</span>
+            Pillar 3 — Conversion OS
+            </p>
+            <h1 className="text-[24px] font-black text-slate-900 tracking-tight mt-1">Command Center</h1>
+            <p className="text-[12px] text-slate-500 font-medium mt-1">Operating hub for turning qualified attention into closed revenue.</p>
+         </div>
+         
+         <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex overflow-hidden">
+            {["Today", "This Week", "This Month", "This Quarter", "This Year", "All Time"].map((tab) => (
+               <button 
+                  key={tab}
+                  onClick={() => setDateRange(tab as any)}
+                  className={`px-4 py-2 text-[11px] font-bold transition-colors ${dateRange === tab ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+               >
+                  {tab}
+               </button>
+            ))}
+         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-6 gap-4">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
-            <p className="text-[11px] font-bold text-slate-500">{stat.label}</p>
-            <div className="mt-2">
-              <span className="text-[20px] font-bold text-slate-900">{stat.value}</span>
-              <span className="text-[10px] text-emerald-600 font-semibold ml-2">{stat.change}</span>
+      {/* Call Performance KPI Section */}
+      <div className="space-y-4">
+         <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[18px]">phone_callback</span>
+            Call Performance ({dateRange})
+         </h2>
+         {calls.length === 0 || (totalScheduled === 0 && totalShowed === 0 && totalClosed === 0) ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
+               <div className="text-[13px] font-bold text-slate-600">No calls recorded for this period.</div>
             </div>
-          </div>
-        ))}
+         ) : totalScheduled > 0 && totalShowed === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
+               <div className="text-[13px] font-bold text-slate-600">Calls are scheduled, but no completed calls are recorded yet.</div>
+            </div>
+         ) : (
+            <div className="grid grid-cols-5 gap-4">
+               <div onClick={() => handleKpiClick('/conversion/pipeline/calls')} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Calls Scheduled</p>
+                  <div className="text-[28px] font-black text-slate-900 tracking-tight leading-none">{totalScheduled}</div>
+               </div>
+               
+               <div onClick={() => handleKpiClick('/conversion/pipeline/calls?filter=SHOWED')} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Calls Showed</p>
+                  <div className="text-[28px] font-black text-slate-900 tracking-tight leading-none">{totalShowed}</div>
+               </div>
+
+               <div onClick={() => handleKpiClick('/conversion/analytics')} className="bg-slate-900 text-white rounded-xl p-5 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-300 transition-colors">Show Rate</p>
+                  <div className="text-[28px] font-black tracking-tight leading-none text-blue-400">{showRate.toFixed(1)}%</div>
+               </div>
+
+               <div onClick={() => handleKpiClick('/conversion/pipeline?filter=WON')} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Calls Closed</p>
+                  <div className="text-[28px] font-black text-slate-900 tracking-tight leading-none">{totalClosed}</div>
+               </div>
+
+               <div onClick={() => handleKpiClick('/conversion/analytics')} className="bg-emerald-600 text-white rounded-xl p-5 shadow-sm cursor-pointer hover:bg-emerald-700 transition-colors">
+                  <p className="text-[10px] font-extrabold text-emerald-200 uppercase tracking-widest mb-1">Closed Rate</p>
+                  <div className="text-[28px] font-black tracking-tight leading-none">{closedRate.toFixed(1)}%</div>
+               </div>
+            </div>
+         )}
+         
+         {/* Call Performance Summary Pipeline */}
+         {calls.length > 0 && totalScheduled > 0 && (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3 text-[12px] font-bold text-slate-700 shadow-sm overflow-hidden">
+               <span>{totalScheduled} Scheduled</span>
+               <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_right_alt</span>
+               <span className={showRate > 0 ? "text-slate-900" : "text-slate-400"}>{totalShowed} Showed</span>
+               <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_right_alt</span>
+               <span className={closedRate > 0 ? "text-emerald-600" : "text-slate-400"}>{totalClosed} Closed Won</span>
+               
+               <div className="ml-auto flex items-center gap-4 text-[11px]">
+                  <span className="text-slate-500">Show Rate: <strong className="text-slate-900">{showRate.toFixed(1)}%</strong></span>
+                  <span className="text-slate-500">Close Rate: <strong className="text-slate-900">{closedRate.toFixed(1)}%</strong></span>
+               </div>
+            </div>
+         )}
+
+         {/* Source Breakdown */}
+         {totalShowed > 0 && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+               {Array.from(new Set(opportunities.map(o => leads.find(l => l.id === o.leadId)?.originalSource || 'Unknown'))).map(source => {
+                  
+                  const sourceOpps = opportunities.filter(o => {
+                     const l = leads.find(lead => lead.id === o.leadId);
+                     return l?.originalSource === source;
+                  });
+
+                  const sourceOppIds = sourceOpps.map(o => o.id);
+                  const sourceCalls = calls.filter(c => sourceOppIds.includes(c.opportunityId));
+
+                  const sched = sourceCalls.filter(c => c.status !== "CANCELLED").length;
+                  const show = sourceCalls.filter(c => c.status === "SHOWED").length;
+                  const won = sourceCalls.filter(c => sourceOpps.find(o => o.id === c.opportunityId)?.pipelineStage === "WON").length;
+                  
+                  if(sched === 0) return null;
+
+                  return (
+                     <div key={source} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[16px] text-slate-600">hub</span>
+                           </div>
+                           <div>
+                              <div className="text-[12px] font-bold text-slate-900">{source}</div>
+                              <div className="text-[10px] font-medium text-slate-500 mt-0.5">{sched} Scheduled &middot; {show} Showed</div>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                           <div className="text-[12px] font-black text-slate-900">{won} Closed</div>
+                           <div className="text-[10px] font-bold text-slate-500 mt-0.5">Win Rate: {(show > 0 ? (won/show)*100 : 0).toFixed(1)}%</div>
+                        </div>
+                     </div>
+                  );
+               })}
+            </div>
+         )}
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-6 mt-8">
         {/* Left: Action Queue */}
         <div className="col-span-8 space-y-4">
           <div className="flex items-center justify-between">

@@ -118,7 +118,7 @@ export interface SalesCall {
   id: string;
   opportunityId: string;
   scheduledDate: string;
-  status: "SCHEDULED" | "COMPLETED" | "NO_SHOW" | "CANCELED";
+  status: "SCHEDULED" | "SHOWED" | "NO_SHOW" | "CANCELLED" | "RESCHEDULED";
   situation: string;
   problem: string;
   impact: string;

@@ -63,6 +63,16 @@ interface ConversionOSState {
   createFollowUp: (followUp: Omit<FollowUpRecord, "id">) => void;
   updateFollowUp: (id: string, updates: Partial<FollowUpRecord>) => void;
   logEvent: (leadId: string, type: string, description: string) => void;
+  
+  // Date Filtering & Call Metrics
+  dateRange: "Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time";
+  setDateRange: (range: "Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time") => void;
+  
+  calculateTotalCallsScheduled: () => number;
+  calculateTotalCallsShowed: () => number;
+  calculateShowRate: () => number;
+  calculateTotalCallsClosed: () => number;
+  calculateClosedRate: () => number;
 }
 
 const ConversionOSContext = createContext<ConversionOSState | undefined>(undefined);
@@ -147,6 +157,63 @@ export function ConversionOSProvider({ children }: { children: ReactNode }) {
     { id: "conv_1", leadId: "l_test_01", channel: "Instagram DM", latestMessage: "Let's talk scaling then.", timestamp: new Date().toISOString(), unread: true }
   ]);
   const [timelineEvents, setTimelineEvents] = useState<EventTimelineItem[]>([INITIAL_EVENT]);
+  
+  const [dateRange, setDateRange] = useState<"Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
+
+  const filterByDate = (dateString: string) => {
+    if (dateRange === "All Time") return true;
+    const date = new Date(dateString);
+    const now = new Date();
+    if (dateRange === "Today") {
+      return date.toDateString() === now.toDateString();
+    }
+    if (dateRange === "This Week") {
+      const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
+      return date >= firstDay;
+    }
+    if (dateRange === "This Month") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }
+    if (dateRange === "This Quarter") {
+      const q = Math.floor(now.getMonth() / 3);
+      return Math.floor(date.getMonth() / 3) === q && date.getFullYear() === now.getFullYear();
+    }
+    if (dateRange === "This Year") {
+      return date.getFullYear() === now.getFullYear();
+    }
+    return true;
+  };
+
+  const calculateTotalCallsScheduled = () => {
+    return calls.filter(c => filterByDate(c.scheduledDate) && c.status !== "CANCELLED").length;
+  };
+
+  const calculateTotalCallsShowed = () => {
+    return calls.filter(c => filterByDate(c.scheduledDate) && c.status === "SHOWED").length;
+  };
+
+  const calculateShowRate = () => {
+    const scheduled = calculateTotalCallsScheduled();
+    const showed = calculateTotalCallsShowed();
+    if (scheduled === 0) return 0;
+    return (showed / scheduled) * 100;
+  };
+
+  const calculateTotalCallsClosed = () => {
+    // A call is considered 'closed' if the opportunity it's linked to is CLOSED-WON
+    return calls.filter(c => {
+       if (!filterByDate(c.scheduledDate)) return false;
+       const opp = opportunities.find(o => o.id === c.opportunityId);
+       return opp && opp.pipelineStage === "WON";
+    }).length;
+  };
+
+  const calculateClosedRate = () => {
+    const showed = calculateTotalCallsShowed();
+    const closed = calculateTotalCallsClosed();
+    if (showed === 0) return 0;
+    return (closed / showed) * 100;
+  };
 
   const logEvent = (leadId: string, type: string, description: string) => {
     setTimelineEvents(prev => [{ id: `evt_${Date.now()}`, leadId, type, description, timestamp: new Date().toISOString() }, ...prev]);
@@ -222,7 +289,8 @@ export function ConversionOSProvider({ children }: { children: ReactNode }) {
   return (
     <ConversionOSContext.Provider value={{
       leads, opportunities, calls, offers, followUps, conversations, timelineEvents,
-      addLead, updateLead, createOpportunity, updateOpportunity, bookCall, updateCall, createOffer, updateOffer, createFollowUp, updateFollowUp, logEvent
+      addLead, updateLead, createOpportunity, updateOpportunity, bookCall, updateCall, createOffer, updateOffer, createFollowUp, updateFollowUp, logEvent,
+      dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate
     }}>
       {children}
     </ConversionOSContext.Provider>
