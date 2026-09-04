@@ -60,6 +60,7 @@ export interface ExpansionOpportunity {
 }
 
 export interface RevenueForecast {
+  id?: string;
   month: string;
   committedRevenue: number;
   weightedPipeline: number;

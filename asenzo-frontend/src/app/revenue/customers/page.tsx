@@ -1,17 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRevenueOS } from "@/contexts/RevenueOSContext";
+import CustomerModal from "../_components/CustomerModal";
 
 export default function CustomersPage() {
   const { customers } = useRevenueOS();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(undefined);
 
   return (
     <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8">
+      {modalOpen && <CustomerModal isOpen={modalOpen} onClose={() => {setModalOpen(false); setEditingCustomer(undefined);}} initialData={editingCustomer} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[24px] font-black text-slate-900 tracking-tight">Customer Database</h1>
           <p className="text-[14px] text-slate-500 font-medium mt-1">Post-sale customer records linked to conversion sources and operational health.</p>
+        </div>
+        <div>
+           <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors">
+              <span className="material-symbols-outlined text-[16px]">person_add</span> Create Customer
+           </button>
         </div>
       </div>
 
@@ -29,7 +39,7 @@ export default function CustomersPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
                {customers.length > 0 ? customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={c.id} onClick={() => {setEditingCustomer(c); setModalOpen(true);}} className="hover:bg-slate-50 transition-colors cursor-pointer">
                      <td className="px-6 py-4">
                         <div className="text-[13px] font-bold text-slate-900">{c.name}</div>
                         <div className="text-[11px] font-medium text-slate-500">{c.company}</div>

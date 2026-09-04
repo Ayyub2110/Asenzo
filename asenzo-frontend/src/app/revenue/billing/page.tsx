@@ -1,18 +1,29 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRevenueOS } from "@/contexts/RevenueOSContext";
 import Link from "next/link";
+import TransactionModal from "../_components/TransactionModal";
 
 export default function BillingPage() {
   const { transactions, customers } = useRevenueOS();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(undefined);
 
   return (
     <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8">
+      {modalOpen && <TransactionModal isOpen={modalOpen} onClose={() => {setModalOpen(false); setEditingTransaction(undefined);}} initialData={editingTransaction} />}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[24px] font-black text-slate-900 tracking-tight">Billing & Revenue Tracking</h1>
           <p className="text-[14px] text-slate-500 font-medium mt-1">Clean financial tracking distinguishing between booked and realized revenue.</p>
+        </div>
+        <div>
+           <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors">
+              <span className="material-symbols-outlined text-[16px]">receipt_long</span>
+              Record Transaction
+           </button>
         </div>
       </div>
 
@@ -33,7 +44,7 @@ export default function BillingPage() {
                {transactions.length > 0 ? transactions.map(t => {
                   const customer = customers.find(c => c.id === t.customerId);
                   return (
-                     <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                     <tr key={t.id} onClick={() => {setEditingTransaction(t); setModalOpen(true);}} className="hover:bg-slate-50 transition-colors cursor-pointer">
                         <td className="px-6 py-4">
                            <div className="text-[11px] font-bold text-slate-400 tracking-widest font-mono uppercase">{t.id}</div>
                            {t.invoiceId && <div className="text-[9px] font-bold text-blue-500 mt-1 uppercase cursor-pointer hover:underline">VIEW INV {t.invoiceId}</div>}

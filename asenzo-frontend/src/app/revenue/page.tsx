@@ -1,11 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRevenueOS } from "@/contexts/RevenueOSContext";
+import TransactionModal from "./_components/TransactionModal";
+import CustomerModal from "./_components/CustomerModal";
 
 export default function RevenueCommandCenter() {
   const { metrics, customers, renewals } = useRevenueOS();
+  
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
 
   // Sort renewals to find closest
   const upcomingRenewals = renewals.filter(r => r.status === "UPCOMING").sort((a,b) => new Date(a.renewalDate).getTime() - new Date(b.renewalDate).getTime()).slice(0, 3);
@@ -15,7 +20,9 @@ export default function RevenueCommandCenter() {
 
   return (
     <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8">
-      
+      <TransactionModal isOpen={transactionModalOpen} onClose={() => setTransactionModalOpen(false)} />
+      <CustomerModal isOpen={customerModalOpen} onClose={() => setCustomerModalOpen(false)} />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -27,11 +34,11 @@ export default function RevenueCommandCenter() {
           </p>
         </div>
         <div className="flex gap-2">
-           <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-800">
-              <span className="material-symbols-outlined text-[16px]">add</span> Record Transaction
+           <button onClick={() => setCustomerModalOpen(true)} className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-50">
+              <span className="material-symbols-outlined text-[16px]">person_add</span> Create Customer
            </button>
-           <button className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-50">
-              <span className="material-symbols-outlined text-[16px]">sync</span> Sync Conversion Deals
+           <button onClick={() => setTransactionModalOpen(true)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-800">
+              <span className="material-symbols-outlined text-[16px]">add</span> Record Transaction
            </button>
         </div>
       </div>

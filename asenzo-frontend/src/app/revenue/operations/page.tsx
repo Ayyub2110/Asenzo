@@ -1,17 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRevenueOS } from "@/contexts/RevenueOSContext";
+import ForecastModal from "../_components/ForecastModal";
 
 export default function RevenueOperations() {
   const { metrics, forecasts } = useRevenueOS();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingForecast, setEditingForecast] = useState<any>(undefined);
 
   return (
     <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8">
+      {modalOpen && <ForecastModal isOpen={modalOpen} onClose={() => {setModalOpen(false); setEditingForecast(undefined);}} initialData={editingForecast} />}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[24px] font-black text-slate-900 tracking-tight">Revenue Operations & Forecasting</h1>
           <p className="text-[14px] text-slate-500 font-medium mt-1 pr-6 max-w-3xl">Target tracking, pipeline weighted forecasts, and gap-to-target analysis.</p>
+        </div>
+        <div>
+           <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors">
+              <span className="material-symbols-outlined text-[16px]">add_chart</span> Set Target & Forecast
+           </button>
         </div>
       </div>
 
@@ -50,7 +60,7 @@ export default function RevenueOperations() {
                   const projectedTotal = f.committedRevenue + f.weightedPipeline;
                   const gap = f.target - projectedTotal;
                   return (
-                     <tr key={i} className="hover:bg-slate-50 transition-colors">
+                     <tr key={f.id || i} onClick={() => {setEditingForecast(f); setModalOpen(true);}} className="hover:bg-slate-50 transition-colors cursor-pointer">
                         <td className="px-6 py-4 text-[13px] font-bold text-slate-900">{f.month}</td>
                         <td className="px-6 py-4 text-[13px] font-bold text-slate-500 text-right">${f.target.toLocaleString()}</td>
                         <td className="px-6 py-4 text-[13px] font-bold text-slate-900 text-right">${f.committedRevenue.toLocaleString()}</td>
