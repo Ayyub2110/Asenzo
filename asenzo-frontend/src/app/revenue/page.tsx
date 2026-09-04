@@ -7,7 +7,7 @@ import TransactionModal from "./_components/TransactionModal";
 import CustomerModal from "./_components/CustomerModal";
 
 export default function RevenueCommandCenter() {
-  const { metrics, customers, renewals } = useRevenueOS();
+  const { metrics, customers, renewals, transactions, dateRange, setDateRange, calculateTotalCashCollected, calculateTotalRevenue, calculateAverageOrderValue } = useRevenueOS();
   
   const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
@@ -18,8 +18,16 @@ export default function RevenueCommandCenter() {
   // Find At-Risk customers
   const atRiskCustomers = customers.filter(c => c.health === "CRITICAL" || c.health === "AT_RISK").slice(0, 3);
 
+  const totalCashCollected = calculateTotalCashCollected();
+  const totalRevenue = calculateTotalRevenue();
+  const aov = calculateAverageOrderValue();
+
+  const handleKpiClick = (route: string) => {
+     window.location.href = route;
+  };
+
   return (
-    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8">
+    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
       <TransactionModal isOpen={transactionModalOpen} onClose={() => setTransactionModalOpen(false)} />
       <CustomerModal isOpen={customerModalOpen} onClose={() => setCustomerModalOpen(false)} />
 
@@ -33,15 +41,63 @@ export default function RevenueCommandCenter() {
             Realized value, forecasting, and post-sale retention intelligence.
           </p>
         </div>
-        <div className="flex gap-2">
-           <button onClick={() => setCustomerModalOpen(true)} className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-50">
-              <span className="material-symbols-outlined text-[16px]">person_add</span> Create Customer
-           </button>
-           <button onClick={() => setTransactionModalOpen(true)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-800">
-              <span className="material-symbols-outlined text-[16px]">add</span> Record Transaction
-           </button>
+        
+        <div className="flex flex-col items-end gap-3">
+           <div className="flex gap-2">
+              <button onClick={() => setCustomerModalOpen(true)} className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-50">
+                 <span className="material-symbols-outlined text-[16px]">person_add</span> Create Customer
+              </button>
+              <button onClick={() => setTransactionModalOpen(true)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-800">
+                 <span className="material-symbols-outlined text-[16px]">add</span> Record Transaction
+              </button>
+           </div>
+           
+           <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex overflow-hidden">
+              {["Today", "This Week", "This Month", "This Quarter", "This Year", "All Time"].map((tab) => (
+                 <button 
+                    key={tab}
+                    onClick={() => setDateRange(tab as any)}
+                    className={`px-4 py-1.5 text-[11px] font-bold transition-colors ${dateRange === tab ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                 >
+                    {tab}
+                 </button>
+              ))}
+           </div>
         </div>
       </div>
+
+      {transactions.filter(t => t.status === "PAID" || t.status === "OUTSTANDING").length === 0 ? (
+         <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
+            <div className="text-[13px] font-bold text-slate-600">No completed transactions recorded for this period.</div>
+         </div>
+      ) : (
+         <div className="grid grid-cols-3 gap-6">
+            <div onClick={() => handleKpiClick('/revenue/billing?filter=PAID')} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+               <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Cash Collected</p>
+               <div className="flex items-center gap-3">
+                  <div className="text-[36px] font-black tracking-tight leading-none text-emerald-600">${totalCashCollected.toLocaleString()}</div>
+               </div>
+            </div>
+            
+            <div onClick={() => handleKpiClick('/revenue/operations')} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+               <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Revenue</p>
+               <div className="flex items-center gap-3">
+                  <div className="text-[36px] font-black text-slate-900 tracking-tight leading-none">${totalRevenue.toLocaleString()}</div>
+               </div>
+            </div>
+
+            <div onClick={() => handleKpiClick('/revenue/analytics')} className="bg-slate-900 text-white rounded-xl p-6 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors">
+               <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Average Order Value</p>
+               <div className="flex items-center gap-3">
+                  <div className="text-[36px] font-black tracking-tight leading-none">${Math.round(aov).toLocaleString()}</div>
+               </div>
+            </div>
+         </div>
+      )}
+
+      <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5 mt-8 border-b border-slate-200 pb-2">
+         Lifetime & Holistic Health
+      </h2>
 
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">

@@ -36,6 +36,15 @@ interface RevenueOSContextType {
   updateExpansion: (id: string, data: Partial<ExpansionOpportunity>) => Promise<void>;
   createForecast: (data: RevenueForecast) => Promise<void>;
   updateForecast: (id: string, data: Partial<RevenueForecast>) => Promise<void>;
+
+  // Date Filtering & Dashboards
+  dateRange: "Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time";
+  setDateRange: (range: "Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time") => void;
+
+  calculateTotalCashCollected: () => number;
+  calculateTotalRevenue: () => number;
+  calculateCompletedOrders: () => number;
+  calculateAverageOrderValue: () => number;
 }
 
 const RevenueOSContext = createContext<RevenueOSContextType | undefined>(undefined);
@@ -134,6 +143,59 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
       }));
    };
 
+   // Shared Date Filtering
+   const [dateRange, setDateRange] = useState<"Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
+
+   const filterByDate = (dateString: string) => {
+     if (dateRange === "All Time") return true;
+     const date = new Date(dateString);
+     const now = new Date();
+     if (dateRange === "Today") {
+       return date.toDateString() === now.toDateString();
+     }
+     if (dateRange === "This Week") {
+       const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
+       return date >= firstDay;
+     }
+     if (dateRange === "This Month") {
+       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+     }
+     if (dateRange === "This Quarter") {
+       const q = Math.floor(now.getMonth() / 3);
+       return Math.floor(date.getMonth() / 3) === q && date.getFullYear() === now.getFullYear();
+     }
+     if (dateRange === "This Year") {
+       return date.getFullYear() === now.getFullYear();
+     }
+     return true;
+   };
+
+   // Centralized Financial KPIs
+   const calculateTotalCashCollected = () => {
+      // Sum(PAID) - Sum(REFUNDED)  [in case refunds are recorded as positive amounts with status REFUNDED]
+      const paid = state.transactions.filter(t => filterByDate(t.date) && t.status === "PAID").reduce((acc, t) => acc + t.amount, 0);
+      const refunded = state.transactions.filter(t => filterByDate(t.date) && t.status === "REFUNDED").reduce((acc, t) => acc + t.amount, 0);
+      return Math.max(0, paid - refunded);
+   };
+
+   const calculateTotalRevenue = () => {
+      // Booked Revenue = PAID + OUTSTANDING (exclude failed/refunded/pending)
+      return state.transactions
+         .filter(t => filterByDate(t.date) && (t.status === "PAID" || t.status === "OUTSTANDING"))
+         .reduce((acc, t) => acc + t.amount, 0);
+   };
+
+   const calculateCompletedOrders = () => {
+      return state.transactions.filter(t => filterByDate(t.date) && (t.status === "PAID" || t.status === "OUTSTANDING")).length;
+   };
+
+   const calculateAverageOrderValue = () => {
+      const revenue = calculateTotalRevenue();
+      const orders = calculateCompletedOrders();
+      if (orders === 0) return 0;
+      return revenue / orders;
+   };
+
    // Calculate real metrics from the data
    const metrics = {
      totalRevenue: state.customers.reduce((acc, c) => acc + c.totalRevenue, 0),
@@ -150,7 +212,7 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
    };
 
    return (
-     <RevenueOSContext.Provider value={{ 
+      <RevenueOSContext.Provider value={{ 
         ...state, 
         metrics, 
         createCustomer, 
@@ -162,7 +224,9 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
         createExpansion, 
         updateExpansion,
         createForecast,
-        updateForecast
+        updateForecast,
+        dateRange, setDateRange,
+        calculateTotalCashCollected, calculateTotalRevenue, calculateCompletedOrders, calculateAverageOrderValue
      }}>
         {children}
      </RevenueOSContext.Provider>
