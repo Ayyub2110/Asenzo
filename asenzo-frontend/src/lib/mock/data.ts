@@ -3,7 +3,6 @@ import {
   FoundationData,
   AttentionData,
   ConversionData,
-  DeliveryData,
   // Phase 3 Research Types
   Creator,
   CreatorChannel,
@@ -15,6 +14,7 @@ import {
   ContentIdea,
   ContentAngle,
   Hook,
+  Opportunity
 } from "../types";
 
 export const mockCommandCenter: CommandCenterData = {
@@ -329,130 +329,6 @@ export const mockConversion: ConversionData = {
     { id: "ca1", name: "Founder Independence VSL", type: "VSL", icp: "Burned out founders", awarenessStage: "Problem Aware", conversions: 48, status: "ACTIVE" },
     { id: "ca2", name: "System ROI Calculator", type: "Calculator", icp: "B2B SaaS", awarenessStage: "Solution Aware", conversions: 12, status: "ACTIVE" }
   ]
-};
-
-export const mockDelivery: import("@/lib/types").DeliveryData = {
-  clients: [
-    {
-      id: "c1",
-      name: "Logos Partners",
-      company: "Logos Partners LLC",
-      industry: "Financial Services",
-      icp: "Enterprise B2B",
-      owner: "ASENZO Ops",
-      health: {
-        overall: "GREEN",
-        signals: [
-          {
-            id: "sig1",
-            clientId: "c1",
-            dimension: "DELIVERY",
-            status: "GREEN",
-            reason: "Onboarding completed on time.",
-            timestamp: new Date().toISOString()
-          }
-        ]
-      }
-    }
-  ],
-  contacts: [
-    {
-      id: "con1",
-      clientId: "c1",
-      name: "Jane Doe",
-      email: "jane@logos.com",
-      role: "CEO",
-      isPrimary: true
-    }
-  ],
-  contracts: [
-    {
-      id: "ct1",
-      clientId: "c1",
-      dealId: "d1", // Points back to Revenue Deal
-      offer: "Q3 Optimization Pilot",
-      value: 20000,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 86400000 * 90).toISOString(),
-      paymentStatus: "PAID",
-      agreementStatus: "SIGNED"
-    }
-  ],
-  onboardings: [
-    {
-      id: "ob1",
-      clientId: "c1",
-      status: "COMPLETED",
-      intakeStatus: "APPROVED",
-      assetCollectionStatus: "COMPLETED",
-      accessStatus: "COMPLETED",
-      kickoffStatus: "COMPLETED",
-      health: "GREEN",
-      startDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-      completionDate: new Date().toISOString(),
-      owner: "ASENZO Ops"
-    }
-  ],
-  engagements: [
-    {
-      id: "e1",
-      clientId: "c1",
-      name: "System Architecture Refactor",
-      offer: "Q3 Optimization Pilot",
-      owner: "Engineering",
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 86400000 * 90).toISOString(),
-      status: "ACTIVE",
-      team: [
-        { id: "tm1", engagementId: "e1", memberId: "u1", role: "Lead Architect" }
-      ],
-      health: "GREEN",
-      progress: 15
-    }
-  ],
-  milestones: [
-    {
-      id: "m1",
-      engagementId: "e1",
-      name: "Foundation Audit",
-      description: "Review current deployment and isolate root issues.",
-      owner: "Engineering",
-      startDate: new Date().toISOString(),
-      dueDate: new Date(Date.now() + 86400000 * 7).toISOString(),
-      status: "IN_PROGRESS",
-      progress: 50,
-      clientDependencies: []
-    }
-  ],
-  deliverables: [
-    {
-      id: "dl1",
-      name: "Audit Report v1",
-      type: "Strategy Document",
-      clientId: "c1",
-      engagementId: "e1",
-      milestoneId: "m1",
-      owner: "Engineering",
-      dueDate: new Date(Date.now() + 86400000 * 5).toISOString(),
-      status: "IN_PROGRESS",
-      versions: []
-    }
-  ],
-  communications: [
-    {
-      id: "msg1",
-      clientId: "c1",
-      owner: "ASENZO Ops",
-      date: new Date().toISOString(),
-      type: "MEETING",
-      status: "CLOSED",
-      summary: "Successful kickoff meeting held."
-    }
-  ],
-  outcomes: [],
-  reports: [],
-  renewals: [],
-  proofs: []
 };
 
 // Removed duplicate/old mockRevenue

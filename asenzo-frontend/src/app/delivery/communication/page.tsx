@@ -1,35 +1,34 @@
 "use client";
+
 import React from "react";
-import { getDelivery } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
 
 export default function CommunicationPage() {
-  const { localData, loading, error } = useAdapter(getDelivery);
-  if (loading) return <div className="p-10 animate-pulse h-96 w-full" />;
-  if (error || !localData) return <div className="p-10">Error.</div>;
+  const { clients } = useDeliveryOS();
 
   return (
-    <div className="p-6 md:p-10 mx-auto w-full pb-32">
-      <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-6">Client Communication Center</h2>
-      <div className="space-y-4">
-        {localData.communications.map(c => {
-           const client = localData.clients.find(cl => cl.id === c.clientId);
-           return (
-             <div key={c.id} className="p-5 bg-card border border-border rounded-[12px] shadow-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-muted-foreground text-[16px]">{c.type === 'MEETING' ? 'videocam' : 'mail'}</span>
-                    <h3 className="text-[14px] font-bold text-foreground">{client?.name}</h3>
-                  </div>
-                  <span className="px-2 py-0.5 bg-secondary text-[10px] font-bold uppercase rounded">{c.status.replace("_", " ")}</span>
-                </div>
-                <p className="text-[13px] text-muted-foreground mb-3">{c.summary}</p>
-                <div className="text-[11px] text-muted-foreground">
-                  <span>{new Date(c.date).toLocaleString()}</span>
-                </div>
-             </div>
-           )
-        })}
+    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
+            CLIENT COMMUNICATION LOG
+          </h1>
+          <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
+            Global feed of all tracked meetings, Slack interactions, and ad-hoc comms across delivery.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[400px] flex items-center justify-center relative overflow-hidden">
+         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '16px 16px'}}></div>
+         <div className="z-10 text-center">
+            <span className="material-symbols-outlined text-[48px] text-slate-300 mb-4 block">maps_ugc</span>
+            <h3 className="text-[18px] font-black text-slate-900 mb-2">Comms Aggregator Offline</h3>
+            <p className="text-[14px] text-slate-500 font-medium max-w-sm mx-auto mb-6">Connect Slack, Email, or internal ticketing systems to auto-populate the client communication timeline.</p>
+            <button className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-[13px] font-bold shadow-sm transition-colors hover:bg-slate-800">
+               Connect Integrations
+            </button>
+         </div>
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ import { useConversionOS } from "@/contexts/ConversionOSContext";
 export default function ConversionCommandCenter() {
   const [queue] = useState<ActionQueueItem[]>(MOCK_ACTION_QUEUE);
   
-  const { leads, opportunities, dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate, calls } = useConversionOS();
+  const { leads, opportunities, dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate, calls, filterByDate } = useConversionOS();
 
   const totalPipeline = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
   const qualifiedLeads = leads.filter(l => l.qualificationStatus === "QUALIFIED").length;
@@ -90,7 +90,7 @@ export default function ConversionCommandCenter() {
             <span className="material-symbols-outlined text-[18px]">phone_callback</span>
             Call Performance ({dateRange})
          </h2>
-         {calls.length === 0 || (totalScheduled === 0 && totalShowed === 0 && totalClosed === 0) ? (
+         {calls.filter(c => filterByDate(c.scheduledDate)).length === 0 || (totalScheduled === 0 && totalShowed === 0 && totalClosed === 0) ? (
             <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
                <div className="text-[13px] font-bold text-slate-600">No calls recorded for this period.</div>
             </div>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ConversionOSProvider } from "@/contexts/ConversionOSContext";
+
 
 interface NavItem {
   href: string;
@@ -41,7 +41,7 @@ const navGroups: NavGroup[] = [
   },
   {
     id: "conversations",
-    title: "Conversations",
+    title: "Inbound",
     items: [
       { href: "/conversion/conversations", label: "Inbox" },
       { href: "/conversion/conversations/dms", label: "DMs" },
@@ -59,7 +59,11 @@ const navGroups: NavGroup[] = [
     id: "outreach",
     title: "Outbound",
     items: [
-      { href: "/conversion/outreach", label: "Outreach Workspace" },
+      { href: "/conversion/outreach", label: "Command Center" },
+      { href: "/conversion/outreach/prospects", label: "Prospects" },
+      { href: "/conversion/outreach/activities", label: "Activities" },
+      { href: "/conversion/outreach/follow-ups", label: "Follow-ups" },
+      { href: "/conversion/outreach/analytics", label: "Analytics" },
     ],
   },
   {
@@ -99,7 +103,7 @@ export default function ConversionLayout({ children }: { children: React.ReactNo
   const currentGroup = activeGroup || getActiveGroup();
 
   return (
-    <ConversionOSProvider>
+    <>
       <div className="flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Top Header - Level 1 Pillars in classic ASENZO clean design */}
         <div className="sticky top-0 z-30 bg-background border-b border-border shrink-0">
@@ -174,6 +178,6 @@ export default function ConversionLayout({ children }: { children: React.ReactNo
           {children}
         </main>
       </div>
-    </ConversionOSProvider>
+    </>
   );
 }

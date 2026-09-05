@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Customer, RevenueTransaction, Renewal, ExpansionOpportunity, RevenueForecast } from "@/lib/types/revenue";
+import { getOrGenerateDemoData } from "@/lib/mock/seedData";
 
 interface RevenueOSContextType {
   customers: Customer[];
@@ -45,6 +46,11 @@ interface RevenueOSContextType {
   calculateTotalRevenue: () => number;
   calculateCompletedOrders: () => number;
   calculateAverageOrderValue: () => number;
+
+  seedDemoData: () => void;
+  resetDemoData: () => void;
+
+  filterByDate: (dateString: string) => boolean;
 }
 
 const RevenueOSContext = createContext<RevenueOSContextType | undefined>(undefined);
@@ -61,7 +67,17 @@ const generateMockData = () => {
 };
 
 export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) => {
-   const [state, setState] = useState(() => generateMockData());
+   const [state, setState] = useState(() => {
+      const empty = generateMockData();
+      const demo = getOrGenerateDemoData();
+      return {
+         ...empty,
+         customers: demo.revenueCustomers,
+         transactions: demo.revenueTransactions,
+         renewals: demo.revenueRenewals,
+         expansions: demo.revenueExpansions,
+      };
+   });
 
    const createCustomer = async (data: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'purchaseDate'>) => {
       const newC: Customer = {
@@ -140,6 +156,27 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
       setState(prev => ({
          ...prev,
          forecasts: prev.forecasts.map(f => f.id === id ? { ...f, ...data } : f)
+      }));
+   };
+
+   const seedDemoData = () => {
+      const demo = getOrGenerateDemoData();
+      setState(prev => ({
+         ...prev,
+         customers: [...prev.customers.filter(x => !(x as any).isDemo), ...demo.revenueCustomers],
+         transactions: [...prev.transactions.filter(x => !(x as any).isDemo), ...demo.revenueTransactions],
+         renewals: [...prev.renewals.filter(x => !(x as any).isDemo), ...demo.revenueRenewals],
+         expansions: [...prev.expansions.filter(x => !(x as any).isDemo), ...demo.revenueExpansions]
+      }));
+   };
+
+   const resetDemoData = () => {
+      setState(prev => ({
+         ...prev,
+         customers: prev.customers.filter(x => !(x as any).isDemo),
+         transactions: prev.transactions.filter(x => !(x as any).isDemo),
+         renewals: prev.renewals.filter(x => !(x as any).isDemo),
+         expansions: prev.expansions.filter(x => !(x as any).isDemo)
       }));
    };
 
@@ -226,7 +263,8 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
         createForecast,
         updateForecast,
         dateRange, setDateRange,
-        calculateTotalCashCollected, calculateTotalRevenue, calculateCompletedOrders, calculateAverageOrderValue
+        calculateTotalCashCollected, calculateTotalRevenue, calculateCompletedOrders, calculateAverageOrderValue,
+        seedDemoData, resetDemoData, filterByDate
      }}>
         {children}
      </RevenueOSContext.Provider>

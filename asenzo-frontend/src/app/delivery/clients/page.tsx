@@ -1,57 +1,108 @@
 "use client";
-import React from "react";
+
+import React, { useState } from "react";
 import Link from "next/link";
-import { getDelivery } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
 
-export default function ClientsPage() {
-  const { localData, loading, error } = useAdapter(getDelivery);
+export default function ClientsDirectoryPage() {
+  const { clients, metrics } = useDeliveryOS();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  if (loading) return <div className="p-10 animate-pulse h-96 w-full max-w-[1200px] mx-auto bg-muted/20 rounded-[16px]" />;
-  if (error || !localData) return <div className="p-10">Error loading Clients.</div>;
-
-  if (localData.clients.length === 0) {
-    return (
-      <div className="p-16 text-center text-muted-foreground bg-card m-6 md:m-10 rounded-[16px] border border-border">
-        <h3 className="text-[14px] font-bold text-foreground uppercase tracking-widest mb-2">No active clients</h3>
-      </div>
-    );
-  }
+  const filtered = clients.filter(c => {
+     if(search && !c.company.toLowerCase().includes(search.toLowerCase())) return false;
+     if(statusFilter !== "ALL" && c.status !== statusFilter) return false;
+     return true;
+  });
 
   return (
-    <div className="p-6 md:p-10 mx-auto w-full pb-32">
-      <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-6">Client Portal</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {localData.clients.map(c => {
-           const contracts = localData.contracts.filter(ct => ct.clientId === c.id);
-           return (
-             <div key={c.id} className="p-6 bg-card border border-border rounded-[16px] shadow-sm flex flex-col gap-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-[18px] font-bold text-foreground mb-1">{c.name}</h3>
-                    <p className="text-[13px] text-muted-foreground">{c.company} — {c.icp}</p>
-                  </div>
-                  <span className={`px-2 py-1 text-[10px] font-bold rounded ${c.health.overall === 'GREEN' ? 'bg-success/20 text-success' : c.health.overall === 'YELLOW' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-destructive/20 text-destructive'}`}>Health: {c.health.overall}</span>
-                </div>
-                
-                <div className="bg-background/50 border border-border rounded-lg p-3 text-[13px]">
-                   <p className="font-semibold mb-2">Active Contracts</p>
-                   {contracts.length === 0 ? <span className="text-muted-foreground">None</span> : contracts.map(ct => (
-                     <div key={ct.id} className="flex justify-between mt-1">
-                        <span>{ct.offer}</span>
-                        <span className="font-semibold text-foreground">${ct.value.toLocaleString()}</span>
-                     </div>
-                   ))}
-                </div>
+    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
+            CLIENT DIRECTORY
+          </h1>
+          <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
+            Master record of all delivery clients and high-level health.
+          </p>
+        </div>
+        
+        <div className="flex gap-4">
+           {/* Filters */}
+           <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">search</span>
+              <input 
+                type="text" 
+                placeholder="Search clients..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-[13px] font-medium w-64 focus:outline-none focus:border-blue-500"
+              />
+           </div>
+           <select 
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 outline-none"
+           >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="ONBOARDING">Onboarding</option>
+              <option value="AT_RISK">At Risk</option>
+           </select>
+        </div>
+      </div>
 
-                <div className="flex gap-2 mt-2">
-                   <Link href={`/delivery/clients/${c.id}`} className="flex-1 flex justify-center items-center px-3 py-1.5 bg-primary text-primary-foreground text-[12px] font-bold rounded">
-                     Open Portal
-                   </Link>
-                </div>
-             </div>
-           )
-        })}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+         <table className="w-full text-left border-collapse">
+            <thead>
+               <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Client Name</th>
+                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Owner</th>
+                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+               </tr>
+            </thead>
+            <tbody>
+               {filtered.map(c => (
+                  <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                     <td className="p-4">
+                        <div className="font-black text-[14px] text-slate-900">{c.company}</div>
+                        <div className="text-[12px] font-medium text-slate-500 mt-0.5">Since {new Date(c.startDate).toLocaleDateString()}</div>
+
+                     </td>
+                     <td className="p-4">
+                        <div className="flex items-center gap-2">
+                           <div className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                              {c.owner.substring(0,2).toUpperCase()}
+                           </div>
+                           <span className="text-[13px] font-bold text-slate-700">{c.owner}</span>
+                        </div>
+                     </td>
+                     <td className="p-4 text-center">
+                        <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded ${
+                           c.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' :
+                           c.status === 'AT_RISK' ? 'bg-red-100 text-red-800' :
+                           'bg-blue-100 text-blue-800'
+                        }`}>
+                           {c.status.replace("_", " ")}
+                        </span>
+                     </td>
+                     <td className="p-4 text-right">
+                        <Link href={`/delivery/clients/${c.id}`} className="text-[12px] font-bold text-blue-600 hover:underline">
+                           View Profile
+                        </Link>
+                     </td>
+                  </tr>
+               ))}
+               {filtered.length === 0 && (
+                  <tr>
+                     <td colSpan={4} className="p-8 text-center text-slate-500 font-medium text-[14px] border-dashed border-2 border-slate-100 m-4 rounded-xl">
+                        No clients found matching the criteria.
+                     </td>
+                  </tr>
+               )}
+            </tbody>
+         </table>
       </div>
     </div>
   );

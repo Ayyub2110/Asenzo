@@ -3,6 +3,10 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AppShell from '@/components/layout/AppShell';
+import { ConversionOSProvider } from '@/contexts/ConversionOSContext';
+import { RevenueOSProvider } from '@/contexts/RevenueOSContext';
+import { DeliveryOSProvider } from '@/contexts/DeliveryOSContext';
+import { OutreachOSProvider } from '@/contexts/OutreachOSContext';
 
 export const metadata: Metadata = {
   title: 'ASENZO — Growth Operating System',
@@ -25,9 +29,17 @@ export default function RootLayout({
       <body className="bg-background text-foreground font-sans h-screen overflow-hidden selection:bg-primary selection:text-primary-foreground antialiased box-border">
         <AuthProvider>
           <AuthGuard>
-            <AppShell>
-              {children}
-            </AppShell>
+            <ConversionOSProvider>
+              <OutreachOSProvider>
+                <RevenueOSProvider>
+                  <DeliveryOSProvider>
+                    <AppShell>
+                      {children}
+                    </AppShell>
+                  </DeliveryOSProvider>
+                </RevenueOSProvider>
+              </OutreachOSProvider>
+            </ConversionOSProvider>
           </AuthGuard>
         </AuthProvider>
       </body>

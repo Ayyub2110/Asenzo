@@ -10,7 +10,6 @@ import {
   getIntelligence,
   getConversion,
   getRevenue,
-  getDelivery,
   getOperations
 } from "@/lib/adapters";
 import {
@@ -18,7 +17,6 @@ import {
   IntelligenceData,
   ConversionData,
   RevenueData,
-  DeliveryData,
   OperationsData,
   CommandCenterData
 } from "@/lib/types";
@@ -32,7 +30,6 @@ interface PageData {
   intelligence: IntelligenceData | null;
   conversion: ConversionData | null;
   revenue: RevenueData | null;
-  delivery: DeliveryData | null;
   operations: OperationsData | null;
 }
 
@@ -49,14 +46,12 @@ export default function CommandCenterPage() {
           intelligence,
           conversion,
           revenue,
-          delivery,
           operations
         ] = await Promise.all([
           getFoundation().catch(() => null),
           getIntelligence().catch(() => null),
           getConversion().catch(() => null),
           getRevenue().catch(() => null),
-          getDelivery().catch(() => null),
           getOperations().catch(() => null)
         ]);
 
@@ -66,7 +61,6 @@ export default function CommandCenterPage() {
           intelligence,
           conversion,
           revenue,
-          delivery,
           operations
         });
       } catch (err) {
@@ -91,7 +85,7 @@ export default function CommandCenterPage() {
     );
   }
 
-  const { cmd, foundation, intelligence, conversion, revenue, delivery, operations } = data;
+  const { cmd, foundation, intelligence, conversion, revenue, operations } = data;
   const foundationStatus = foundation?.readiness?.status || "Unknown";
   const activeConstraint = intelligence?.constraints?.find(c => c.status === "ACTIVE") || cmd?.primaryConstraint;
 

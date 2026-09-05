@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { 
   Lead, Opportunity, SalesCall, LeadTemperature, QualificationStatus, PipelineStage, ObjectionRecord 
 } from "@/lib/types/conversion";
+import { getOrGenerateDemoData } from "@/lib/mock/seedData";
 
 // Extended structures to manage offers and follow-ups within our unified store
 export interface OfferRecord {
@@ -73,6 +74,11 @@ interface ConversionOSState {
   calculateShowRate: () => number;
   calculateTotalCallsClosed: () => number;
   calculateClosedRate: () => number;
+
+  seedDemoData: () => void;
+  resetDemoData: () => void;
+
+  filterByDate: (dateString: string) => boolean;
 }
 
 const ConversionOSContext = createContext<ConversionOSState | undefined>(undefined);
@@ -148,9 +154,11 @@ const INITIAL_EVENT: EventTimelineItem = {
 };
 
 export function ConversionOSProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>([INITIAL_LEAD]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([INITIAL_OPP]);
-  const [calls, setCalls] = useState<SalesCall[]>([INITIAL_CALL]);
+  const demo = getOrGenerateDemoData();
+
+  const [leads, setLeads] = useState<Lead[]>([INITIAL_LEAD, ...demo.conversionLeads]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([INITIAL_OPP, ...demo.conversionOpps]);
+  const [calls, setCalls] = useState<SalesCall[]>([INITIAL_CALL, ...demo.conversionCalls]);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [followUps, setFollowUps] = useState<FollowUpRecord[]>([]);
   const [conversations, setConversations] = useState<ConversationRecord[]>([
@@ -286,11 +294,25 @@ export function ConversionOSProvider({ children }: { children: ReactNode }) {
     setFollowUps(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
+  const seedDemoData = () => {
+      const demo = getOrGenerateDemoData();
+      setLeads(prev => [...prev.filter(x => !(x as any).isDemo), ...demo.conversionLeads]);
+      setOpportunities(prev => [...prev.filter(x => !(x as any).isDemo), ...demo.conversionOpps]);
+      setCalls(prev => [...prev.filter(x => !(x as any).isDemo), ...demo.conversionCalls]);
+  };
+
+  const resetDemoData = () => {
+      setLeads(prev => prev.filter(x => !(x as any).isDemo));
+      setOpportunities(prev => prev.filter(x => !(x as any).isDemo));
+      setCalls(prev => prev.filter(x => !(x as any).isDemo));
+  };
+
   return (
     <ConversionOSContext.Provider value={{
       leads, opportunities, calls, offers, followUps, conversations, timelineEvents,
       addLead, updateLead, createOpportunity, updateOpportunity, bookCall, updateCall, createOffer, updateOffer, createFollowUp, updateFollowUp, logEvent,
-      dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate
+      dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate,
+      seedDemoData, resetDemoData, filterByDate
     }}>
       {children}
     </ConversionOSContext.Provider>

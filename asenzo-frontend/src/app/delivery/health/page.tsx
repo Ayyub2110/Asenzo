@@ -1,44 +1,92 @@
 "use client";
-import React from "react";
-import { getDelivery } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
 
-export default function HealthPage() {
-  const { localData, loading, error } = useAdapter(getDelivery);
-  if (loading) return <div className="p-10 animate-pulse h-96 w-full" />;
-  if (error || !localData) return <div className="p-10">Error.</div>;
+import React from "react";
+import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
+
+export default function ClientHealthPage() {
+  const { clients, healthRecords } = useDeliveryOS();
 
   return (
-    <div className="p-6 md:p-10 mx-auto w-full pb-32">
-      <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-6">Client Health Center</h2>
+    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
+            CLIENT HEALTH & SIGNALS
+          </h1>
+          <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
+            Global view of all client risk signals, overrides, and historical health trajectories.
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6">
-        {localData.clients.map(c => (
-           <div key={c.id} className="p-6 bg-card border border-border rounded-[16px] shadow-sm flex flex-col md:flex-row gap-6">
-              <div className="flex-shrink-0 w-full md:w-64 border-r border-border md:pr-6">
-                 <h3 className="text-[16px] font-bold text-foreground mb-1">{c.name}</h3>
-                 <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold mt-2 ${c.health.overall === 'GREEN' ? 'bg-success/20 text-success' : c.health.overall === 'YELLOW' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-destructive/20 text-destructive'}`}>
-                    <span className={`w-2 h-2 rounded-full ${c.health.overall === 'GREEN' ? 'bg-success' : c.health.overall === 'YELLOW' ? 'bg-yellow-500' : 'bg-destructive'}`}></span>
-                    {c.health.overall}
+         {clients.map(c => {
+            const records = healthRecords
+              .filter(r => r.customerId === c.id)
+              .sort((a,b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+            
+            if (records.length === 0 && c.status !== "AT_RISK") return null;
+
+            return (
+              <div key={c.id} className="bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-sm">
+                 <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                       <h3 className="text-[16px] font-black text-slate-900">{c.company}</h3>
+                       <p className="text-[12px] font-bold text-slate-500">Owner: {c.owner}</p>
+                    </div>
+                    <span className={`px-3 py-1.5 text-[11px] font-black uppercase rounded-lg ${
+                       c.status === 'AT_RISK' ? 'bg-red-100 text-red-800 border border-red-200' :
+                       c.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                       'bg-slate-100 text-slate-800'
+                    }`}>
+                       System Status: {c.status.replace("_", " ")}
+                    </span>
+                 </div>
+                 
+                 <div className="p-0">
+                    <table className="w-full text-left">
+                       <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200">
+                             <th className="p-3 pl-5 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest w-[140px]">Date</th>
+                             <th className="p-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest w-[120px]">Score</th>
+                             <th className="p-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Risk Category / Notes</th>
+                             <th className="p-3 pr-5 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest text-right">Logged By</th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          {records.map(r => (
+                             <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                                <td className="p-3 pl-5 text-[12px] font-bold text-slate-700">{new Date(r.createdDate).toLocaleDateString()}</td>
+                                <td className="p-3">
+                                   <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${
+                                      r.status === 'HEALTHY' ? 'bg-emerald-100 text-emerald-800' :
+                                      r.status === 'STABLE' ? 'bg-blue-100 text-blue-800' :
+                                      r.status === 'AT_RISK' ? 'bg-amber-100 text-amber-800' :
+                                      'bg-red-100 text-red-800'
+                                   }`}>
+                                      {r.status}
+                                   </span>
+                                </td>
+                                <td className="p-3">
+                                   <div className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-1">{r.signals || 'N/A'}</div>
+                                   <div className="text-[13px] font-medium text-slate-600">{r.reason}</div>
+                                </td>
+                                <td className="p-3 pr-5 text-right text-[12px] font-bold text-slate-500">
+                                   System (Auto)
+                                </td>
+                             </tr>
+                          ))}
+                          {records.length === 0 && (
+                             <tr>
+                               <td colSpan={4} className="p-4 pl-5 text-[12px] font-medium text-slate-500 italic">No historical health records found.</td>
+                             </tr>
+                          )}
+                       </tbody>
+                    </table>
                  </div>
               </div>
-              <div className="flex-1 space-y-4">
-                 <h4 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest">Active Dimensions</h4>
-                 {c.health.signals.map(s => (
-                   <div key={s.id} className="p-3 bg-secondary/50 rounded-lg border border-border text-[13px]">
-                     <div className="flex justify-between items-center mb-1">
-                       <span className="font-bold text-foreground uppercase text-[11px]">{s.dimension}</span>
-                       <span className={`font-bold ${s.status === 'GREEN' ? 'text-success' : s.status === 'YELLOW' ? 'text-yellow-600' : 'text-destructive'}`}>{s.status}</span>
-                     </div>
-                     <p className="text-muted-foreground mb-2">{s.reason}</p>
-                     {s.recommendedAction && (
-                       <p className="text-primary font-semibold">Action: {s.recommendedAction}</p>
-                     )}
-                   </div>
-                 ))}
-                 {c.health.signals.length === 0 && <p className="text-[13px] text-muted-foreground">No health signals recorded.</p>}
-              </div>
-           </div>
-        ))}
+            )
+         })}
       </div>
     </div>
   );

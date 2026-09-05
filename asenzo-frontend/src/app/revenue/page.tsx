@@ -7,7 +7,7 @@ import TransactionModal from "./_components/TransactionModal";
 import CustomerModal from "./_components/CustomerModal";
 
 export default function RevenueCommandCenter() {
-  const { metrics, customers, renewals, transactions, dateRange, setDateRange, calculateTotalCashCollected, calculateTotalRevenue, calculateAverageOrderValue } = useRevenueOS();
+  const { metrics, customers, renewals, transactions, dateRange, setDateRange, calculateTotalCashCollected, calculateTotalRevenue, calculateAverageOrderValue, filterByDate } = useRevenueOS();
   
   const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
@@ -66,7 +66,7 @@ export default function RevenueCommandCenter() {
         </div>
       </div>
 
-      {transactions.filter(t => t.status === "PAID" || t.status === "OUTSTANDING").length === 0 ? (
+      {transactions.filter(t => filterByDate(t.date) && t.status === "PAID").length === 0 ? (
          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
             <div className="text-[13px] font-bold text-slate-600">No completed transactions recorded for this period.</div>
          </div>

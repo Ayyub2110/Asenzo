@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RevenueOSProvider } from "@/contexts/RevenueOSContext";
+
 
 interface NavItem {
   href: string;
@@ -79,7 +79,7 @@ export default function RevenueLayout({ children }: { children: React.ReactNode 
   const currentGroup = activeGroup || getActiveGroup();
 
   return (
-    <RevenueOSProvider>
+    <>
       <div className="flex flex-col min-w-0 h-full overflow-y-auto bg-slate-50">
         {/* Top Header - Level 1 Pillars in classic ASENZO clean design */}
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shrink-0">
@@ -154,6 +154,6 @@ export default function RevenueLayout({ children }: { children: React.ReactNode 
           {children}
         </main>
       </div>
-    </RevenueOSProvider>
+    </>
   );
 }

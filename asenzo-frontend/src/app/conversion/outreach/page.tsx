@@ -1,157 +1,155 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
+import { useOutreachOS } from "@/contexts/OutreachOSContext";
+import Link from "next/link";
 
-import { Lead } from "@/lib/types/conversion";
-import { useConversionOS } from "@/contexts/ConversionOSContext";
+export default function OutreachCommandCenterPage() {
+  const { prospects, nextActions } = useOutreachOS();
 
-export default function OutreachPage() {
-  const [filterTemp, setFilterTemp] = useState<"ALL" | "HOT" | "WARM" | "COLD">("ALL");
-  const { leads, updateLead } = useConversionOS();
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  // Metrics calculation
+  const totalProspects = prospects.length;
+  const contacted = prospects.filter(p => p.status !== "NOT_CONTACTED").length;
+  const replies = prospects.filter(p => ["REPLIED", "INTERESTED", "MEETING_BOOKED", "QUALIFIED", "OPPORTUNITY", "WON"].includes(p.status)).length;
+  const interested = prospects.filter(p => ["INTERESTED", "MEETING_BOOKED", "QUALIFIED", "OPPORTUNITY", "WON"].includes(p.status)).length;
 
-  const filteredLeads = leads.filter((l) => filterTemp === "ALL" || l.temperature === filterTemp);
-  const selectedLead = leads.find(l => l.id === selectedLeadId) || filteredLeads[0];
+  // Next Actions Logic
+  const overdueActions = nextActions.filter(na => na.status === "PENDING" && new Date(na.dueDate).setHours(0,0,0,0) < new Date().setHours(0,0,0,0));
+  const dueTodayActions = nextActions.filter(na => na.status === "PENDING" && new Date(na.dueDate).toDateString() === new Date().toDateString());
+  const newProspects = prospects.filter(p => p.status === "NOT_CONTACTED");
+  const newReplies = prospects.filter(p => p.status === "REPLIED");
 
-  const handleApprove = (id: string) => {
-    updateLead(id, { outreachStatus: "APPROVED" } as any);
-  };
+  const priorityQueue = [...overdueActions, ...dueTodayActions].sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   return (
-    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="pt-8 space-y-8 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto pb-20">
+      
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Pillar 5 — Outbound / Direct Acquisition</p>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Outreach Intelligence & Lead Workspace</h1>
-          <p className="text-[12px] text-slate-500 mt-0.5">AI Outreach Agent lead research with mandatory Human-in-the-Loop review before sending.</p>
+          <h1 className="text-[28px] font-black text-slate-900 tracking-tight">OUTREACH COMMAND CENTER</h1>
+          <p className="text-[14px] text-slate-500 font-medium mt-1">What needs your attention right now.</p>
         </div>
-        <div className="flex items-center gap-2">
-          {(["ALL", "HOT", "WARM", "COLD"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setFilterTemp(t)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                filterTemp === t
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+           <Link href="/conversion/outreach/prospects" className="px-5 py-2.5 bg-slate-900 text-white rounded-lg text-[13px] font-bold hover:bg-slate-800 transition-colors shadow-sm">
+              + New Prospect
+           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left: Lead Queue */}
-        <div className="col-span-5 space-y-3">
-          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-            <h2 className="text-[13px] font-bold text-slate-900 mb-3">Segmented Leads ({filteredLeads.length})</h2>
-            <div className="space-y-2">
-              {filteredLeads.map((lead) => (
-                <div
-                  key={lead.id}
-                  onClick={() => setSelectedLeadId(lead.id)}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                    selectedLead?.id === lead.id
-                      ? "border-blue-600 bg-blue-50/40 text-slate-900"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-[13px]">{lead.name}</span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        lead.temperature === "HOT"
-                          ? "bg-red-100 text-red-700"
-                          : lead.temperature === "WARM"
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}
-                    >
-                      {lead.temperature}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">{lead.role || "Founder"} at <b>{lead.company || "Unknown"}</b></p>
-                  <div className="mt-2 text-[10px] text-slate-400 truncate">Signal: {lead.buyingTrigger || (lead as any).icpFit || "Matched ICP list"}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Top Performance Overview */}
+      <div className="grid grid-cols-4 gap-4">
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 transition-colors cursor-pointer group">
+            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition-colors">Total Prospects</h3>
+            <div className="text-[32px] font-black text-slate-900 leading-none">{totalProspects}</div>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 transition-colors cursor-pointer group">
+            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition-colors">Contacted</h3>
+            <div className="text-[32px] font-black text-slate-900 leading-none">{contacted}</div>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 transition-colors cursor-pointer group">
+            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition-colors">Replies</h3>
+            <div className="text-[32px] font-black text-slate-900 leading-none">{replies}</div>
+         </div>
+         <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 transition-colors cursor-pointer group">
+            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition-colors">Interested</h3>
+            <div className="text-[32px] font-black text-slate-900 leading-none">{interested}</div>
+         </div>
+      </div>
 
-        {/* Right: Agent Intelligence & Human Review */}
-        <div className="col-span-7 space-y-5">
-          {selectedLead ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <span className="text-[10px] font-bold text-violet-600 uppercase tracking-widest">Outreach Intelligence Agent</span>
-                <h3 className="text-[16px] font-bold text-slate-900">{selectedLead.name} ({selectedLead.company || "Unknown"})</h3>
-              </div>
-              <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md">
-                ICP Fit: {(selectedLead as any).icpFit || "HIGH"}
-              </span>
-            </div>
-
+      <div className="grid grid-cols-3 gap-8">
+         {/* Today's Work */}
+         <div className="col-span-1 space-y-4">
+            <h2 className="text-[14px] font-black text-slate-900 uppercase tracking-widest">TODAY'S OUTREACH</h2>
+            
             <div className="space-y-3">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Buying Signal Identified</label>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-[12px] text-slate-700 font-medium">
-                  {selectedLead.buyingTrigger || (selectedLead as any).icpFit || "Matched ICP list"}
-                </div>
-              </div>
+               <Link href="/conversion/outreach/follow-ups" className="block bg-red-50 border border-red-100 rounded-xl p-4 hover:bg-red-100/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[14px] font-bold text-red-900 flex items-center gap-2">
+                        🔥 OVERDUE FOLLOW-UPS
+                     </span>
+                     <span className="text-[18px] font-black text-red-700">{overdueActions.length}</span>
+                  </div>
+                  <div className="text-[12px] font-medium text-red-800/70 mt-1">Resolve now →</div>
+               </Link>
 
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Agent Recommended Strategy Angle</label>
-                <div className="p-3 bg-violet-50/60 border border-violet-100 rounded-lg text-[12px] text-violet-900 font-medium">
-                  {(selectedLead as any).recommendedAngle || "Direct diagnostic hook referencing their specific role"}
-                </div>
-              </div>
+               <Link href="/conversion/outreach/follow-ups" className="block bg-amber-50 border border-amber-100 rounded-xl p-4 hover:bg-amber-100/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[14px] font-bold text-amber-900 flex items-center gap-2">
+                        📅 DUE TODAY
+                     </span>
+                     <span className="text-[18px] font-black text-amber-700">{dueTodayActions.length}</span>
+                  </div>
+                  <div className="text-[12px] font-medium text-amber-800/70 mt-1">View follow-ups →</div>
+               </Link>
 
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Personalized Opening Message Draft</label>
-                <textarea
-                  value={(selectedLead as any).openingMessage || `Hey ${selectedLead.name}, saw you were looking into OS stuff...`}
-                  onChange={(e) => {
-                    updateLead(selectedLead.id, { openingMessage: e.target.value } as any);
-                  }}
-                  rows={4}
-                  className="w-full p-3 border border-slate-200 rounded-lg text-[12px] font-mono leading-relaxed focus:outline-none focus:border-slate-400"
-                />
-              </div>
+               <Link href="/conversion/outreach/prospects" className="block bg-blue-50 border border-blue-100 rounded-xl p-4 hover:bg-blue-100/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[14px] font-bold text-blue-900 flex items-center gap-2">
+                        🆕 READY TO CONTACT
+                     </span>
+                     <span className="text-[18px] font-black text-blue-700">{newProspects.length}</span>
+                  </div>
+                  <div className="text-[12px] font-medium text-blue-800/70 mt-1">Start outreach →</div>
+               </Link>
+
+               <Link href="/conversion/outreach/prospects" className="block bg-emerald-50 border border-emerald-100 rounded-xl p-4 hover:bg-emerald-100/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[14px] font-bold text-emerald-900 flex items-center gap-2">
+                        💬 NEW REPLIES
+                     </span>
+                     <span className="text-[18px] font-black text-emerald-700">{newReplies.length}</span>
+                  </div>
+                  <div className="text-[12px] font-medium text-emerald-800/70 mt-1">Review replies →</div>
+               </Link>
             </div>
+         </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px] text-amber-500">lock</span>
-                Human-in-the-Loop Approval Required Before Outbound Send
-              </span>
+         {/* NEXT BEST ACTIONS queue */}
+         <div className="col-span-2 space-y-4">
+            <h2 className="text-[14px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+               NEXT BEST ACTIONS 
+               <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-bold tracking-widest">PRIORITY QUEUE</span>
+            </h2>
 
-              { (selectedLead as any).outreachStatus === "APPROVED" ? (
-                <span className="px-4 py-2 bg-emerald-100 text-emerald-800 text-[12px] font-bold rounded-lg flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  Approved & Dispatched
-                </span>
-              ) : (
-                <button
-                  onClick={() => handleApprove(selectedLead.id)}
-                  className="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[16px]">send</span>
-                  Approve & Send Outreach
-                </button>
-              )}
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+               {priorityQueue.map((na, index) => {
+                  const prospect = prospects.find(p => p.id === na.prospectId);
+                  const isOverdue = new Date(na.dueDate).setHours(0,0,0,0) < new Date().setHours(0,0,0,0);
+                  
+                  return (
+                     <div key={na.id} className="border-b border-slate-100 last:border-0 p-5 flex items-start gap-4 hover:bg-slate-50 transition-colors">
+                        <div className="w-8 h-8 shrink-0 bg-slate-100 rounded-full flex items-center justify-center text-[12px] font-black text-slate-500">
+                           {index + 1}
+                        </div>
+                        <div className="flex-1">
+                           <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-[15px] font-black text-slate-900">{prospect?.firstName} {prospect?.lastName}</h3>
+                              {isOverdue && (
+                                 <span className="px-2 py-0.5 bg-red-100 text-red-800 rounded font-extrabold text-[9px] uppercase tracking-wider">Overdue</span>
+                              )}
+                           </div>
+                           <p className="text-[13px] font-bold text-slate-700">{na.title}</p>
+                           <p className="text-[12px] font-medium text-slate-500 mt-1">{na.description}</p>
+                        </div>
+                        <div className="pl-4 border-l border-slate-100 flex flex-col gap-2">
+                           <button className="px-4 py-2 bg-slate-900 text-white rounded text-[11px] font-bold hover:bg-slate-800 transition-colors text-center w-[120px]">
+                              Mark Done
+                           </button>
+                           <button className="px-4 py-2 bg-slate-100 text-slate-600 rounded text-[11px] font-bold hover:bg-slate-200 transition-colors text-center w-[120px]">
+                              Skip
+                           </button>
+                        </div>
+                     </div>
+                  );
+               })}
+               {priorityQueue.length === 0 && (
+                  <div className="p-12 text-center text-slate-500 font-medium text-[14px]">
+                     You're all caught up. No pending actions today.
+                  </div>
+               )}
             </div>
-          </div>
-          ) : (
-            <div className="bg-white border text-center p-12 border-slate-200 rounded-xl shadow-sm">
-                <span className="material-symbols-outlined text-[32px] text-slate-300 mb-2">person_search</span>
-                <h3 className="text-[14px] font-bold text-slate-700">No Lead Selected</h3>
-                <p className="text-[12px] text-slate-500 mt-1">Select a lead from the queue to review AI outreach suggestions.</p>
-            </div>
-          )}
-        </div>
+         </div>
       </div>
     </div>
   );

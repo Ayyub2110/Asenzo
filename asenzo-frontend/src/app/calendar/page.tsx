@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  getCalendar, getCommandCenter, getOperations, getDelivery, getConversion, getRevenue 
+  getCalendar, getCommandCenter, getOperations, getConversion, getRevenue 
 } from "@/lib/adapters";
 
 interface UnifiedEvent {
@@ -46,14 +46,12 @@ export default function CommonCalendarPage() {
           calendarRaw,
           cmdRaw,
           opsRaw,
-          delRaw,
           revRaw,
           convRaw
         ] = await Promise.all([
           getCalendar().catch(() => null),
           getCommandCenter().catch(() => null),
           getOperations().catch(() => null),
-          getDelivery().catch(() => null),
           getRevenue().catch(() => null),
           getConversion().catch(() => null)
         ]);
@@ -118,23 +116,7 @@ export default function CommonCalendarPage() {
            });
         }
 
-        // 4. Delivery (Milestones)
-        if (delRaw) {
-           delRaw.milestones?.forEach((m: any) => {
-              unified.push({
-                 id: m.id,
-                 sourceModule: "Delivery",
-                 sourceType: "Milestone",
-                 title: m.name,
-                 date: m.dueDate,
-                 startTime: "EOD",
-                 endTime: "EOD",
-                 owner: m.owner,
-                 status: m.status === "COMPLETED" ? "COMPLETED" : "PENDING",
-                 description: m.description
-              });
-           });
-        }
+        // 4. Delivery (Milestones) handling removed (now handled internally via Context later)
 
         // Sort events chronologically to fake real calendar display in our UI
         unified = unified.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
