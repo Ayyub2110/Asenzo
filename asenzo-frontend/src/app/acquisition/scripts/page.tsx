@@ -131,9 +131,9 @@ export default function ScriptsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-6 items-stretch">
         {/* Left Inputs */}
-        <div className="col-span-5 space-y-5">
+        <div className="col-span-5 space-y-5 flex flex-col">
           {/* Framework Selector */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">1. Select Framework</label>
@@ -167,9 +167,9 @@ export default function ScriptsPage() {
           </div>
 
           {/* Shortlisted Idea Selector */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">2. Select Shortlisted Idea</label>
-            <div>
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3 flex-1 flex flex-col">
+            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block shrink-0">2. Select Shortlisted Idea</label>
+            <div className="shrink-0">
               <label className="text-[11px] font-semibold text-slate-700 block mb-1">Choose Idea from Research / Ideas Queue</label>
               <select
                 value={selectedIdeaId}
@@ -184,13 +184,12 @@ export default function ScriptsPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-[11px] font-semibold text-slate-700 block mb-1">Idea Strategy & Context</label>
+            <div className="flex-1 flex flex-col">
+              <label className="text-[11px] font-semibold text-slate-700 block mb-1 shrink-0">Idea Strategy & Context</label>
               <textarea
                 value={contextInput}
                 onChange={(e) => setContextInput(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:border-slate-400 bg-slate-50/50"
+                className="w-full flex-1 min-h-[80px] shrink-0 p-3 border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:border-slate-400 bg-slate-50/50 resize-none"
                 placeholder="Selected idea context..."
               />
             </div>
@@ -198,7 +197,7 @@ export default function ScriptsPage() {
             <button
               onClick={handleGenerateScript}
               disabled={isGenerating}
-              className="w-full py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2 shrink-0 mt-auto"
             >
               {isGenerating ? (
                 <>
@@ -216,10 +215,10 @@ export default function ScriptsPage() {
         </div>
 
         {/* Right Script Editor */}
-        <div className="col-span-7 space-y-5">
+        <div className="col-span-7 flex flex-col min-h-[calc(100vh-200px)] space-y-5">
           {/* Hook Generator Output */}
           {generatedHooks.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3 shrink-0">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">AI Generated Hooks</label>
                 <span className="text-[11px] text-emerald-600 font-semibold">Auto-Selected Strongest</span>
@@ -244,8 +243,8 @@ export default function ScriptsPage() {
           )}
 
           {/* Script Content */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="flex-1 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col space-y-3">
+            <div className="flex items-center justify-between shrink-0">
               <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Script Editor</label>
               <span className="text-[11px] text-slate-400 font-medium">Framework: {selectedFramework.name.split("→")[0]}</span>
             </div>
@@ -253,12 +252,11 @@ export default function ScriptsPage() {
             <textarea
               value={scriptDraft}
               onChange={(e) => setScriptDraft(e.target.value)}
-              rows={16}
-              className="w-full p-4 border border-slate-200 rounded-lg text-[13px] font-mono leading-relaxed focus:outline-none focus:border-slate-400 bg-slate-50/50"
+              className="w-full flex-1 p-4 min-h-[400px] border border-slate-200 rounded-lg text-[13px] font-mono leading-relaxed focus:outline-none focus:border-slate-400 bg-slate-50/50 resize-none"
               placeholder="Script content will generate here based on the selected framework and hooks..."
             />
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-2 shrink-0">
               <div className="flex items-center gap-2 text-[11px] text-slate-500">
                 <span className="material-symbols-outlined text-[16px] text-emerald-600">verified</span>
                 Quality Score: <b className="text-slate-900">92/100</b> (Founder Voice & ICP Aligned)

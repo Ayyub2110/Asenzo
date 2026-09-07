@@ -1,132 +1,196 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { getOperations } from "@/lib/adapters";
+import { getOperations, getIntelligence } from "@/lib/adapters";
 import { useAdapter } from "@/hooks/useAdapter";
+import { ACTION_MAP } from "@/lib/routing";
 
 export default function OperationsCommandPage() {
-  const { localData, loading, error } = useAdapter(getOperations);
+  const { localData: opsData, loading: opsLoading, error: opsError } = useAdapter(getOperations);
+  const { localData: intelData, loading: intelLoading, error: intelError } = useAdapter(getIntelligence);
 
-  if (loading) return <div className="p-10 animate-pulse h-96 w-full bg-muted/20 rounded-[16px]" />;
-  if (error || !localData) return <div className="p-10">Error loading Operations.</div>;
+  if (opsLoading || intelLoading) return <div className="p-10 animate-pulse h-96 w-full bg-muted/20 rounded-[16px]" />;
+  if (opsError || intelError || !opsData || !intelData) return <div className="p-10 text-red-500 font-bold">Error loading Control Center data.</div>;
 
-  const activeTasks = localData.tasks.filter(t => t.status === "READY" || t.status === "IN_PROGRESS" || t.status === "WAITING");
-  const overdueTasks = activeTasks.filter(t => new Date(t.dueDate).getTime() < Date.now());
-  const blockedTasks = localData.tasks.filter(t => t.status === "BLOCKED");
-  const pendingApprovals = localData.approvals.filter(a => a.status === "PENDING");
-  const activeEscalations = localData.escalations.filter(e => e.status !== "RESOLVED" && e.status !== "CLOSED");
-  const sopsDue = localData.sops.filter(s => new Date(s.nextReviewDate).getTime() < Date.now() + (7 * 86400000));
-  const qualityIssues = localData.qc.filter(q => q.status === "FAILED" || q.status === "CHANGES_REQUIRED");
+  const { work, approvals, issues, team, updates, planning } = opsData;
+  const { pulse, healthMatrix } = intelData;
 
-  const pulseMetrics = [
-    { label: "Active Tasks", value: activeTasks.length, link: "/operations/tasks", isRisk: false },
-    { label: "Overdue Tasks", value: overdueTasks.length, link: "/operations/tasks", isRisk: overdueTasks.length > 0 },
-    { label: "Blocked Work", value: blockedTasks.length, link: "/operations/tasks", isRisk: blockedTasks.length > 0 },
-    { label: "Pending Approvals", value: pendingApprovals.length, link: "/operations/approvals", isRisk: false },
-    { label: "Active Escalations", value: activeEscalations.length, link: "/operations/escalations", isRisk: activeEscalations.length > 0 },
-    { label: "Quality Issues", value: qualityIssues.length, link: "/operations/quality", isRisk: qualityIssues.length > 0 }
+  const activeWork = work.filter(w => w.status !== "COMPLETED" && w.status !== "CANCELLED");
+  const dueToday = activeWork.filter(w => {
+    const d = new Date(w.dueDate);
+    const today = new Date();
+    return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  });
+  const overdueWork = activeWork.filter(w => new Date(w.dueDate).getTime() < Date.now() - 86400000);
+  const blockedWork = activeWork.filter(w => w.status === "BLOCKED");
+  const pendingApprovals = approvals.filter(a => a.status === "PENDING");
+  const openIssues = issues.filter(i => i.status !== "CLOSED" && i.status !== "RESOLVED");
+  const overCapacity = team.filter(t => t.capacity < t.workload);
+
+  const businessPulseMetrics = [
+    { label: "Revenue", value: `$${pulse.revenue.toLocaleString()}`, href: ACTION_MAP.openRevenueDashboard() },
+    { label: "Pipeline", value: `$${pulse.pipeline.toLocaleString()}`, href: ACTION_MAP.openSalesPipeline() },
+    { label: "Qualified Leads", value: pulse.qualifiedLeads, href: ACTION_MAP.openLeadQualification('QUALIFIED') },
+    { label: "Conversion Rate", value: `${pulse.conversionRate}%`, href: ACTION_MAP.openConversionAnalytics() },
+    { label: "Content Reach", value: pulse.contentReach.toLocaleString(), href: ACTION_MAP.openAcquisitionAnalytics() },
+    { label: "Client Outcomes", value: pulse.clientOutcomes, href: ACTION_MAP.openClientHealth() }
   ];
 
-  return (
-    <div className="p-6 md:p-10 pb-32">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        {pulseMetrics.map(p => (
-           <Link key={p.label} href={p.link} className={`p-4 border rounded-[16px] shadow-sm flex flex-col gap-1 transition-colors ${p.isRisk ? 'bg-destructive/10 border-destructive/20 hover:bg-destructive/15' : 'bg-card border-border hover:bg-muted/30'}`}>
-              <span className={`text-[11px] font-bold uppercase tracking-widest ${p.isRisk ? 'text-destructive' : 'text-muted-foreground'}`}>{p.label}</span>
-              <span className={`text-[24px] font-bold ${p.isRisk ? 'text-destructive' : 'text-foreground'}`}>{p.value}</span>
-           </Link>
-        ))}
-      </div>
+  const opsPulseMetrics = [
+    { label: "Active Work", value: activeWork.length, link: "/operations/work", isRisk: false },
+    { label: "Due Today", value: dueToday.length, link: "/operations/work", isRisk: false },
+    { label: "Overdue", value: overdueWork.length, link: "/operations/work", isRisk: overdueWork.length > 0 },
+    { label: "Blocked", value: blockedWork.length, link: "/operations/work", isRisk: blockedWork.length > 0 },
+    { label: "Approvals", value: pendingApprovals.length, link: "/operations/control/approvals", isRisk: false },
+    { label: "Open Issues", value: openIssues.length, link: "/operations/control/issues", isRisk: openIssues.length > 0 },
+    { label: "Capacity Risk", value: overCapacity.length, link: "/operations/team", isRisk: overCapacity.length > 0 },
+  ];
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-         <section className="bg-card border border-border p-6 rounded-[16px] shadow-sm">
-            <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-6 flex items-center gap-2"><span className="material-symbols-outlined text-[16px]">priority_high</span> Critical Priorities</h2>
-            <div className="space-y-4">
-              {activeEscalations.map(e => (
-                 <div key={e.id} className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
-                   <div className="flex justify-between items-start mb-2">
-                     <span className="px-2 py-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold uppercase rounded leading-none">{e.sourceModule} Escalation</span>
-                     <span className="text-[11px] font-bold text-destructive">Owner: {localData.team.find(t => t.id === e.ownerId)?.name || "Unknown"}</span>
-                   </div>
-                   <p className="text-[14px] font-bold text-foreground mb-1">{e.issue}</p>
-                   <p className="text-[13px] text-muted-foreground mb-2 flex flex-col gap-0.5">
-                     <span><strong>Reason:</strong> {e.reason}</span>
-                     <span><strong>Action:</strong> {e.recommendedAction}</span>
-                   </p>
-                   {e.deadline && <p className="text-[11px] font-bold text-destructive mt-3">{new Date(e.deadline).getTime() < Date.now() ? 'OVERDUE' : 'DUE SOON'}: {new Date(e.deadline).toLocaleDateString()}</p>}
-                 </div>
-              ))}
-              {blockedTasks.map(t => (
-                 <div key={t.id} className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                   <div className="flex justify-between items-start mb-2">
-                     <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-700 text-[10px] font-bold uppercase rounded leading-none">Blocked Task</span>
-                     <span className="text-[11px] font-bold text-yellow-700">Owner: {localData.team.find(u => u.id === t.ownerId)?.name || "Unknown"}</span>
-                   </div>
-                   <p className="text-[14px] font-bold text-foreground mb-1">{t.title}</p>
-                   <p className="text-[13px] text-muted-foreground">Source: {t.sourceModule}</p>
-                 </div>
-              ))}
-              {qualityIssues.map(q => (
-                 <div key={q.id} className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
-                   <div className="flex justify-between items-start mb-2">
-                     <span className="px-2 py-0.5 bg-orange-500/20 text-orange-600 text-[10px] font-bold uppercase rounded leading-none">Quality Failure - {q.severity}</span>
-                   </div>
-                   <p className="text-[14px] font-bold text-foreground mb-1">{q.title}</p>
-                   <p className="text-[13px] text-muted-foreground">Source: {q.sourceModule}</p>
-                 </div>
-              ))}
-              {activeEscalations.length === 0 && blockedTasks.length === 0 && qualityIssues.length === 0 && (
-                <div className="p-6 text-center border border-dashed border-border rounded-xl">
-                  <p className="text-[13px] text-muted-foreground font-medium">No critical escalations or blockers.</p>
+  const workByModule = {
+    Acquisition:  work.filter(w => w.sourceModule === 'Acquisition').length,
+    Conversion:   work.filter(w => w.sourceModule === 'Conversion').length,
+    Revenue:      work.filter(w => w.sourceModule === 'Revenue').length,
+    Delivery:     work.filter(w => w.sourceModule === 'Delivery').length,
+    Operations:   work.filter(w => w.sourceModule === 'Operations').length,
+  };
+
+  const calculateBar = (val: number) => {
+    if (val === 0) return '';
+    return '█'.repeat(Math.min(val * 2, 20)); // Arbitrary scale for demo
+  }
+
+  return (
+    <div className="p-6 md:p-10 pb-32 space-y-10">
+      
+      {/* OPERATIONAL PULSE */}
+      <section>
+        <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Operational Pulse</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-4">
+          {opsPulseMetrics.map(p => (
+            <Link key={p.label} href={p.link} className={`p-4 border rounded-[16px] shadow-sm flex flex-col gap-1 transition-colors ${p.isRisk ? 'bg-destructive/10 border-destructive/30 hover:bg-destructive/20' : 'bg-card border-border hover:bg-secondary/50'}`}>
+              <span className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-widest ${p.isRisk ? 'text-destructive' : 'text-muted-foreground'}`}>{p.label}</span>
+              <span className={`text-[20px] sm:text-[24px] font-bold ${p.isRisk ? 'text-destructive' : 'text-foreground'}`}>{p.value}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* NEEDS ATTENTION */}
+        <section className="col-span-1 lg:col-span-2 space-y-6">
+          <div className="bg-destructive/5 border border-destructive/20 p-6 rounded-[16px]">
+            <h2 className="text-[12px] font-bold text-destructive uppercase tracking-widest mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px]">warning</span> Needs Attention
+            </h2>
+            <div className="space-y-3">
+              {openIssues.length > 0 && (
+                <div className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-start gap-4">
+                  <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded text-[10px] font-bold uppercase mt-1">Issue</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold">{openIssues[0].title}</h3>
+                    <p className="text-[12px] text-muted-foreground">{openIssues[0].description}</p>
+                  </div>
                 </div>
               )}
+              {overdueWork.length > 0 && (
+                <div className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-start gap-4">
+                  <div className="bg-orange-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase mt-1">Overdue</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold">{overdueWork[0].title}</h3>
+                    <p className="text-[12px] text-muted-foreground">Owner: {team.find(t => t.id === overdueWork[0].ownerId)?.name}</p>
+                  </div>
+                </div>
+              )}
+              {blockedWork.length > 0 && (
+                <div className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-start gap-4">
+                  <div className="bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded text-[10px] font-bold uppercase mt-1">Blocked</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold">{blockedWork[0].title}</h3>
+                    <p className="text-[12px] text-muted-foreground">Module: {blockedWork[0].sourceModule}</p>
+                  </div>
+                </div>
+              )}
+              {overCapacity.length > 0 && (
+                <div className="p-3 bg-card border border-border rounded-lg shadow-sm flex items-start gap-4">
+                  <div className="bg-blue-500/20 text-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase mt-1">Capacity</div>
+                  <div>
+                    <h3 className="text-[14px] font-bold">{overCapacity[0].name} is Over Capacity</h3>
+                    <p className="text-[12px] text-muted-foreground">Workload: {overCapacity[0].workload} hrs (Max: {overCapacity[0].capacity})</p>
+                  </div>
+                </div>
+              )}
+              {openIssues.length === 0 && overdueWork.length === 0 && blockedWork.length === 0 && overCapacity.length === 0 && (
+                <div className="text-sm text-muted-foreground italic">No critical attention items.</div>
+              )}
             </div>
-         </section>
+          </div>
 
-         <section className="bg-card border border-border p-6 rounded-[16px] shadow-sm flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest leading-none flex items-center gap-2"><span className="material-symbols-outlined text-[16px]">approval</span> Bottlenecks & Capacity</h2>
+          {/* WORK ACROSS BUSINESS */}
+          <div className="bg-card border border-border p-6 rounded-[16px]">
+            <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Work Across Business</h2>
+            <div className="space-y-2 font-mono text-[13px]">
+              {Object.entries(workByModule).map(([mod, count]) => (
+                <div key={mod} className="flex gap-4 items-center">
+                  <div className="w-[100px] text-muted-foreground">{mod}</div>
+                  <div className="text-primary font-bold">{calculateBar(count) || '-'}</div>
+                  <div className="text-muted-foreground text-[11px]">{count}</div>
+                </div>
+              ))}
             </div>
-            
-            <div className="space-y-6 flex-1">
-               <div>
-                  <h3 className="text-[11px] font-bold text-foreground uppercase mb-3">Capacity Risks</h3>
-                  {localData.team.filter(t => t.status === "AT_CAPACITY" || t.status === "OVER_CAPACITY").map(t => (
-                    <div key={t.id} className="flex justify-between items-center bg-muted/30 p-3 rounded-lg mb-2 text-[13px]">
-                       <div>
-                         <p className="font-bold">{t.name}</p>
-                         <p className="text-muted-foreground text-[11px] leading-none mt-0.5">{t.role}</p>
-                       </div>
-                       <div className="text-right">
-                         <span className={`font-bold ${t.status === 'OVER_CAPACITY' ? 'text-destructive' : 'text-yellow-600'}`}>
-                           {t.workload} / {t.capacity} hrs
-                         </span>
-                         <span className="block text-[10px] font-bold text-muted-foreground uppercase">{t.status.replace("_", " ")}</span>
-                       </div>
+          </div>
+
+          {/* TODAY'S UPDATES */}
+          <div className="bg-card border border-border p-6 rounded-[16px]">
+            <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Today's Updates</h2>
+            {updates.length === 0 ? (
+              <p className="text-[13px] text-muted-foreground italic">No team updates submitted yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {updates.map(u => (
+                  <div key={u.id} className="border-l-2 border-primary pl-4 py-1">
+                    <p className="text-[11px] font-bold text-muted-foreground mb-2">{team.find(t=>t.id===u.userId)?.name} &bull; {new Date(u.date).toLocaleDateString()}</p>
+                    <div className="text-[13px] space-y-1">
+                      <p><span className="font-bold text-foreground">Completed:</span> {u.completed}</p>
+                      <p><span className="font-bold text-foreground">In Progress:</span> {u.inProgress}</p>
+                      {u.blocked && <p><span className="font-bold text-destructive">Blocked:</span> {u.blocked}</p>}
                     </div>
-                  ))}
-                  {localData.team.filter(t => t.status === "AT_CAPACITY" || t.status === "OVER_CAPACITY").length === 0 && (
-                    <p className="text-[12px] text-muted-foreground border border-dashed border-border p-4 rounded-lg text-center font-medium">All team members are within operating capacity.</p>
-                  )}
-               </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
 
-               <div>
-                  <h3 className="text-[11px] font-bold text-foreground uppercase mb-3">Pending Approvals Queue</h3>
-                  {pendingApprovals.map(a => (
-                     <div key={a.id} className="bg-muted/30 p-3 rounded-lg mb-2 text-[13px]">
-                        <div className="flex justify-between items-center mb-1">
-                           <span className="font-bold">{a.request}</span>
-                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase leading-none ${a.priority === 'URGENT' ? 'bg-destructive/20 text-destructive' : a.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-600' : 'bg-primary/10 text-primary'}`}>{a.priority}</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">Source: {a.sourceModule} • Approver: {localData.team.find(t => t.id === a.approverId)?.name || 'Unknown'}</p>
-                     </div>
-                  ))}
-                  {pendingApprovals.length === 0 && (
-                    <p className="text-[12px] text-muted-foreground border border-dashed border-border p-4 rounded-lg text-center font-medium">No pending approvals bottlenecks.</p>
-                  )}
-               </div>
+        {/* SIDEBAR */}
+        <section className="col-span-1 space-y-6">
+
+          {/* UPCOMING */}
+          <div className="bg-card border border-border p-6 rounded-[16px]">
+            <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Upcoming</h2>
+            <div className="space-y-3">
+              {planning.map(p => (
+                <div key={p.id} className="text-[13px]">
+                  <p className="font-bold">{p.title}</p>
+                  <p className="text-[11px] text-muted-foreground">{p.type} &bull; Due: {new Date(p.dueDate).toLocaleDateString()}</p>
+                </div>
+              ))}
             </div>
-         </section>
+          </div>
+
+          {/* WHAT CHANGED */}
+          <div className="bg-secondary/40 border border-border p-6 rounded-[16px]">
+            <h2 className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest mb-4">What Changed</h2>
+            <div className="text-[13px] font-medium space-y-2 text-muted-foreground">
+              <p className="text-foreground">+18 work items completed</p>
+              <p className="text-destructive">+4 overdue</p>
+              <p className="text-primary">-1 blocked</p>
+              <p>5 approvals completed</p>
+            </div>
+          </div>
+
+        </section>
+
       </div>
     </div>
   );

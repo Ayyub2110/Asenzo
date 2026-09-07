@@ -9,18 +9,24 @@ export type QualificationStatus =
   | "UNQUALIFIED";
 
 export type PipelineStage =
+  | "LEAD"
   | "NEW_OPPORTUNITY"
   | "QUALIFYING"
   | "QUALIFIED"
   | "CALL_BOOKED"
   | "CALL_COMPLETED"
+  | "CALL_SHOWED"
   | "DIAGNOSIS"
   | "OFFER_PRESENTED"
+  | "OFFER_PROPOSAL"
+  | "OFFER_SENT"
   | "DECISION"
   | "WON"
+  | "CLOSED_WON"
   | "FOLLOW_UP"
   | "NURTURE"
-  | "LOST";
+  | "LOST"
+  | "CLOSED_LOST";
 
 export type ObjectionCategory =
   | "PRICE"

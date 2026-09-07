@@ -26,7 +26,17 @@ const navGroups: NavGroup[] = [
       { href: "/conversion/leads/hot", label: "Hot" },
       { href: "/conversion/leads/warm", label: "Warm" },
       { href: "/conversion/leads/cold", label: "Cold" },
-      { href: "/conversion/leads/qualification", label: "Qualification" },
+    ],
+  },
+  {
+    id: "conversations",
+    title: "Conversations",
+    items: [
+      { href: "/conversion/conversations", label: "Inbox" },
+      { href: "/conversion/conversations/dms", label: "DMs" },
+      { href: "/conversion/conversations/sales", label: "Sales Conversations" },
+      { href: "/conversion/conversations/qualification", label: "Qualification" },
+      { href: "/conversion/conversations/follow-ups", label: "Follow-ups" },
     ],
   },
   {
@@ -36,34 +46,20 @@ const navGroups: NavGroup[] = [
       { href: "/conversion/pipeline", label: "Opportunities" },
       { href: "/conversion/pipeline/calls", label: "Calls" },
       { href: "/conversion/pipeline/offers", label: "Offers" },
-      { href: "/conversion/pipeline/follow-ups", label: "Follow-ups" },
-    ],
-  },
-  {
-    id: "conversations",
-    title: "Inbound",
-    items: [
-      { href: "/conversion/conversations", label: "Inbox" },
-      { href: "/conversion/conversations/dms", label: "DMs" },
-      { href: "/conversion/conversations/sales", label: "Sales Conversations" },
     ],
   },
   {
     id: "nurture",
     title: "Nurture",
     items: [
-      { href: "/conversion/nurture", label: "Lead Capture & Nurture" },
+      { href: "/conversion/nurture", label: "Nurture Workspace" },
     ],
   },
   {
-    id: "outreach",
+    id: "outbound",
     title: "Outbound",
     items: [
-      { href: "/conversion/outreach", label: "Command Center" },
-      { href: "/conversion/outreach/prospects", label: "Prospects" },
-      { href: "/conversion/outreach/activities", label: "Activities" },
-      { href: "/conversion/outreach/follow-ups", label: "Follow-ups" },
-      { href: "/conversion/outreach/analytics", label: "Analytics" },
+      { href: "/conversion/outbound", label: "Outbound" },
     ],
   },
   {
@@ -80,7 +76,7 @@ const navGroups: NavGroup[] = [
     id: "analytics",
     title: "Analytics",
     items: [
-      { href: "/conversion/analytics", label: "Full Funnel" },
+      { href: "/conversion/analytics", label: "Analytics" },
     ],
   }
 ];

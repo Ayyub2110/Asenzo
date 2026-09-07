@@ -3,122 +3,138 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  getCalendar, getCommandCenter, getOperations, getConversion, getRevenue 
+  getCalendar, getOperations, getConversion, getRevenue 
 } from "@/lib/adapters";
 
 interface UnifiedEvent {
   id: string;
   sourceModule: string;
-  sourceType: string;
+  sourceEntityType: string;
+  sourceEntityId: string;
   title: string;
   date: string;       // YYYY-MM-DD
   startTime: string;  
   endTime: string;
   owner: string;
-  status: "SCHEDULED" | "COMPLETED" | "OVERDUE" | "MISSED" | "CONFLICT" | "PENDING";
+  status: "SCHEDULED" | "COMPLETED" | "OVERDUE" | "MISSED" | "CONFLICT" | "PENDING" | "BLOCKED" | "IN_PROGRESS" | "DUE";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  type: "Meeting" | "Deadline" | "Work" | "Priority" | "Follow-up" | "Milestone" | "Approval" | "Business Event" | "Personal";
   description?: string;
-  linkedContext?: string;
-  intelligenceSignal?: string;
-  recommendedAction?: string;
 }
 
-export default function CommonCalendarPage() {
+export default function CalendarOSPage() {
   const router = useRouter();
   
-  // State
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<UnifiedEvent[]>([]);
   const [view, setView] = useState<"Month" | "Week" | "Day" | "Agenda">("Week");
-  const [calendarMode, setCalendarMode] = useState<"Common" | "My" | "Team">("Common");
   
   // Filters
   const [search, setSearch] = useState("");
   const [centerFilter, setCenterFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-  // Load and Aggregate Data
   useEffect(() => {
     async function loadUnifiedData() {
       try {
         const [
           calendarRaw,
-          cmdRaw,
           opsRaw,
-          revRaw,
-          convRaw
+          convRaw,
+          revRaw
         ] = await Promise.all([
           getCalendar().catch(() => null),
-          getCommandCenter().catch(() => null),
           getOperations().catch(() => null),
-          getRevenue().catch(() => null),
-          getConversion().catch(() => null)
+          getConversion().catch(() => null),
+          getRevenue().catch(() => null)
         ]);
 
         let unified: UnifiedEvent[] = [];
 
         // 1. Core Calendar Events
         if (calendarRaw) {
-          calendarRaw.events.forEach(e => {
+          calendarRaw.events.forEach((e: any) => {
             unified.push({
               id: e.id,
               sourceModule: e.sourceModule || "Calendar",
-              sourceType: "Meeting",
+              sourceEntityType: "CalendarEvent",
+              sourceEntityId: e.id,
               title: e.title,
               date: e.date,
               startTime: e.startTime,
-              endTime: e.endTime,
+              endTime: e.endTime || "TBD",
               owner: e.owner,
               status: e.status,
-              description: e.description,
-              linkedContext: e.linkedContext,
-              intelligenceSignal: e.intelligenceSignal,
-              recommendedAction: e.recommendedAction
+              priority: e.priority === "URGENT" ? "CRITICAL" : e.priority === "HIGH" ? "HIGH" : "MEDIUM",
+              type: "Meeting",
+              description: e.description
             });
           });
         }
 
-        // 2. Command Center (Actions with dates)
-        if (cmdRaw && cmdRaw.actionQueue) {
-           cmdRaw.actionQueue.forEach(a => {
-             unified.push({
-               id: a.id,
-               sourceModule: "Command",
-               sourceType: "Action",
-               title: a.title,
-               date: new Date().toISOString(),
-               startTime: "TBD",
-               endTime: "TBD",
-               owner: "Founder",
-               status: "PENDING",
-               description: a.subtitle,
-               linkedContext: a.type
-             });
-           });
-        }
-
-        // 3. Operations (Schedule / Tasks)
+        // 2. Operations Work mapped to Calendar
         if (opsRaw) {
-           opsRaw.schedule?.forEach(s => {
+           opsRaw.work?.forEach((s: any) => {
               unified.push({
                 id: s.id,
                 sourceModule: "Operations",
-                sourceType: "Schedule",
+                sourceEntityType: "Work",
+                sourceEntityId: s.id,
                 title: s.title,
-                date: new Date().toISOString(), // Mock mapped
+                date: s.dueDate || new Date().toISOString(),
                 startTime: "09:00 AM",
                 endTime: "10:00 AM",
-                owner: s.ownerId,
-                status: s.status === "PENDING" ? "SCHEDULED" : "COMPLETED",
-                description: s.agenda
+                owner: s.ownerId || "Team",
+                status: s.status === "COMPLETED" ? "COMPLETED" : s.status === "BLOCKED" ? "BLOCKED" : (new Date(s.dueDate).getTime() < Date.now() ? "OVERDUE" : "SCHEDULED"),
+                priority: s.priority,
+                type: "Work",
+                description: s.description
+              });
+           });
+           
+           opsRaw.planning?.forEach((s: any) => {
+              unified.push({
+                id: s.id,
+                sourceModule: "Operations",
+                sourceEntityType: "Planning",
+                sourceEntityId: s.id,
+                title: s.title,
+                date: s.dueDate || new Date().toISOString(),
+                startTime: "09:00 AM",
+                endTime: "10:00 AM",
+                owner: s.ownerId || "Team",
+                status: s.status === "COMPLETED" ? "COMPLETED" : "SCHEDULED",
+                priority: "HIGH",
+                type: "Business Event",
+                description: s.description
               });
            });
         }
 
-        // 4. Delivery (Milestones) handling removed (now handled internally via Context later)
+        // 3. Conversion Follow-Ups mapped to Calendar
+        if (convRaw) {
+           convRaw.followUps?.forEach((f: any) => {
+              unified.push({
+                id: f.id,
+                sourceModule: "Conversion",
+                sourceEntityType: "FollowUp",
+                sourceEntityId: f.id,
+                title: `Outreach Follow Up: ${f.reason}`,
+                date: f.dueDate || new Date().toISOString(),
+                startTime: "11:00 AM",
+                endTime: "11:30 AM",
+                owner: f.owner,
+                status: f.status === "COMPLETED" ? "COMPLETED" : (f.status === "OVERDUE" ? "OVERDUE" : "DUE"),
+                priority: f.priority.toUpperCase() as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
+                type: "Follow-up",
+                description: f.recommendedAction
+              });
+           });
+        }
 
-        // Sort events chronologically to fake real calendar display in our UI
+        // Sort events chronologically
         unified = unified.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         setEvents(unified);
 
@@ -131,341 +147,353 @@ export default function CommonCalendarPage() {
     loadUnifiedData();
   }, []);
 
-  // Filtering Logic
   const filteredEvents = useMemo(() => {
     return events.filter(e => {
-       // Search filter
        if (search && !e.title.toLowerCase().includes(search.toLowerCase()) && !e.description?.toLowerCase().includes(search.toLowerCase())) return false;
-       // Center filter
        if (centerFilter !== "All" && e.sourceModule !== centerFilter) return false;
-       // Status filter
-       if (statusFilter !== "All" && e.status !== statusFilter) return false;
-       // Mode filter
-       if (calendarMode === "My" && e.owner !== "Founder" && !e.owner.includes("Lead")) return false; // Mocking current user logic
-
+       if (typeFilter !== "All" && e.type !== typeFilter) return false;
        return true;
     });
-  }, [events, search, centerFilter, statusFilter, calendarMode]);
+  }, [events, search, centerFilter, typeFilter]);
 
   const activeEvent = events.find(e => e.id === selectedEventId);
 
-  // Today Summary logic
-  const todayCount = filteredEvents.filter(e => e.status !== "COMPLETED").length;
-  const overdueCount = filteredEvents.filter(e => e.status === "OVERDUE" || e.status === "MISSED").length;
-  const metrics = [
-    { label: "Total Events", value: todayCount },
-    { label: "Overdue", value: overdueCount, alert: overdueCount > 0 },
-    { label: "Scheduled", value: filteredEvents.filter(e => e.status === "SCHEDULED").length }
-  ];
+  // Cards Logic
+  const actNow = Date.now();
+  
+  // Basic classification
+  const notCompleted = filteredEvents.filter(e => e.status !== "COMPLETED");
+  const todayEvents = notCompleted.filter(e => {
+    const d = new Date(e.date);
+    const n = new Date();
+    return d.getDate() === n.getDate() && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
+  });
+  
+  const needsAttention = notCompleted.filter(e => 
+    e.status === "OVERDUE" || e.status === "BLOCKED" || e.status === "MISSED" || e.status === "CONFLICT"
+  );
+  
+  const followUps = notCompleted.filter(e => e.type === "Follow-up");
+  const deadlines = notCompleted.filter(e => e.type === "Deadline" || e.type === "Work");
+  const meetings = notCompleted.filter(e => e.type === "Meeting");
+  
+  const upcoming = notCompleted.filter(e => {
+     const t = new Date(e.date).getTime();
+     return t > actNow && t < actNow + (7 * 86400000);
+  });
+
+  const dayLoadPercentage = Math.min(Math.round((todayEvents.length / 8) * 100), 100);
 
   if (loading) {
      return (
-       <div className="p-8 max-w-[1600px] mx-auto animate-pulse flex flex-col gap-6">
-         <div className="h-12 bg-muted rounded w-64"></div>
-         <div className="flex gap-4">
-           <div className="flex-1 h-[600px] bg-muted/50 rounded-2xl border border-border"></div>
-           <div className="w-[380px] h-[600px] bg-muted/50 rounded-2xl border border-border"></div>
+       <div className="p-8 animate-pulse flex flex-col gap-6">
+         <div className="flex gap-4 mb-4">
+           {Array.from({length:4}).map((_, i) => <div key={i} className="h-24 flex-1 bg-muted/20 rounded-[12px]"></div>)}
          </div>
+         <div className="h-[600px] bg-muted/20 rounded-[16px]"></div>
        </div>
      );
   }
 
-  if (events.length === 0) {
-      return (
-         <div className="flex-1 p-10 flex flex-col items-center justify-center min-h-[60vh]">
-            <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">calendar_month</span>
-            <h2 className="text-[20px] font-bold text-foreground mb-2">Calendar</h2>
-            <p className="text-[13px] text-muted-foreground text-center max-w-md">
-              No scheduled activities yet. Your calendar will populate automatically as you create calls, content, follow-ups, milestones, and team tasks.
-            </p>
-         </div>
-      );
-  }
-
   return (
-    <div className="flex flex-col h-screen max-w-[1600px] mx-auto bg-background">
+    <div className="flex flex-col h-screen bg-background">
       
-      {/* 1. UNIFIED HEADER */}
+      {/* HEADER */}
       <header className="flex flex-col md:flex-row md:items-center justify-between p-6 border-b border-border bg-card shrink-0 gap-4">
         <div>
            <div className="flex items-center gap-3 mb-1">
               <span className="material-symbols-outlined text-primary text-[24px]">calendar_month</span>
-              <h1 className="text-[24px] font-bold tracking-tight text-foreground uppercase">Calendar</h1>
+              <h1 className="text-[24px] font-bold tracking-tight text-foreground uppercase">Central Calendar OS</h1>
            </div>
-           <p className="text-[13px] text-muted-foreground font-medium flex gap-4">
-              <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric'})}</span>
-              <span className="text-tertiary font-bold">{metrics[0].value} scheduled actions</span>
-           </p>
+           <p className="text-[13px] text-muted-foreground font-medium">The time-based operating view of ASENZO.</p>
         </div>
 
         <div className="flex items-center gap-6">
-           {/* Calendar Modes */}
-           <div className="flex items-center bg-secondary p-1 rounded-md border border-border shrink-0">
-              {['Common', 'My', 'Team'].map(mode => (
-                 <button 
-                   key={mode}
-                   onClick={() => setCalendarMode(mode as any)}
-                   className={`px-4 py-1.5 text-[12px] font-bold rounded flex-1 transition-colors ${calendarMode === mode ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                 >
-                   {mode} {mode !== 'Common' && 'Calendar'}
-                 </button>
-              ))}
+           <div className="relative hidden md:block">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-[16px]">search</span>
+              <input 
+                type="text" 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search across OS..." 
+                className="pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-[13px] w-64 focus:outline-none focus:border-primary"
+              />
            </div>
-           
-           <div className="flex items-center gap-3 shrink-0">
-              <div className="relative hidden md:block">
-                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-[16px]">search</span>
-                 <input 
-                   type="text" 
-                   value={search}
-                   onChange={e => setSearch(e.target.value)}
-                   placeholder="Global search..." 
-                   className="pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-[13px] w-64 focus:outline-none focus:border-primary"
-                 />
-              </div>
-              <button className="flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-[8px] text-[13px] font-bold hover:bg-foreground/90 transition-colors">
-                 <span className="material-symbols-outlined text-[16px]">add</span>
-                 Create Event
-              </button>
-           </div>
+           <button className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-[8px] text-[13px] font-bold hover:bg-primary/90 transition-colors">
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              Create Event
+           </button>
         </div>
       </header>
 
-      {/* 2. TOP HORIZONTAL FILTERS & VIEWS */}
-      <div className="px-6 py-4 border-b border-border bg-card flex flex-wrap items-center justify-between gap-4 shrink-0">
-         <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Center:</span>
-               <select 
-                 value={centerFilter} 
-                 onChange={e => setCenterFilter(e.target.value)}
-                 className="bg-secondary border border-border rounded px-3 py-1 text-[12px] font-semibold text-foreground focus:outline-none"
-               >
-                 {['All', 'Command', 'Acquisition', 'Conversion', 'Revenue', 'Delivery', 'Operations', 'Intelligence'].map(opt => (
-                   <option key={opt} value={opt}>{opt}</option>
-                 ))}
-               </select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Status:</span>
-               <select 
-                 value={statusFilter} 
-                 onChange={e => setStatusFilter(e.target.value)}
-                 className="bg-secondary border border-border rounded px-3 py-1 text-[12px] font-semibold text-foreground focus:outline-none"
-               >
-                 <option value="All">All Statuses</option>
-                 <option value="SCHEDULED">Scheduled</option>
-                 <option value="PENDING">Pending</option>
-                 <option value="OVERDUE">Overdue</option>
-                 <option value="COMPLETED">Completed</option>
-               </select>
-            </div>
-         </div>
-
-         <div className="flex bg-secondary p-1 rounded-md border border-border">
-            {['Month', 'Week', 'Day', 'Agenda'].map(v => (
-               <button 
-                 key={v}
-                 onClick={() => setView(v as any)}
-                 className={`px-4 py-1.5 text-[12px] font-bold rounded transition-colors ${view === v ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-               >
-                 {v}
-               </button>
-            ))}
-         </div>
-      </div>
-
       <div className="flex-1 flex overflow-hidden">
-        
-         {/* 3. MAIN CALENDAR GRID */}
+         
+         {/* MAIN CALENDAR AREA */}
          <div className="flex-1 flex flex-col bg-muted/10 overflow-auto">
-            {/* Warning Conflict Strip */}
-            {overdueCount > 0 && (
-               <div className="bg-destructive/10 border-b border-destructive/20 p-3 flex justify-between items-center text-destructive">
-                 <div className="flex items-center gap-2">
-                   <span className="material-symbols-outlined text-[18px]">warning</span>
-                   <span className="text-[12px] font-bold uppercase tracking-widest">Schedule Risk Detected</span>
-                 </div>
-                 <span className="text-[13px] font-medium">You have {overdueCount} overdue actions impacting the operating rhythm.</span>
+            
+            {/* CARDS */}
+            <div className="p-6 pb-2 shrink-0">
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-2">
+                  <div className="bg-card border border-border rounded-[12px] p-4 shadow-sm cursor-pointer hover:border-foreground/50 transition-colors flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Today</span>
+                     <div className="text-[24px] font-bold text-foreground leading-none mb-1">{todayEvents.length}</div>
+                     <span className="text-[11px] text-muted-foreground">Items due/sched.</span>
+                  </div>
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-[12px] p-4 shadow-sm cursor-pointer hover:border-destructive/50 transition-colors flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-destructive uppercase tracking-widest mb-1">Needs Attn</span>
+                     <div className="text-[24px] font-bold text-destructive leading-none mb-1">{needsAttention.length}</div>
+                     <span className="text-[11px] text-destructive/80">Blocked/overdue</span>
+                  </div>
+                  <div className="bg-card border border-border rounded-[12px] p-4 shadow-sm cursor-pointer hover:border-foreground/50 transition-colors flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Follow Ups</span>
+                     <div className="text-[24px] font-bold text-foreground leading-none mb-1">{followUps.filter(f => f.status !== "COMPLETED").length}</div>
+                     <span className="text-[11px] text-muted-foreground">Active in queue</span>
+                  </div>
+                  <div className="bg-card border border-border rounded-[12px] p-4 shadow-sm cursor-pointer hover:border-foreground/50 transition-colors flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Deadlines</span>
+                     <div className="text-[24px] font-bold text-foreground leading-none mb-1">{deadlines.length}</div>
+                     <span className="text-[11px] text-muted-foreground">Upcoming due</span>
+                  </div>
+                  <div className="bg-card border border-border rounded-[12px] p-4 shadow-sm cursor-pointer hover:border-foreground/50 transition-colors flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Meetings</span>
+                     <div className="text-[24px] font-bold text-foreground leading-none mb-1">{meetings.length}</div>
+                     <span className="text-[11px] text-muted-foreground">Scheduled calls</span>
+                  </div>
+                  <div className="bg-card border border-border rounded-[12px] p-4 shadow-sm cursor-pointer hover:border-foreground/50 transition-colors flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Upcoming</span>
+                     <div className="text-[24px] font-bold text-foreground leading-none mb-1">{upcoming.length}</div>
+                     <span className="text-[11px] text-muted-foreground">Next 7 days</span>
+                  </div>
+                  <div className="bg-card border border-border rounded-[12px] p-4 shadow-sm flex flex-col justify-center">
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Day Load</span>
+                     <div className={`text-[24px] font-bold leading-none mb-1 ${dayLoadPercentage > 90 ? 'text-destructive' : 'text-foreground'}`}>{dayLoadPercentage}%</div>
+                     <span className="text-[11px] text-muted-foreground">Capacity limit</span>
+                  </div>
                </div>
-            )}
+            </div>
 
-            {view === "Agenda" && (
-                <div className="p-6">
-                   <div className="bg-card border border-border rounded-[12px] overflow-hidden">
-                      {filteredEvents.map(ev => (
-                         <div 
-                           key={ev.id}
-                           onClick={() => setSelectedEventId(ev.id)}
-                           className={`p-4 border-b border-border last:border-0 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors ${selectedEventId === ev.id ? 'bg-secondary' : ''}`}
-                         >
-                            <div className="flex items-center gap-4">
-                               <div className="w-[100px] shrink-0 text-center">
-                                  <span className="block text-[11px] font-bold text-muted-foreground uppercase">{ev.startTime}</span>
-                                  {ev.status === 'OVERDUE' && <span className="block mt-1 text-[9px] font-bold text-destructive uppercase tracking-widest bg-destructive/10 px-1 rounded">Overdue</span>}
-                               </div>
-                               <div>
-                                  <div className="flex gap-2 items-center mb-1">
-                                    <span className="px-2 py-0.5 rounded border border-border bg-background text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{ev.sourceModule}</span>
-                                    <span className="text-[14px] font-bold text-foreground truncate">{ev.title}</span>
-                                  </div>
-                                  <span className="text-[12px] text-muted-foreground">Owner: {ev.owner} {ev.sourceType && `• ${ev.sourceType}`}</span>
-                               </div>
-                            </div>
-                            <span className="material-symbols-outlined text-muted-foreground shrink-0">chevron_right</span>
-                         </div>
-                      ))}
-                      {filteredEvents.length === 0 && (
-                        <div className="p-10 text-center text-muted-foreground font-medium text-[13px]">
-                          No events match your current filters.
-                        </div>
-                      )}
-                   </div>
-                </div>
-            )}
+            {/* FILTERS TRAY */}
+            <div className="px-6 pb-4 flex flex-wrap items-center justify-between gap-4 shrink-0">
+               <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                     <select 
+                       value={centerFilter} 
+                       onChange={e => setCenterFilter(e.target.value)}
+                       className="bg-card border border-border rounded-[6px] px-3 py-1.5 text-[12px] font-bold text-foreground focus:outline-none"
+                     >
+                       {['All', 'Acquisition', 'Conversion', 'Revenue', 'Delivery', 'Operations'].map(opt => (
+                         <option key={opt} value={opt}>{opt} Events</option>
+                       ))}
+                     </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <select 
+                       value={typeFilter} 
+                       onChange={e => setTypeFilter(e.target.value)}
+                       className="bg-card border border-border rounded-[6px] px-3 py-1.5 text-[12px] font-bold text-foreground focus:outline-none"
+                     >
+                       <option value="All">All Types</option>
+                       <option value="Meeting">Meetings</option>
+                       <option value="Deadline">Deadlines</option>
+                       <option value="Work">Tasks/Work</option>
+                       <option value="Follow-up">Follow-ups</option>
+                       <option value="Milestone">Milestones</option>
+                     </select>
+                  </div>
+               </div>
+      
+               <div className="flex bg-card p-1 rounded-md border border-border shadow-sm">
+                  {['Month', 'Week', 'Day', 'Agenda'].map(v => (
+                     <button 
+                       key={v}
+                       onClick={() => setView(v as any)}
+                       className={`px-4 py-1.5 text-[12px] font-bold rounded-[6px] transition-colors ${view === v ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                     >
+                       {v}
+                     </button>
+                  ))}
+               </div>
+            </div>
 
-            {(view === "Week" || view === "Day") && (
-                <div className="flex-1 flex flex-col h-full overflow-hidden p-6">
-                   <div className="bg-card border border-border rounded-[12px] flex-1 flex flex-col overflow-hidden shadow-sm">
-                      <div className={`grid ${view === 'Week' ? 'grid-cols-5' : 'grid-cols-1'} border-b border-border bg-secondary shrink-0`}>
-                          {(view === 'Week' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] : ['Today']).map((day, idx) => (
-                             <div key={day} className={`p-4 text-center ${idx !== 0 ? 'border-l border-border' : ''}`}>
-                                <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{day}</h3>
-                             </div>
-                          ))}
-                      </div>
-                      <div className={`grid ${view === 'Week' ? 'grid-cols-5' : 'grid-cols-1'} flex-1 overflow-y-auto bg-background/50`}>
-                          {(view === 'Week' ? [0,1,2,3,4] : [0]).map(col => {
-                             // Naive column rendering
-                             const colEvents = filteredEvents.filter((_, i) => i % (view === 'Week' ? 5 : 1) === col);
-                             return (
-                               <div key={col} className={`p-2 space-y-3 ${col !== 0 ? 'border-l border-border' : ''}`}>
-                                  {colEvents.map(ev => {
-                                     const isOverdue = ev.status === 'OVERDUE' || ev.status === 'MISSED' || ev.status === 'CONFLICT';
-                                     const isCompleted = ev.status === 'COMPLETED';
-                                     
-                                     return (
-                                        <div 
-                                          key={ev.id}
-                                          onClick={() => setSelectedEventId(ev.id)}
-                                          className={`p-3 rounded-[8px] border transition-all cursor-pointer ${
-                                            isOverdue ? 'bg-destructive/5 border-destructive/30 hover:border-destructive/60' :
-                                            isCompleted ? 'bg-secondary/50 border-border opacity-70' :
-                                            'bg-card border-border hover:border-tertiary/60'
-                                          } ${selectedEventId === ev.id ? 'ring-2 ring-primary border-primary' : ''}`}
-                                        >
-                                           <div className="flex justify-between items-start mb-2">
-                                              <span className={`text-[10px] font-bold uppercase ${isOverdue ? 'text-destructive' : 'text-primary'}`}>{ev.startTime}</span>
-                                              <span className="text-[8px] font-bold uppercase tracking-widest bg-secondary text-muted-foreground px-1 py-0.5 rounded">{ev.sourceModule}</span>
-                                           </div>
-                                           <h4 className={`text-[13px] font-bold leading-tight line-clamp-2 ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{ev.title}</h4>
-                                        </div>
-                                     );
-                                  })}
-                               </div>
-                             );
-                          })}
-                      </div>
-                   </div>
-                </div>
-            )}
-
-            {view === "Month" && (
-                <div className="flex-1 p-6 flex flex-col">
-                   <div className="bg-card border border-border rounded-[12px] flex-1 grid grid-cols-7 grid-rows-5 overflow-hidden shadow-sm">
-                      {Array.from({length: 35}).map((_, i) => {
-                         const d = i - 2; // fake offset
-                         const dayEvents = filteredEvents.slice(i, i+1); // fake slicing
-                         return (
-                           <div key={i} className="border-r border-b border-border p-2 bg-card hover:bg-secondary transition-colors cursor-pointer min-h-[100px]">
-                              <span className="text-[12px] font-bold text-muted-foreground block mb-2">{d > 0 && d <= 31 ? d : ''}</span>
-                              {dayEvents.map(ev => (
-                                 <div key={ev.id} onClick={(e) => { e.stopPropagation(); setSelectedEventId(ev.id); }} className={`truncate text-[10px] font-bold px-1.5 py-0.5 rounded mb-1 ${ev.status === 'OVERDUE' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
-                                    {ev.startTime} {ev.title}
+            {/* CALENDAR BODY */}
+            <div className="flex-1 flex flex-col px-6 pb-6 overflow-hidden">
+               <div className="bg-card border border-border rounded-[16px] flex-1 flex flex-col overflow-hidden shadow-sm">
+                  
+                  {view === "Agenda" && (
+                      <div className="flex-1 overflow-auto p-4 space-y-2">
+                        {filteredEvents.map(ev => (
+                           <div 
+                             key={ev.id}
+                             onClick={() => setSelectedEventId(ev.id)}
+                             className={`p-4 border border-border rounded-xl flex items-center justify-between cursor-pointer hover:border-foreground/30 transition-colors ${selectedEventId === ev.id ? 'bg-secondary' : 'bg-background'}`}
+                           >
+                              <div className="flex items-start gap-4 mx-2">
+                                 <div className="w-[110px] shrink-0 pt-0.5">
+                                    <span className={`block text-[12px] font-bold mb-1 ${ev.status === 'OVERDUE' ? 'text-destructive' : 'text-foreground'}`}>
+                                      {new Date(ev.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+                                    </span>
+                                    <span className="block text-[11px] font-bold text-muted-foreground">{ev.startTime}</span>
                                  </div>
-                              ))}
+                                 <div className="flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                       <span className="px-2 py-0.5 rounded-[4px] border border-border bg-secondary text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                                         {ev.sourceModule}
+                                       </span>
+                                       <span className={`px-2 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider ${
+                                         ev.status === 'OVERDUE' || ev.status === 'MISSED' ? 'bg-destructive/10 text-destructive' : 
+                                         ev.status === 'COMPLETED' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+                                       }`}>
+                                         {ev.status}
+                                       </span>
+                                    </div>
+                                    <span className={`text-[15px] font-bold leading-tight ${ev.status === 'COMPLETED' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{ev.title}</span>
+                                    <span className="text-[12px] text-muted-foreground font-medium flex gap-4">
+                                       <span><strong className="font-bold">Type:</strong> {ev.type}</span>
+                                       <span><strong className="font-bold">Owner:</strong> {ev.owner}</span>
+                                    </span>
+                                 </div>
+                              </div>
                            </div>
-                         );
-                      })}
-                   </div>
-                </div>
-            )}
+                        ))}
+                      </div>
+                  )}
+
+                  {view === "Week" && (
+                      <div className="flex-1 flex flex-col overflow-auto bg-background/30">
+                        <div className="grid grid-cols-5 border-b border-border bg-card shrink-0">
+                           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day, idx) => (
+                              <div key={day} className={`p-4 text-center ${idx !== 0 ? 'border-l border-border' : ''}`}>
+                                 <h3 className="text-[12px] font-bold text-foreground">
+                                   {day} <span className="text-muted-foreground font-normal ml-1">{new Date().getDate() + idx - 2}</span>
+                                 </h3>
+                              </div>
+                           ))}
+                        </div>
+                        <div className="grid grid-cols-5 flex-1 p-2 gap-2">
+                           {[0,1,2,3,4].map(col => {
+                              const colEvents = filteredEvents.filter((_, i) => i % 5 === col);
+                              return (
+                                <div key={col} className="space-y-2">
+                                   {colEvents.map(ev => {
+                                      const isOverdue = ev.status === 'OVERDUE' || ev.status === 'BLOCKED' || ev.status === 'MISSED';
+                                      const isCompleted = ev.status === 'COMPLETED';
+                                      
+                                      return (
+                                         <div 
+                                           key={ev.id}
+                                           onClick={() => setSelectedEventId(ev.id)}
+                                           className={`p-3 rounded-[8px] border transition-all cursor-pointer ${
+                                             isOverdue ? 'bg-destructive/10 border-destructive/30 hover:border-destructive/60' :
+                                             isCompleted ? 'bg-background border-border/50 opacity-60 hover:opacity-100' :
+                                             'bg-card border-border hover:border-tertiary/60 shadow-sm'
+                                           } ${selectedEventId === ev.id ? 'ring-2 ring-primary border-primary' : ''}`}
+                                         >
+                                            <div className="flex justify-between items-start mb-2">
+                                               <span className={`text-[10px] font-bold ${isOverdue ? 'text-destructive' : 'text-primary'}`}>{ev.startTime}</span>
+                                               <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{ev.sourceModule.substring(0,3)}</span>
+                                            </div>
+                                            <h4 className={`text-[13px] font-bold leading-tight ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{ev.title}</h4>
+                                         </div>
+                                      );
+                                   })}
+                                </div>
+                              );
+                           })}
+                        </div>
+                      </div>
+                  )}
+
+                  {(view === "Month" || view === "Day") && (
+                     <div className="flex-1 flex items-center justify-center text-muted-foreground font-bold">
+                        {view} view not populated in this demo.
+                     </div>
+                  )}
+
+               </div>
+            </div>
          </div>
 
-         {/* 4. DETAIL PANEL */}
+         {/* EVENT DETAIL DRAWER */}
          {activeEvent && (
-            <aside className="w-[400px] shrink-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-4">
-               <div className={`p-6 border-b border-border ${
-                  activeEvent.status === 'OVERDUE' || activeEvent.status === 'MISSED' || activeEvent.status === 'CONFLICT' 
-                  ? 'bg-destructive/5' : 'bg-secondary/30'
-               }`}>
-                  <div className="flex justify-between items-start mb-4">
-                     <span className="px-2 py-0.5 bg-background border border-border rounded text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        {activeEvent.sourceModule} • {activeEvent.sourceType}
+            <aside className="w-[420px] shrink-0 border-l border-border bg-card flex flex-col h-full z-10 shadow-xl overflow-hidden animate-in slide-in-from-right-4">
+               <div className={`p-6 border-b border-border bg-card shrink-0 shadow-sm`}>
+                  <div className="flex justify-between items-start mb-6">
+                     <span className="px-2.5 py-1 bg-secondary border border-border rounded-[6px] text-[10px] font-bold uppercase tracking-widest text-foreground">
+                        {activeEvent.sourceModule} • {activeEvent.type}
                      </span>
-                     <button onClick={() => setSelectedEventId(null)} className="text-muted-foreground hover:text-foreground">
-                       <span className="material-symbols-outlined text-[18px]">close</span>
+                     <button onClick={() => setSelectedEventId(null)} className="text-muted-foreground hover:text-foreground hover:bg-muted p-1 rounded-full transition-colors">
+                       <span className="material-symbols-outlined text-[20px]">close</span>
                      </button>
                   </div>
-                  <h3 className="text-[20px] font-bold text-foreground leading-tight mb-2">{activeEvent.title}</h3>
-                  <div className="text-[13px] font-bold text-tertiary uppercase tracking-wider">{activeEvent.startTime} - {activeEvent.endTime}</div>
+                  <h3 className="text-[22px] font-bold text-foreground leading-tight mb-4">{activeEvent.title}</h3>
+                  <div className="flex flex-col gap-2 p-3 bg-background border border-border rounded-[8px]">
+                     <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-muted-foreground text-[18px]">calendar_today</span>
+                        <span className="text-[13px] font-bold text-foreground">{new Date(activeEvent.date).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}</span>
+                     </div>
+                     <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-muted-foreground text-[18px]">schedule</span>
+                        <span className="text-[13px] font-bold text-foreground">{activeEvent.startTime} — {activeEvent.endTime}</span>
+                     </div>
+                  </div>
                </div>
 
-               <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                  <div>
-                    <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-2">
-                       <span className="material-symbols-outlined text-[14px]">info</span> Business Context
-                    </h4>
-                    <p className="text-[13px] text-foreground font-medium leading-relaxed bg-secondary border border-border p-4 rounded-lg">
-                       {activeEvent.description || "No specific details provided for this event."}
-                    </p>
+               <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="bg-background border border-border p-3 rounded-[8px]">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Status</span>
+                        <span className={`text-[12px] font-bold uppercase ${
+                          ['OVERDUE', 'BLOCKED', 'MISSED'].includes(activeEvent.status) ? 'text-destructive' :
+                          activeEvent.status === 'COMPLETED' ? 'text-success' : 'text-foreground'
+                        }`}>{activeEvent.status.replace("_", " ")}</span>
+                     </div>
+                     <div className="bg-background border border-border p-3 rounded-[8px]">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Priority</span>
+                        <span className={`text-[12px] font-bold uppercase ${
+                          activeEvent.priority === 'CRITICAL' ? 'text-destructive' : 'text-foreground'
+                        }`}>{activeEvent.priority}</span>
+                     </div>
                   </div>
 
-                  {activeEvent.linkedContext && (
-                    <div>
-                      <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Related Record</h4>
-                      <p className="text-[13px] text-primary font-bold hover:underline cursor-pointer">{activeEvent.linkedContext}</p>
-                    </div>
-                  )}
-
-                  {activeEvent.intelligenceSignal && (
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-2">
-                         <h4 className="text-[11px] font-bold text-primary uppercase tracking-widest flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">neurology</span> Intelligence Signal
-                         </h4>
-                      </div>
-                      <p className="text-[13px] text-foreground font-medium">{activeEvent.intelligenceSignal}</p>
-                    </div>
-                  )}
+                  <div>
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Description</span>
+                     <p className="text-[13px] text-foreground/90 font-medium leading-relaxed">
+                        {activeEvent.description || "No description provided for this operational item."}
+                     </p>
+                  </div>
 
                   <div>
-                     <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Ownership</h4>
-                     <div className="flex items-center gap-3 bg-secondary rounded-lg border border-border p-3">
-                        <span className="material-symbols-outlined text-muted-foreground">person</span>
+                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Owner</span>
+                     <div className="flex items-center gap-3 bg-background rounded-lg border border-border p-3">
+                        <span className="material-symbols-outlined text-muted-foreground">engineering</span>
                         <div>
-                           <p className="text-[13px] font-bold text-foreground leading-tight">{activeEvent.owner}</p>
+                           <p className="text-[13px] font-bold text-foreground leading-tight">{activeEvent.owner || 'Unassigned'}</p>
                         </div>
                      </div>
                   </div>
                </div>
 
-               <div className="p-4 border-t border-border grid grid-cols-2 gap-2 bg-card shrink-0">
-                  <button className="col-span-2 bg-foreground text-background font-bold text-[13px] py-2.5 rounded-[8px] hover:bg-foreground/90 transition-colors shadow-sm" onClick={() => router.push(`/${activeEvent.sourceModule.toLowerCase()}`)}>
-                     Open in {activeEvent.sourceModule}
-                  </button>
-                  <button className="border border-border text-foreground font-bold text-[13px] py-2 rounded-[8px] hover:bg-muted transition-colors">
-                     Reschedule
-                  </button>
-                  <button className="border border-border text-foreground font-bold text-[13px] py-2 rounded-[8px] hover:bg-muted transition-colors">
-                     Mark Complete
-                  </button>
+               <div className="p-4 border-t border-border bg-card shrink-0">
+                  <div className="flex flex-col gap-2">
+                     <button 
+                       className="bg-primary text-primary-foreground font-bold text-[13px] py-3 rounded-[8px] hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2"
+                       onClick={() => router.push(`/${activeEvent.sourceModule.toLowerCase()}`)}
+                     >
+                        Open in {activeEvent.sourceModule} <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                     </button>
+                     <div className="grid grid-cols-2 gap-2">
+                        <button className="border border-border text-foreground font-bold text-[12px] py-2.5 rounded-[8px] hover:bg-secondary transition-colors">
+                           Reschedule
+                        </button>
+                        <button className="border border-border text-foreground font-bold text-[12px] py-2.5 rounded-[8px] hover:bg-secondary transition-colors">
+                           Mark Complete
+                        </button>
+                     </div>
+                  </div>
                </div>
             </aside>
          )}
       </div>
-
     </div>
   );
 }

@@ -1,145 +1,185 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { SalesCall } from "@/lib/types/conversion";
 import { useConversionOS } from "@/contexts/ConversionOSContext";
+import { SalesCall, Lead, Opportunity } from "@/lib/types/conversion";
+import { ACTION_MAP } from "@/lib/routing";
 
-export default function SalesCallWorkspace() {
-  const { calls, updateCall, opportunities, leads } = useConversionOS();
+export default function CalendarCallWorkspace() {
+  const { calls, opportunities, leads } = useConversionOS();
   const [activeCallId, setActiveCallId] = useState<string | null>(null);
-  
-  const [callState, setCallState] = useState<Partial<SalesCall>>({
-    id: "", opportunityId: "", scheduledDate: "", status: "SCHEDULED",
-    situation: "", problem: "", impact: "", desiredOutcome: "", previousAttempts: "",
-    beliefs: "", buyingTrigger: "", objections: "", fit: ""
-  });
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    if (calls && calls.length > 0) {
-      setCallState(calls[0]);
-      setActiveCallId(calls[0].id);
-    }
-    setIsLoaded(true);
-  }, [calls]);
-
-  const handleCompleteCall = async () => {
-    setIsProcessing(true);
-    if (activeCallId) {
-      updateCall(activeCallId, { ...callState, status: "COMPLETED" } as any);
-      alert("Call notes saved. AI extracted objections and updated the Opportunity record.");
-    }
-    setIsProcessing(false);
-  };
-
-  const targetOpp = opportunities.find(o => o.id === callState.opportunityId);
-  const targetLead = leads.find(l => l.id === targetOpp?.leadId);
+  const activeCall = calls.find(c => c.id === activeCallId) || null;
+  const targetOpp = activeCall ? opportunities.find(o => o.id === activeCall.opportunityId) : null;
+  const targetLead = targetOpp ? leads.find(l => l.id === targetOpp.leadId) : null;
 
   return (
-    <div className="px-8 py-6 max-w-[1500px] mx-auto h-[calc(100vh-130px)] flex flex-col space-y-4">
+    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-6 flex flex-col h-[calc(100vh-100px)]">
       <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Sales Call Workspace</h1>
-          <p className="text-[12px] text-slate-500 mt-0.5">{targetLead?.name || "Unknown Lead"} — {targetLead?.company || "Unknown Company"}</p>
+          <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Sales Calendar</h1>
+          <p className="text-[12px] text-slate-500 mt-0.5">Manage booked appointments and pre-call context.</p>
         </div>
-        <button 
-          onClick={handleCompleteCall}
-          disabled={isProcessing || !isLoaded}
-          className="px-5 py-2 bg-emerald-600 text-white text-[12px] font-bold rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-[16px]">call_end</span>
-          {isProcessing ? "Processing..." : "Complete & Run Intelligence"}
-        </button>
       </div>
 
-      <div className="flex gap-4 flex-1 overflow-hidden">
-        {/* Left: Pre-Call Context */}
-        <div className="w-[300px] shrink-0 bg-white border border-slate-200 rounded-xl flex flex-col overflow-y-auto shadow-sm">
-           <div className="p-4 border-b border-slate-100 bg-slate-50 sticky top-0">
-             <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Pre-Call Context</h3>
-           </div>
-           <div className="p-4 space-y-5">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Acquisition Source</p>
-                <div className="text-[12px] font-medium text-slate-900">{targetLead?.originalSource || "Unknown"}</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">{targetLead?.originalContent || "Unknown"}</div>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Identified Trigger</p>
-                <div className="text-[12px] font-medium text-slate-900">{targetLead?.buyingTrigger || targetOpp?.buyingTrigger || "Unknown"}</div>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Foundation Qualifying Constraint</p>
-                <div className="text-[12px] font-medium text-emerald-700">{targetLead?.qualificationStatus || "Unknown"}</div>
+      <div className="flex gap-6 flex-1 overflow-hidden">
+        {/* LEFT: CALENDAR SCHEDULE */}
+        <div className="flex-1 max-w-[500px] overflow-y-auto space-y-8 pr-4">
+           {/* Example Schedule Block */}
+           <div>
+              <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">MONDAY, 18TH</h2>
+              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-[50px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                 {calls.map((call, idx) => {
+                    const opp = opportunities.find(o => o.id === call.opportunityId);
+                    const lead = leads.find(l => l.id === opp?.leadId);
+                    const isSelected = activeCallId === call.id;
+                    const timeString = new Date(call.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' }) || "10:00 AM";
+
+                    return (
+                       <div key={call.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-slate-100 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}>
+                             <span className="text-[9px] font-bold text-slate-500">{timeString.split(" ")[0]}</span>
+                          </div>
+                          
+                          <div 
+                             onClick={() => setActiveCallId(call.id)}
+                             className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl shadow-sm border cursor-pointer hover:border-slate-300 transition-all ${isSelected ? 'bg-blue-50 border-blue-200 shadow-blue-100' : 'bg-white border-slate-200'}`}
+                           >
+                             <div className="flex justify-between items-start mb-2">
+                                <div>
+                                   <p className="text-[14px] font-bold text-slate-900">{lead?.name || "Unknown Lead"}</p>
+                                   <p className="text-[11px] text-slate-500">{lead?.company || "Independent"} • {lead?.qualificationStatus}</p>
+                                </div>
+                             </div>
+                             
+                             {/* TASK 10: Call Status Tags directly on the schedule blocks */}
+                             <div className="flex gap-2 mb-3">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest ${
+                                   call.status === "SHOWED" ? "bg-emerald-100 text-emerald-700" :
+                                   call.status === "NO_SHOW" ? "bg-red-100 text-red-700" :
+                                   call.status === "SCHEDULED" ? "bg-indigo-100 text-indigo-700" :
+                                   "bg-slate-100 text-slate-600"
+                                }`}>
+                                   {call.status}
+                                </span>
+                                {opp?.pipelineStage === "OFFER_SENT" && (
+                                   <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700">OFFER SENT</span>
+                                )}
+                             </div>
+
+                             <button className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-400 group-hover:text-blue-600'}`}>
+                                View Context
+                             </button>
+                          </div>
+                       </div>
+                    )
+                 })}
               </div>
            </div>
         </div>
 
-        {/* Center: Diagnosis Framework */}
-        <div className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-y-auto shadow-sm">
-           <div className="p-4 border-b border-slate-100 bg-slate-50 sticky top-0 flex items-center justify-between">
-             <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Diagnosis Framework</h3>
-             <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-700 rounded">Live Capture</span>
-           </div>
-           
-           <div className="p-6 space-y-6">
-              {[
-                { id: "situation", label: "Situation", desc: "What is happening now?" },
-                { id: "problem", label: "Problem", desc: "What is actually wrong?" },
-                { id: "impact", label: "Impact", desc: "What is this costing them?" },
-                { id: "desiredOutcome", label: "Desired Outcome", desc: "What do they actually want?" },
-                { id: "previousAttempts", label: "Previous Attempts", desc: "What have they already tried?" },
-                { id: "objections", label: "Objections", desc: "What could stop them?" }
-              ].map(field => (
-                <div key={field.id}>
-                  <label className="text-[12px] font-bold text-slate-900 block mb-1">{field.label}</label>
-                  <p className="text-[10px] text-slate-500 mb-2">{field.desc}</p>
-                  <textarea 
-                    value={callState[field.id as keyof SalesCall] as string}
-                    onChange={(e) => setCallState({...callState, [field.id]: e.target.value})}
-                    rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg text-[13px] bg-slate-50/50 focus:bg-white focus:outline-none focus:border-blue-400 transition-colors"
-                  />
-                </div>
-              ))}
-           </div>
-        </div>
+        {/* RIGHT: PERSON PRE-CALL CONTEXT (TASK 11) */}
+        <div className="flex-1 bg-white border border-slate-200 rounded-[16px] shadow-sm flex flex-col overflow-hidden relative">
+           {activeCall && targetLead && targetOpp ? (
+              <>
+                 <div className="p-6 border-b border-slate-100 bg-slate-50">
+                    <div className="flex items-center justify-between mb-4">
+                       <div>
+                          <h2 className="text-[20px] font-bold text-slate-900 leading-tight">{targetLead.name}</h2>
+                          <p className="text-[13px] font-medium text-slate-500 mt-1">{targetLead.company || "Independent"} {targetLead.role ? `• ${targetLead.role}` : ""}</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Deal Value</p>
+                          <p className="text-[16px] font-bold text-emerald-600">£{(targetOpp.estimatedValue/1000).toFixed(1)}k</p>
+                       </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                       <div className="flex gap-2">
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${targetLead.temperature === "HOT" ? "bg-red-100 text-red-700" : targetLead.temperature === "WARM" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                             {targetLead.temperature} LEAD
+                          </span>
+                          <span className="px-2 py-1 flex items-center gap-1 rounded text-[10px] font-bold uppercase bg-slate-200 text-slate-700">
+                             <span className="material-symbols-outlined text-[12px]">{targetLead.qualificationStatus === 'QUALIFIED' ? 'check_circle' : 'pending'}</span>
+                             {targetLead.qualificationStatus}
+                          </span>
+                       </div>
+                       <div className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">calendar_clock</span>
+                          {(new Date(activeCall.scheduledDate)).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+                       </div>
+                    </div>
+                 </div>
 
-        {/* Right: AI Intelligence */}
-        <div className="w-[300px] shrink-0 bg-violet-50/50 border border-violet-100 rounded-xl flex flex-col overflow-y-auto shadow-sm">
-           <div className="p-4 border-b border-violet-100 bg-violet-100/30 sticky top-0">
-             <h3 className="text-[11px] font-bold text-violet-700 uppercase tracking-widest flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[14px]">psychology</span>
-                Sales AI Agent
-             </h3>
-           </div>
-           <div className="p-4 space-y-5">
-              <div>
-                <p className="text-[10px] font-bold text-violet-500 uppercase mb-2">Recommended Focus</p>
-                <div className="bg-white border border-violet-100 p-3 rounded-lg text-[12px] text-slate-700 shadow-sm">
-                   Probe deep into the fulfillment bottleneck. If they can't handle scale, the Acquisition OS will break their company.
-                </div>
-              </div>
-              
-              <div>
-                <p className="text-[10px] font-bold text-violet-500 uppercase mb-2">Relevant Proof to Share</p>
-                <div className="bg-white border border-violet-100 p-3 rounded-lg text-[12px] text-slate-700 shadow-sm flex flex-col gap-2">
-                   <span className="font-semibold text-slate-900 line-clamp-1">Case Study: Elevate Media</span>
-                   <span className="text-[11px]">How we built their content engine while fixing fulfillment capacity.</span>
-                   <Link href="/foundation/proof" className="text-violet-600 font-bold text-[10px] mt-1">Open Asset</Link>
-                </div>
-              </div>
+                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                    {/* Source & Journey */}
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Origin & Journey</p>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Lead Source</p>
+                             <p className="text-[12px] font-bold text-slate-800">{targetLead.originalSource}</p>
+                             <p className="text-[11px] text-slate-500 truncate">{targetLead.originalContent}</p>
+                          </div>
+                          <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Previous Interaction</p>
+                             <p className="text-[12px] font-bold text-slate-800">{activeCall.previousAttempts || "Direct Booking"}</p>
+                             <Link href={ACTION_MAP.openConversionInbox()} className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-1 block">View Conversations</Link>
+                          </div>
+                       </div>
+                    </div>
 
-              <div>
-                <p className="text-[10px] font-bold text-violet-500 uppercase mb-2">Anticipated Objection</p>
-                <div className="bg-white border border-violet-100 p-3 rounded-lg text-[12px] text-slate-700 shadow-sm">
-                   Given their Q3 revenue metrics, expect price sensitivity. Pivot to opportunity cost of fixing it vs ignoring it.
-                </div>
+                    {/* Pre-Call Intelligence */}
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-Call Context & Intelligence</p>
+                       <div className="space-y-3">
+                          <div className="p-4 border border-slate-200 rounded-lg shadow-sm">
+                             <p className="text-[11px] font-bold text-slate-900 mb-1">Identified Pain Point / Problem</p>
+                             <p className="text-[13px] text-slate-600 leading-relaxed">{targetOpp.problem || targetLead.problem || "Not fully discovered. Priority 1 for discovery call."}</p>
+                          </div>
+                          <div className="p-4 border border-slate-200 rounded-lg shadow-sm bg-blue-50/50">
+                             <p className="text-[11px] font-bold text-slate-900 mb-1">Buying Trigger</p>
+                             <p className="text-[13px] text-slate-600 leading-relaxed">{targetOpp.buyingTrigger || targetLead.buyingTrigger || "Needs investigation."}</p>
+                          </div>
+                          {targetLead.objections && targetLead.objections.length > 0 && (
+                             <div className="p-4 border border-red-100 bg-red-50/50 rounded-lg shadow-sm">
+                                <p className="text-[11px] font-bold text-red-900 mb-1 flex items-center gap-1.5"><span className="material-symbols-outlined text-[14px]">warning</span> Known Objections</p>
+                                <div className="flex gap-2 mt-2">
+                                   {targetLead.objections.map(obj => (
+                                      <span key={obj} className="px-2 py-1 bg-white border border-red-200 text-red-700 text-[10px] font-bold rounded uppercase tracking-widest">{obj}</span>
+                                   ))}
+                                </div>
+                             </div>
+                          )}
+                       </div>
+                    </div>
+
+                    {/* Action Panel */}
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Call Outcomes</p>
+                       <div className="grid grid-cols-2 gap-3">
+                          <button className="px-4 py-3 bg-emerald-600 text-white rounded-lg text-[12px] font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-emerald-700 transition">
+                             <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                             Qualified & Offer Sent
+                          </button>
+                          <button className="px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg text-[12px] font-bold flex items-center justify-center gap-2 shadow-sm hover:bg-slate-50 transition">
+                             <span className="material-symbols-outlined text-[16px]">schedule</span>
+                             Needs Follow-up
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+              </>
+           ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+                 <div className="w-16 h-16 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center mb-4">
+                    <span className="material-symbols-outlined text-[24px] text-slate-300">person_search</span>
+                 </div>
+                 <h3 className="text-[16px] font-bold text-slate-900 mb-2">Pre-Call Intelligence</h3>
+                 <p className="text-[13px] text-slate-500 max-w-[300px]">Select a scheduled call from the calendar to view full lead context, history, and prep material.</p>
               </div>
-           </div>
+           )}
         </div>
       </div>
     </div>

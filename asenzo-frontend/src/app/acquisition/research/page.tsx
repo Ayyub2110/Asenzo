@@ -46,10 +46,10 @@ export default function ResearchPage() {
   return (
     <div className="flex h-full">
       <aside className="w-44 shrink-0 border-r border-slate-100 pt-6 px-3 space-y-0.5 bg-white sticky top-0 h-[calc(100vh-128px)]">
-        {[{ id: "ideas", label: "Winning Ideas", icon: "auto_awesome" }, { id: "engine", label: "Research Engine", icon: "manage_search" }, { id: "watchlist", label: "Watchlist", icon: "bookmarks" }].map(s => (
+        {[{ id: "ideas", label: "Winning Ideas" }, { id: "engine", label: "Research Engine" }, { id: "watchlist", label: "Watchlist" }].map(s => (
           <button key={s.id} onClick={() => setSection(s.id as typeof section)}
             className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold flex items-center gap-2 ${section === s.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-            <span className="material-symbols-outlined text-[14px]">{s.icon}</span>{s.label}
+            {s.label}
           </button>
         ))}
       </aside>

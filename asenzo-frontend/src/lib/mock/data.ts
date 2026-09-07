@@ -335,116 +335,35 @@ export const mockConversion: ConversionData = {
 
 export const mockOperations: import("@/lib/types").OperationsData = {
   team: [
-    {
-      id: "usr1",
-      name: "Alex Becker",
-      role: "Operations Lead",
-      department: "Operations",
-      skills: ["Process Design", "QA", "Approvals"],
-      capacity: 40,
-      workload: 35,
-      status: "ACTIVE",
-      backupFor: ["usr2"]
-    },
-    {
-      id: "usr2",
-      name: "Sarah Chen",
-      role: "Content Director",
-      department: "Attention",
-      skills: ["Copywriting", "Video Editing"],
-      capacity: 40,
-      workload: 45,
-      status: "OVER_CAPACITY",
-      backupFor: []
-    }
+    { id: 'usr1', name: 'Alex Becker', role: 'Operations Lead', department: 'Operations', skills: ['Process Design', 'QA', 'Approvals'], capacity: 40, workload: 35, status: 'ACTIVE' },
+    { id: 'usr2', name: 'Sarah Chen', role: 'Content Director', department: 'Attention', skills: ['Copywriting', 'Video Editing'], capacity: 40, workload: 45, status: 'ACTIVE' }
   ],
-  tasks: [
-    {
-      id: "tsk1",
-      title: "Content Production Review",
-      description: "Review latest finalized attention SOP.",
-      ownerId: "usr1",
-      sourceModule: "Operations",
-      priority: "HIGH",
-      status: "BACKLOG",
-      dueDate: new Date(Date.now() + 86400000).toISOString(),
-      createdAt: new Date().toISOString()
-    }
+  roles: [
+    { id: 'role1', title: 'Operations Lead', department: 'Operations', primaryOwnerId: 'usr1', responsibilities: ['Oversee internal operations', 'Approval management'] }
+  ],
+  work: [
+    { id: 'work1', title: 'Content Production Review', description: 'Review latest finalized attention SOP.', ownerId: 'usr1', sourceModule: 'Operations', workType: 'Task', priority: 'HIGH', status: 'BACKLOG', dueDate: new Date(Date.now() + 86400000).toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  ],
+  updates: [
+    { id: 'upd1', userId: 'usr2', date: new Date().toISOString(), completed: 'Finalized Q3 scripts', inProgress: 'Editing the new VSL', blocked: 'Need founder review on VSL hook', needsHelp: '', notes: 'Velocity is looking good.' }
   ],
   sops: [
-    {
-      id: "sop1",
-      name: "Client Onboarding Sequence",
-      purpose: "Initialize client workspaces and trigger kickoffs",
-      trigger: "Revenue: Deal Closed Won",
-      ownerId: "usr1",
-      processSteps: ["Create Client Record", "Send Intake Form", "Schedule Kickoff"],
-      qualityStandard: "Kickoff must be scheduled within 48 hours of payment",
-      expectedOutput: "Completed onboarding workflow",
-      status: "ACTIVE",
-      version: "1.2",
-      lastReviewedDate: new Date(Date.now() - 30 * 86400000).toISOString(),
-      nextReviewDate: new Date(Date.now() + 60 * 86400000).toISOString()
-    }
+    { id: 'sop1', name: 'Client Onboarding Sequence', purpose: 'Initialize client workspaces and trigger kickoffs', ownerId: 'usr1', processSteps: ['Create Client Record', 'Send Intake Form', 'Schedule Kickoff'], status: 'PUBLISHED', version: '1.2', lastReviewedDate: new Date(Date.now() - 30 * 86400000).toISOString(), nextReviewDate: new Date(Date.now() + 60 * 86400000).toISOString() }
   ],
   workflows: [
-    {
-      id: "wkf1",
-      name: "Sales Handoff to Delivery",
-      triggerEvent: "Contract Signed",
-      steps: ["Generate Invoice", "Create Asenzo Client Record", "Assign Delivery Lead"],
-      ownerId: "usr1"
-    }
+    { id: 'wkf1', name: 'Sales Handoff to Delivery', triggerEvent: 'Contract Signed', steps: [{ id: 'step1', name: 'Generate Invoice' }], ownerId: 'usr1' }
   ],
   approvals: [
-    {
-      id: "app1",
-      request: "Strategic Offer Variation",
-      sourceModule: "Revenue",
-      requestedBy: "usr2",
-      approverId: "usr1",
-      priority: "URGENT",
-      status: "PENDING",
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      dueDate: new Date(Date.now() + 86400000).toISOString()
-    }
+    { id: 'app1', request: 'Strategic Offer Variation', requestedBy: 'usr2', approverId: 'usr1', priority: 'URGENT', status: 'PENDING', createdAt: new Date(Date.now() - 3600000).toISOString(), dueDate: new Date(Date.now() + 86400000).toISOString() }
   ],
   qc: [
-    {
-      id: "qc1",
-      title: "Landing Page V2 Copy Review",
-      sourceModule: "Attention",
-      ownerId: "usr2",
-      reviewerId: "usr1",
-      status: "FAILED",
-      severity: "HIGH",
-      relatedRecordId: "dl1"
-    }
+    { id: 'qc1', title: 'Landing Page V2 Copy Review', ownerId: 'usr2', reviewerId: 'usr1', standard: 'Brand Voice strict adherence', status: 'FAILED', issues: 'Tone too casual', reviewedDate: new Date().toISOString() }
   ],
-  escalations: [
-    {
-      id: "esc1",
-      issue: "Client Delay > 7 Days",
-      sourceModule: "Delivery",
-      severity: "URGENT",
-      ownerId: "usr1",
-      escalationOwnerId: "usr1",
-      status: "OPEN",
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      deadline: new Date(Date.now() + 86400000).toISOString(),
-      reason: "Asset collection from Acme Corp is severely overdue.",
-      recommendedAction: "Founder intervention required on primary contact."
-    }
+  issues: [
+    { id: 'iss1', title: 'Client Delay > 7 Days', type: 'Escalation', severity: 'CRITICAL', ownerId: 'usr1', sourceModule: 'Delivery', description: 'Asset collection from Acme Corp is severely overdue.', impact: 'Project slipping. Revenue delayed.', createdAt: new Date(Date.now() - 3600000).toISOString(), dueDate: new Date(Date.now() + 86400000).toISOString(), status: 'OPEN' }
   ],
-  schedule: [
-    {
-      id: "sch1",
-      title: "Pipeline Cleanup Sync",
-      frequency: "WEEKLY",
-      ownerId: "usr1",
-      agenda: "Review all stagnant revenue pipeline opportunities.",
-      status: "PENDING"
-    }
+  planning: [
+    { id: 'plan1', title: 'Pipeline Cleanup Sync', type: 'Initiative', startDate: new Date(Date.now()).toISOString(), dueDate: new Date(Date.now() + 86400000 * 7).toISOString(), ownerId: 'usr1', status: 'PLANNED' }
   ]
 };
 
@@ -1297,3 +1216,4 @@ export const mockContentItems: import('../types').ContentItem[] = [
     businessOutcome: "N/A"
   }
 ];
+

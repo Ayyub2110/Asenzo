@@ -18,36 +18,16 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     id: "onboarding",
-    title: "Client Onboarding",
+    title: "Onboarding",
     items: [
-      { href: "/delivery/onboarding", label: "Intake & Setup" },
-      { href: "/delivery/onboarding/handoff", label: "Sales Handoff" }
+      { href: "/delivery/onboarding", label: "Unified Intake" }
     ],
   },
   {
-    id: "engagements",
-    title: "Engagements",
-    items: [
-      { href: "/delivery/engagements", label: "Active Engagements" },
-      { href: "/delivery/milestones", label: "Milestones" },
-      { href: "/delivery/deliverables", label: "Deliverables" }
-    ],
-  },
-  {
-    id: "clients",
+    id: "health",
     title: "Client Health",
     items: [
-      { href: "/delivery/clients", label: "Client Directory" },
-      { href: "/delivery/health", label: "Health Signals" },
-      { href: "/delivery/communication", label: "Client Comm Log" }
-    ],
-  },
-  {
-    id: "reporting",
-    title: "Reporting & Outcomes",
-    items: [
-      { href: "/delivery/reporting", label: "Executive Reporting" },
-      { href: "/delivery/reporting/outcomes", label: "KPI Tracking" }
+      { href: "/delivery/health", label: "Client Database" }
     ],
   },
   {
@@ -56,6 +36,13 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/delivery/retention", label: "Renewal Pipeline" },
       { href: "/delivery/retention/proof", label: "Proof Assets" }
+    ],
+  },
+  {
+    id: "reporting",
+    title: "Reporting & Outcomes",
+    items: [
+      { href: "/delivery/reporting", label: "KPI Tracking & Outcomes" }
     ],
   }
 ];

@@ -6,13 +6,13 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", icon: "dashboard", label: "Command Center" },
-  { href: "/intelligence", icon: "psychology", label: "Intelligence" },
+  { href: "/analytics", icon: "insights", label: "Analytics" },
   { href: "/acquisition", icon: "track_changes", label: "Acquisition" },
   { href: "/conversion", icon: "filter_alt", label: "Conversion" },
   { href: "/revenue", icon: "account_balance_wallet", label: "Revenue" },
   { href: "/delivery", icon: "inventory_2", label: "Delivery" },
   { href: "/operations", icon: "account_tree", label: "Operations" },
-  { href: "/calendar", icon: "calendar_month", label: "System Calendar" },
+  { href: "/calendar", icon: "calendar_month", label: "Calendar" },
   { href: "/settings", icon: "settings", label: "Settings" }
 ];
 
@@ -45,7 +45,6 @@ export default function Sidebar() {
                     href={item.href}
                     className="group flex items-center bg-muted text-foreground rounded-md px-2.5 h-[32px] transition-transform duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <span className="material-symbols-outlined text-[18px] mr-2.5" style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
                     <span className="text-[13px] font-semibold">{item.label}</span>
                   </Link>
                 </li>
@@ -58,7 +57,6 @@ export default function Sidebar() {
                   href={item.href}
                   className="group flex items-center text-muted-foreground hover:bg-muted hover:text-foreground rounded-md px-2.5 h-[32px] transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span className="material-symbols-outlined text-muted-foreground text-[18px] mr-2.5 group-hover:text-muted-foreground transition-colors">{item.icon}</span>
                   <span className="text-[13px] font-medium">{item.label}</span>
                 </Link>
               </li>
