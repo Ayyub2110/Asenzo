@@ -19,12 +19,79 @@ const QUICK_ACTIONS = [
 import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function ConversionCommandCenter() {
-  const [queue] = useState<ActionQueueItem[]>(MOCK_ACTION_QUEUE);
-  
   const { leads, opportunities, dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate, calls, filterByDate } = useConversionOS();
+
+  // Dynamic Needs Attention Queue
+  const queue: ActionQueueItem[] = [];
+
+  // Hot leads with no next action
+  const hotNoAction = leads.filter(l => l.temperature === "HOT" && !l.nextAction);
+  if (hotNoAction.length > 0) {
+    queue.push({
+      id: "hot_no_action", type: "HOT_LEAD", urgency: "HIGH", targetRoute: "/conversion/leads/hot",
+      title: "Hot Leads Missing Next Action", description: `${hotNoAction.length} hot leads have no designated next action.`
+    });
+  }
+
+  // Calls today
+  const todayCalls = calls.filter(c => c.status === "SCHEDULED" && c.scheduledDate.startsWith(new Date().toISOString().split('T')[0]));
+  if (todayCalls.length > 0) {
+    queue.push({
+      id: "calls_today", type: "CALL_DUE", urgency: "HIGH", targetRoute: "/conversion/pipeline/calls",
+      title: "Sales Calls Today", description: `You have ${todayCalls.length} sales call(s) happening today.`
+    });
+  }
+
+  // No-shows needing follow-up
+  const noShows = calls.filter(c => c.status === "NO_SHOW");
+  if (noShows.length > 0) {
+    queue.push({
+      id: "no_shows", type: "FOLLOWUP", urgency: "MEDIUM", targetRoute: "/conversion/conversations/follow-ups",
+      title: "No-Shows Need Follow-up", description: `${noShows.length} no-show(s) need a follow-up action.`
+    });
+  }
+
+  // Offers awaiting response
+  const pendingOffers = opportunities.filter(o => o.pipelineStage === "OFFER_PRESENTED");
+  if (pendingOffers.length > 0) {
+    queue.push({
+      id: "pending_offers", type: "OFFER_DECISION", urgency: "MEDIUM", targetRoute: "/conversion/pipeline/offers",
+      title: "Offers Awaiting Response", description: `${pendingOffers.length} offers are currently pending a decision.`
+    });
+  }
+
+  // Qualified leads without active opportunity
+  const qualifiedNoOpp = leads.filter(l => l.qualificationStatus === "QUALIFIED" && !opportunities.some(o => o.leadId === l.id && o.pipelineStage !== "WON" && o.pipelineStage !== "LOST"));
+  if (qualifiedNoOpp.length > 0) {
+    queue.push({
+      id: "qual_no_opp", type: "HOT_LEAD", urgency: "MEDIUM", targetRoute: "/conversion/leads/qualified",
+      title: "Qualified Leads Without Opportunities", description: `${qualifiedNoOpp.length} qualified leads do not have an active deal.`
+    });
+  }
 
   const totalPipeline = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
   const qualifiedLeads = leads.filter(l => l.qualificationStatus === "QUALIFIED").length;
+
+  // Funnel calculations
+  const f_new = leads.filter(l => l.lifecycleStage === "NEW" || !l.lifecycleStage).length;
+  const f_contacted = leads.filter(l => l.lifecycleStage === "CONTACTED").length;
+  const f_engaged = leads.filter(l => l.lifecycleStage === "ENGAGED").length;
+  const f_qualified = qualifiedLeads;
+  const f_booked = opportunities.filter(o => o.pipelineStage === "CALL_BOOKED").length;
+  const f_showed = opportunities.filter(o => o.pipelineStage === "OFFER_PRESENTED" || o.pipelineStage === "CALL_SHOWED").length;
+  const f_offer = opportunities.filter(o => o.pipelineStage === "OFFER_SENT" || o.pipelineStage === "OFFER_PRESENTED").length;
+  const f_won = opportunities.filter(o => o.pipelineStage === "WON" || o.pipelineStage === "CLOSED_WON").length;
+
+  const funnelData = [
+    { label: "New", value: f_new, color: "bg-slate-100 text-slate-800" },
+    { label: "Contacted", value: f_contacted, color: "bg-slate-200 text-slate-800" },
+    { label: "Engaged", value: f_engaged, color: "bg-blue-100 text-blue-800" },
+    { label: "Qualified", value: f_qualified, color: "bg-blue-200 text-blue-900" },
+    { label: "Booked", value: f_booked, color: "bg-violet-100 text-violet-800" },
+    { label: "Showed", value: f_showed, color: "bg-violet-200 text-violet-900" },
+    { label: "Offer", value: f_offer, color: "bg-amber-100 text-amber-900" },
+    { label: "Won", value: f_won, color: "bg-emerald-100 text-emerald-900" }
+  ];
 
   const stats = [
     { label: "Total Leads", value: leads.length, change: "All Time" },
@@ -69,6 +136,31 @@ export default function ConversionCommandCenter() {
                </button>
             ))}
          </div>
+      </div>
+
+      {/* Funnel Snapshot */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5 mb-4">
+          <span className="material-symbols-outlined text-[18px]">filter_alt</span>
+          Conversion Funnel
+        </h2>
+        <div className="flex items-center justify-between gap-1 overflow-x-auto pb-2 scrollbar-none">
+          {funnelData.map((stage, idx) => (
+            <React.Fragment key={stage.label}>
+               <div className="flex flex-col flex-1 items-center gap-1.5 min-w-[80px]">
+                 <div className={`w-full py-2.5 rounded-lg text-center font-black text-[16px] shadow-sm tracking-tight ${stage.color}`}>
+                   {stage.value}
+                 </div>
+                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stage.label}</span>
+               </div>
+               {idx < funnelData.length - 1 && (
+                 <span className="material-symbols-outlined text-[16px] text-slate-300 font-bold shrink-0 px-1">
+                   arrow_right_alt
+                 </span>
+               )}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       {/* Existing Main Stats Grid */}

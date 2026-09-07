@@ -164,8 +164,8 @@ export default function FunnelsPage() {
     if (!fromN || !toN) return "";
     
     // Auto port routing heuristics to match image
-    let fPort = "R" as const;
-    let tPort = "L" as const;
+    let fPort: "T" | "B" | "L" | "R" = "R";
+    let tPort: "T" | "B" | "L" | "R" = "L";
 
     if (fromN.type === "traffic" && toN.id === "au-ig") { fPort = "R"; tPort = "L"; }
     else if (fromN.type === "traffic") { fPort = "R"; tPort = "L"; }

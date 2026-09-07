@@ -8,6 +8,17 @@ export type QualificationStatus =
   | "CONDITIONALLY_QUALIFIED"
   | "UNQUALIFIED";
 
+export type LeadLifecycleStage = 
+  | "NEW"
+  | "CONTACTED"
+  | "ENGAGED"
+  | "QUALIFIED"
+  | "CALL_BOOKED"
+  | "CALL_SHOWED"
+  | "NURTURE"
+  | "CONVERTED"
+  | "LOST";
+
 export type PipelineStage =
   | "LEAD"
   | "NEW_OPPORTUNITY"
@@ -64,6 +75,7 @@ export interface Lead {
   lastTouch: string;
   temperature: LeadTemperature;
   qualificationStatus: QualificationStatus;
+  lifecycleStage: LeadLifecycleStage;
   
   // Conversion state
   problem: string;

@@ -12,7 +12,7 @@ export interface OfferRecord {
   opportunityId: string;
   offerName: string;
   value: number;
-  status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+  status: "DRAFT" | "SENT" | "VIEWED" | "ACCEPTED" | "DECLINED" | "EXPIRED";
   sentDate?: string;
   notes?: string;
 }
@@ -98,6 +98,7 @@ const INITIAL_LEAD: Lead = {
   lastTouch: new Date().toISOString(),
   temperature: "WARM",
   qualificationStatus: "QUALIFIED",
+  lifecycleStage: "QUALIFIED",
   problem: "CAC scaling poorly due to outbound reliance",
   desiredOutcome: "Predictable automated inbound",
   buyingTrigger: "Just missed Q3 targets",

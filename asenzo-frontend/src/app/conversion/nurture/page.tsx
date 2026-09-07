@@ -27,7 +27,7 @@ const SEQ_FILTERS = ["ALL", "AWARENESS", "LEAD_DELIVERY", "EDUCATION", "PROOF", 
 export default function LeadCaptureNurtureOS() {
   const { leads, updateLead, timelineEvents } = useConversionOS();
 
-  const [activeTab, setActiveTab] = useState<"CAPTURE" | "SEQUENCES" | "CRM">("CAPTURE");
+  const [activeTab, setActiveTab] = useState<"CAPTURE" | "SEQUENCES">("CAPTURE");
   const [overlay, setOverlay] = useState<"NONE" | "SEQUENCE_BUILDER" | "LEAD_JOURNEY">("NONE");
   
   // Selection States
@@ -179,91 +179,6 @@ export default function LeadCaptureNurtureOS() {
     </div>
   );
 
-  // --- TAB 3: LEAD CRM ---
-  const renderLeadCRM = () => {
-    return (
-      <div className="space-y-4">
-         <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-         <div>
-            <h2 className="text-[16px] font-bold text-slate-900">3. LEAD CRM</h2>
-            <p className="text-[12px] text-slate-500 mt-1">Unified view of where every identified person currently sits in the journey.</p>
-         </div>
-         <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-500 mr-2 uppercase tracking-wide">Stage ▾</span>
-            <select 
-               value={crmStageFilter} 
-               onChange={e => setCrmStageFilter(e.target.value)} 
-               className="bg-slate-50 border border-slate-200 text-[11px] font-bold rounded-lg px-3 py-1.5 outline-none cursor-pointer"
-            >
-               {STAGE_FILTERS.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-         </div>
-       </div>
-
-        {/* Table */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-left text-[11px]">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-400 font-bold uppercase tracking-wider text-[9px]">
-                <th className="p-4">Name</th>
-                <th className="p-4">Origin</th>
-                <th className="p-4">Sequence</th>
-                <th className="p-4">Stage</th>
-                <th className="p-4">Next Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {leads.filter(c => crmStageFilter === "All" || 
-                 (crmStageFilter === "Qualified" && c.qualificationStatus === "QUALIFIED") ||
-                 (crmStageFilter === "New" && c.qualificationStatus === "UNQUALIFIED") ||
-                 (crmStageFilter === "Booking Intent" && c.qualificationStatus === "INTENT_DETECTED")
-              ).map(c => (
-                <tr key={c.id} className="hover:bg-slate-50/60 cursor-pointer transition-colors" onClick={() => openLead(c.id)}>
-                  <td className="p-4">
-                     <div className="font-extrabold text-slate-900 text-[13px]">{c.name}</div>
-                     <div className="text-slate-500 font-medium">{c.email}</div>
-                  </td>
-                  <td className="p-4 space-y-0.5">
-                     <div className="font-semibold text-slate-700">{c.originalSource}</div>
-                     {c.originalKeyword && <div className="text-[10px] text-slate-400">Keyword: <span className="font-mono text-blue-600">{c.originalKeyword}</span></div>}
-                     <div className="text-[10px] text-slate-400 truncate max-w-[150px]">{c.originalContent || "Unknown Asset"}</div>
-                  </td>
-                  <td className="p-4">
-                     <div className="font-semibold text-slate-700">{(c as any).sequence && (c as any).sequence !== "-" ? (c as any).sequence : "—"}</div>
-                  </td>
-                  <td className="p-4">
-                     <span className={`px-2 py-1 font-bold uppercase rounded text-[9px] ${
-                        c.qualificationStatus === 'QUALIFIED' ? 'bg-emerald-100 text-emerald-800'
-                        : c.qualificationStatus === 'INTENT_DETECTED' ? 'bg-orange-100 text-orange-800'
-                        : c.qualificationStatus === 'UNQUALIFIED' ? 'bg-amber-100 text-amber-800'
-                        : 'bg-blue-100 text-blue-800'}`
-                     }>{c.qualificationStatus.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td className="p-4">
-                     <div className="font-bold text-slate-700 bg-slate-50 px-2 py-1 border border-slate-100 rounded inline-flex items-center uppercase text-[10px]">
-                       {c.nextAction || "Automated Nurture"}
-                     </div>
-                  </td>
-                </tr>
-              ))}
-              {leads.filter(c => crmStageFilter === "All" || 
-                 (crmStageFilter === "Qualified" && c.qualificationStatus === "QUALIFIED") ||
-                 (crmStageFilter === "New" && c.qualificationStatus === "UNQUALIFIED") ||
-                 (crmStageFilter === "Booking Intent" && c.qualificationStatus === "INTENT_DETECTED")
-              ).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center">
-                    <span className="material-symbols-outlined text-[32px] text-slate-300 mb-2 block">person_off</span>
-                    <h3 className="text-[14px] font-bold text-slate-700">No leads match this stage filter.</h3>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
 
 
   // --- OVERLAYS ---
@@ -524,19 +439,12 @@ export default function LeadCaptureNurtureOS() {
            >
              2. EMAIL SEQUENCES
            </button>
-           <button 
-             onClick={() => setActiveTab("CRM")}
-             className={`pb-3 px-6 text-[12px] font-black uppercase tracking-widest border-b-2 relative top-px transition-colors ${activeTab === "CRM" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"}`}
-           >
-             3. LEAD CRM
-           </button>
-        </div>
+         </div>
 
         {/* ACTIVE SECTION */}
         <div className="pt-2 animate-in fade-in duration-300">
            {activeTab === "CAPTURE" && renderCaptureTab()}
            {activeTab === "SEQUENCES" && renderEmailTab()}
-           {activeTab === "CRM" && renderLeadCRM()}
         </div>
       </div>
     </div>

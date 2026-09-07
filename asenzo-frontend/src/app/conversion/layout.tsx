@@ -22,10 +22,7 @@ const navGroups: NavGroup[] = [
     id: "leads",
     title: "Leads",
     items: [
-      { href: "/conversion/leads", label: "All Leads" },
-      { href: "/conversion/leads/hot", label: "Hot" },
-      { href: "/conversion/leads/warm", label: "Warm" },
-      { href: "/conversion/leads/cold", label: "Cold" },
+      { href: "/conversion/leads", label: "Leads Kanban Database", exact: true }
     ],
   },
   {
@@ -35,7 +32,6 @@ const navGroups: NavGroup[] = [
       { href: "/conversion/conversations", label: "Inbox" },
       { href: "/conversion/conversations/dms", label: "DMs" },
       { href: "/conversion/conversations/sales", label: "Sales Conversations" },
-      { href: "/conversion/conversations/qualification", label: "Qualification" },
       { href: "/conversion/conversations/follow-ups", label: "Follow-ups" },
     ],
   },

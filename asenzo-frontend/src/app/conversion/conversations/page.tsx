@@ -15,10 +15,7 @@ export default function ConversationsInbox() {
           <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">Unified Inbox</h1>
           <p className="text-[12px] text-slate-500 mt-0.5">Manage all active dialogues crossing the intent threshold.</p>
         </div>
-        <div className="flex gap-2">
-           <Link href="/conversion/conversations/dms" className="px-4 py-2 bg-slate-100 font-bold text-[11px] rounded-lg">DM Inbound</Link>
-           <Link href="/conversion/conversations/sales" className="px-4 py-2 bg-slate-100 font-bold text-[11px] rounded-lg">Sales Threads</Link>
-        </div>
+        {/* Actions removed */}
       </div>
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 overflow-hidden flex">
