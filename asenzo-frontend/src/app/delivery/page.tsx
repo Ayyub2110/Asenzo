@@ -1,188 +1,161 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
 
 export default function DeliveryCommandCenter() {
-  const { 
-    metrics, 
-    clients, 
-    engagements, 
-    onboardings, 
-    milestones, 
-    healthRecords 
-  } = useDeliveryOS();
+  const { metrics, clients, engagements, onboardings, milestones } = useDeliveryOS();
+
+  // Summary Cards Data
+  const activeOnboardings = onboardings.filter(o => o.status !== "COMPLETED");
+  const activeClients = clients.filter(c => c.status === "ACTIVE");
+  const atRiskClients = clients.filter(c => c.status === "AT_RISK");
   
-  const [dateRange, setDateRange] = useState("This Month");
+  const now = new Date();
+  const overdueMilestones = milestones.filter(m => m.status !== "COMPLETED" && new Date(m.dueDate) < now);
 
-  // Recent Onboardings
-  const activeOnboardings = onboardings
-    .filter(o => o.status === "IN_PROGRESS" || o.status === "NOT_STARTED")
-    .slice(0, 3);
-    
-  // At-Risk or High-Priority engagements
-  const atRiskClients = clients
-    .filter(c => c.status === "AT_RISK")
-    .slice(0, 3);
-
-  // Upcoming Milestones
-  const upcomingMilestones = milestones
-    .filter(m => m.status === "IN_PROGRESS" || m.status === "NOT_STARTED")
-    .sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    .slice(0, 3);
-
-  const handleKpiClick = (route: string) => {
-     window.location.href = route;
-  };
+  // Today / Needs Attention Data (mocked based on context logic)
+  const needsAttention = [
+    ...atRiskClients.map(c => ({
+       id: `risk-${c.id}`,
+       type: "Client at risk",
+       desc: c.company,
+       action: "View Client",
+       link: "/delivery/clients"
+    })),
+    ...overdueMilestones.map(m => {
+       const eng = engagements.find(e => e.id === m.engagementId);
+       const client = clients.find(c => c.id === eng?.clientId);
+       return {
+          id: `milestone-${m.id}`,
+          type: "Milestone overdue",
+          desc: `${client?.name || "Unknown"} — ${m.name}`,
+          action: "Update Milestone",
+          link: "/delivery/engagements"
+       };
+    })
+  ].slice(0, 5);
 
   return (
-    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
-
+    <div className="pt-8 pb-32 space-y-10 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span className="material-symbols-outlined text-[32px] text-blue-500">check_circle</span>
-            DELIVERY COMMAND CENTER
+          <h1 className="text-[24px] font-black text-slate-900 tracking-tight flex items-center gap-2">
+            Delivery Command Center
           </h1>
           <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
-            Fulfillment, onboarding, client health, and project milestone tracking.
+            Immediate view of what needs attention across onboarding and active delivery.
           </p>
         </div>
-        
-        <div className="flex flex-col items-end gap-3">
-           <div className="flex gap-2">
-              <Link href="/delivery/onboarding" className="px-4 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-50">
-                 <span className="material-symbols-outlined text-[16px]">start</span> Start Onboarding
-              </Link>
-              <Link href="/delivery/milestones" className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1.5 transition-colors hover:bg-slate-800">
-                 <span className="material-symbols-outlined text-[16px]">add</span> Update Milestone
-              </Link>
-           </div>
-           
-           <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex overflow-hidden">
-              {["Today", "This Week", "This Month", "This Quarter", "This Year"].map((tab) => (
-                 <button 
-                    key={tab}
-                    onClick={() => setDateRange(tab)}
-                    className={`px-4 py-1.5 text-[11px] font-bold transition-colors ${dateRange === tab ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
-                 >
-                    {tab}
-                 </button>
-              ))}
-           </div>
-        </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-6">
-        <div onClick={() => handleKpiClick('/delivery/onboarding')} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Onboarding</p>
-            <div className="flex items-center gap-3">
-                <div className="text-[36px] font-black tracking-tight leading-none text-blue-600">{metrics.onboardingInProgress}</div>
-            </div>
-            <div className="mt-2 text-[11px] font-bold text-slate-500">Active setups</div>
-        </div>
-        
-        <div onClick={() => handleKpiClick('/delivery/engagements')} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Active Engagements</p>
-            <div className="flex items-center gap-3">
-                <div className="text-[36px] font-black text-slate-900 tracking-tight leading-none">{metrics.activeEngagements}</div>
-            </div>
-            <div className="mt-2 text-[11px] font-bold text-slate-500">Live projects</div>
-        </div>
-
-        <div onClick={() => handleKpiClick('/delivery/clients')} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">At-Risk Clients</p>
-            <div className="flex items-center gap-3">
-                <div className={`text-[36px] font-black tracking-tight leading-none ${metrics.atRiskClients > 0 ? "text-red-500" : "text-emerald-500"}`}>{metrics.atRiskClients}</div>
-            </div>
-            <div className="mt-2 text-[11px] font-bold text-slate-500">Require attention</div>
-        </div>
-
-        <div onClick={() => handleKpiClick('/delivery/milestones')} className="bg-slate-900 text-white rounded-xl p-6 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Milestone Velocity</p>
-            <div className="flex items-center gap-3">
-                <div className="text-[36px] font-black tracking-tight leading-none">{Math.round(metrics.milestoneCompletionRate)}%</div>
-            </div>
-            <div className="mt-2 text-[11px] font-bold text-slate-400">Completion rate</div>
-        </div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <Link href="/delivery/onboarding" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition">Onboarding</h3>
+            <p className="text-[28px] font-black text-slate-900">{activeOnboardings.length}</p>
+        </Link>
+        <Link href="/delivery/clients" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition">Active Clients</h3>
+            <p className="text-[28px] font-black text-slate-900">{activeClients.length}</p>
+        </Link>
+        <Link href="/delivery/clients" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-amber-600 transition">At Risk</h3>
+            <p className={`text-[28px] font-black ${atRiskClients.length > 0 ? "text-red-600" : "text-emerald-600"}`}>{atRiskClients.length}</p>
+        </Link>
+        <Link href="/delivery/engagements" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-red-600 transition">Due / Overdue</h3>
+            <p className={`text-[28px] font-black ${overdueMilestones.length > 0 ? "text-red-600" : "text-slate-900"}`}>{overdueMilestones.length}</p>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-6 mt-6">
-         {/* Active Onboardings */}
-         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-               <h3 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px] text-blue-500">rocket_launch</span> Active Onboarding</h3>
-               <Link href="/delivery/onboarding" className="text-[11px] font-bold text-blue-600 hover:underline">View All</Link>
-            </div>
-            
-            <div className="space-y-4">
-               {activeOnboardings.length > 0 ? activeOnboardings.map(o => {
-                  const customerName = clients.find(c => c.id === o.customerId)?.company || "Unknown";
-                  return (
-                    <div key={o.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative overflow-hidden group">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-xl"></div>
-                        <div className="flex justify-between items-start mb-2">
-                           <div className="pl-3">
-                              <div className="text-[13px] font-black text-slate-900">{customerName}</div>
-                              <div className="text-[11px] font-bold text-slate-500">Owner: {o.owner}</div>
-                           </div>
-                           <span className="px-2 py-1 text-[9px] font-extrabold uppercase rounded bg-blue-100 text-blue-800">{o.status.replace("_", " ")}</span>
+      <div className="grid grid-cols-12 gap-8">
+         {/* NEEDS ATTENTION */}
+         <div className="col-span-4 space-y-4">
+            <h2 className="text-[18px] font-black text-slate-900">Today / Needs Attention</h2>
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden p-1">
+               <div className="divide-y divide-slate-100">
+                  {needsAttention.length > 0 ? needsAttention.map(item => (
+                     <div key={item.id} className="p-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                           <span className="text-[11px] font-bold text-red-600 uppercase tracking-widest bg-red-50 px-1.5 py-0.5 rounded">{item.type}</span>
                         </div>
-                        <div className="pl-3 mt-3">
-                           <div className="w-full bg-slate-200 rounded-full h-1.5 mb-1.5">
-                              <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${o.progress}%` }}></div>
-                           </div>
-                           <div className="flex justify-between text-[11px] font-bold text-slate-500">
-                              <span>Progress</span>
-                              <span>{o.progress}%</span>
-                           </div>
-                        </div>
-                    </div>
-                  )
-               }) : (
-                 <div className="p-8 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl">No active onboardings.</div>
-               )}
-            </div>
-         </div>
-
-         {/* Upcoming Milestones */}
-         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-               <h3 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px] text-amber-500">flag</span> Upcoming Milestones</h3>
-               <Link href="/delivery/milestones" className="text-[11px] font-bold text-blue-600 hover:underline">View Pipeline</Link>
-            </div>
-            
-            <div className="space-y-3">
-               {upcomingMilestones.length > 0 ? upcomingMilestones.map(m => {
-                  const engagementName = engagements.find(e => e.id === m.engagementId)?.name || "Unknown";
-                  const isOverdue = new Date(m.dueDate) < new Date();
-
-                  return (
-                     <div key={m.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                        <div>
-                           <div className="text-[13px] font-black text-slate-900">{m.name}</div>
-                           <div className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 mt-0.5">
-                              Engagement: <span className="text-slate-800">{engagementName}</span>
-                           </div>
-                        </div>
-                        <div className="text-right">
-                           <div className={`text-[12px] font-black ${isOverdue ? 'text-red-500' : 'text-slate-900'}`}>
-                             {new Date(m.dueDate).toLocaleDateString()}
-                           </div>
-                           <div className={`text-[10px] font-bold mt-1 uppercase ${isOverdue ? 'bg-red-100 text-red-700 px-1.5 py-0.5 rounded' : 'text-slate-500'}`}>
-                             {isOverdue ? 'OVERDUE' : 'DUE'}
-                           </div>
-                        </div>
+                        <p className="text-[13px] font-bold text-slate-900 mb-3">{item.desc}</p>
+                        <Link href={item.link} className="inline-flex py-1.5 px-3 bg-white border border-slate-200 shadow-sm text-slate-700 text-[11px] font-bold rounded hover:bg-slate-50 transition w-full justify-center">
+                           {item.action}
+                        </Link>
                      </div>
-                  )
-               }) : (
-                 <div className="p-8 text-center text-slate-500 border-2 border-dashed border-slate-200 rounded-xl">No upcoming milestones.</div>
-               )}
+                  )) : (
+                     <div className="p-6 text-[13px] font-bold text-slate-400 text-center flex flex-col items-center">
+                        <span className="material-symbols-outlined text-[32px] mb-2 text-emerald-400">check_circle</span>
+                        No immediate actions required today.
+                     </div>
+                  )}
+               </div>
+            </div>
+         </div>
+
+         {/* CURRENT DELIVERY SNAPSHOT */}
+         <div className="col-span-8 space-y-4">
+            <div className="flex items-center justify-between">
+               <h2 className="text-[18px] font-black text-slate-900">Current Delivery Snapshot</h2>
+               <Link href="/delivery/engagements" className="text-[12px] font-bold text-blue-600 hover:underline">View All</Link>
+            </div>
+            
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+               <table className="w-full text-left">
+                  <thead>
+                     <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <th className="px-6 py-4">Client</th>
+                        <th className="px-6 py-4">Engagement</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Progress</th>
+                        <th className="px-6 py-4">Health</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                     {engagements.filter(e => e.status === "ACTIVE").slice(0, 8).map((e) => {
+                        const client = clients.find(c => c.id === e.clientId);
+                        if (!client) return null;
+                        return (
+                           <tr key={e.id} className="hover:bg-slate-50 cursor-pointer transition-colors">
+                              <td className="px-6 py-4">
+                                 <div className="text-[13px] font-black text-slate-900">{client.name}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <div className="text-[13px] font-medium text-slate-700">{e.name}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">Active</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <div className="flex items-center gap-2">
+                                    <div className="w-16 h-1.5 bg-slate-100 rounded overflow-hidden">
+                                       <div className="h-full bg-blue-500 rounded" style={{ width: `${e.progress}%` }}></div>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-slate-500">{e.progress}%</span>
+                                 </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <span className={`text-[12px] font-bold ${client.status === "AT_RISK" ? "text-red-600" : "text-emerald-600"}`}>
+                                    {client.status === "AT_RISK" ? "At Risk" : "Healthy"}
+                                 </span>
+                              </td>
+                           </tr>
+                        );
+                     })}
+                     {engagements.filter(e => e.status === "ACTIVE").length === 0 && (
+                        <tr>
+                           <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-[13px] font-bold">No active engagements.</td>
+                        </tr>
+                     )}
+                  </tbody>
+               </table>
             </div>
          </div>
       </div>
-
     </div>
   );
 }

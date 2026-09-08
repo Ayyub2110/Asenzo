@@ -1,100 +1,148 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
 
-export default function EngagementsPage() {
-  const { engagements, clients } = useDeliveryOS();
-  const [statusFilter, setStatusFilter] = useState("ACTIVE");
+export default function DeliveryEngagementsPage() {
+  const { engagements, clients, milestones, deliverables } = useDeliveryOS();
+  const [selectedEngagement, setSelectedEngagement] = useState<any | null>(null);
 
-  const filtered = engagements.filter(e => {
-     if(statusFilter !== "ALL" && e.status !== statusFilter) return false;
-     return true;
-  });
+  const activeEngagements = engagements.filter(e => e.status !== "COMPLETED" && e.status !== "CANCELLED");
 
   return (
-    <div className="pt-8 space-y-6 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[28px] font-black text-slate-900 tracking-tight flex items-center gap-2">
-            ACTIVE ENGAGEMENTS
-          </h1>
-          <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
-            Monitor all ongoing projects, timelines, and resourcing.
-          </p>
-        </div>
-        
-        <div className="flex gap-4">
-           <select 
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-[13px] font-bold text-slate-700 outline-none"
-           >
-              <option value="ALL">All Statuses</option>
-              <option value="PLANNED">Planned</option>
-              <option value="ONBOARDING">Onboarding</option>
-              <option value="ACTIVE">Active</option>
-              <option value="PAUSED">Paused</option>
-              <option value="COMPLETING">Completing</option>
-              <option value="COMPLETED">Completed</option>
-           </select>
-        </div>
+    <div className="pt-8 pb-32 space-y-10 animate-in fade-in duration-300 px-8 relative h-full max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+         <div>
+            <h1 className="text-[24px] font-black tracking-tight text-slate-900 flex items-center gap-2">
+               <span className="material-symbols-outlined text-[28px] text-blue-500">work</span>
+               Engagements (Delivery Workspace)
+            </h1>
+            <p className="text-[14px] text-slate-500 font-medium mt-1">What we are actually delivering to clients right now.</p>
+         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-         <table className="w-full text-left border-collapse">
-            <thead>
-               <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Engagement Name</th>
-                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Client</th>
-                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Timeline</th>
-                  <th className="p-4 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest text-right">Owner</th>
-               </tr>
-            </thead>
-            <tbody>
-               {filtered.map(e => {
-                  const customerName = clients.find(c => c.id === e.customerId)?.company || "Unknown";
-                  return (
-                    <tr key={e.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                       <td className="p-4">
-                          <div className="font-black text-[14px] text-slate-900">{e.name}</div>
-                          <div className="text-[12px] font-medium text-slate-500 mt-0.5">{e.offer}</div>
-                       </td>
-                       <td className="p-4">
-                          <span className="text-[14px] font-bold text-slate-700">{customerName}</span>
-                       </td>
-                       <td className="p-4 text-center">
-                          <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded ${
-                             e.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' :
-                             e.status === 'PAUSED' ? 'bg-amber-100 text-amber-800' :
-                             'bg-slate-100 text-slate-800'
-                          }`}>
-                             {e.status.replace("_", " ")}
-                          </span>
-                       </td>
-                       <td className="p-4">
-                          <div className="text-[12px] font-bold text-slate-700">
-                            {new Date(e.startDate).toLocaleDateString()} - {e.endDate ? new Date(e.endDate).toLocaleDateString() : 'Ongoing'}
-                          </div>
-                       </td>
-                       <td className="p-4 text-right">
-                          <span className="text-[13px] font-bold text-slate-700">{e.owner}</span>
-                       </td>
-                    </tr>
-                  )
-               })}
-               {filtered.length === 0 && (
-                  <tr>
-                     <td colSpan={5} className="p-8 text-center text-slate-500 font-medium text-[14px] border-dashed border-2 border-slate-100 m-4 rounded-xl">
-                        No engagements found matching the criteria.
-                     </td>
+      <div>
+         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left">
+               <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                     <th className="px-6 py-4">Client</th>
+                     <th className="px-6 py-4">Engagement</th>
+                     <th className="px-6 py-4">Status</th>
+                     <th className="px-6 py-4">Progress</th>
+                     <th className="px-6 py-4">Owner</th>
                   </tr>
-               )}
-            </tbody>
-         </table>
+               </thead>
+               <tbody className="divide-y divide-slate-100">
+                  {activeEngagements.map(e => {
+                     const client = clients.find(c => c.id === e.customerId || c.id === (e as any).clientId);
+                     
+                     return (
+                        <tr key={e.id} onClick={() => setSelectedEngagement(e)} className="hover:bg-slate-50 cursor-pointer transition-colors">
+                           <td className="px-6 py-4">
+                              <div className="text-[13px] font-black text-slate-900">{client?.company || "Unknown"}</div>
+                           </td>
+                           <td className="px-6 py-4">
+                              <div className="text-[13px] font-bold text-slate-700">{e.name}</div>
+                           </td>
+                           <td className="px-6 py-4">
+                              <span className={`text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${e.status === "ACTIVE" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{e.status}</span>
+                           </td>
+                           <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                 <div className="w-16 h-1.5 bg-slate-100 rounded overflow-hidden">
+                                    <div className="h-full bg-blue-500 rounded" style={{ width: `${e.progress}%` }}></div>
+                                 </div>
+                                 <span className="text-[11px] font-bold text-slate-500">{e.progress}%</span>
+                              </div>
+                           </td>
+                           <td className="px-6 py-4 text-[13px] font-medium text-slate-600">{e.owner}</td>
+                        </tr>
+                     );
+                  })}
+                  {activeEngagements.length === 0 && (
+                     <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-[13px] font-bold text-slate-400">No active engagements.</td>
+                     </tr>
+                  )}
+               </tbody>
+            </table>
+         </div>
       </div>
+
+      {/* Drawer */}
+      {selectedEngagement && (() => {
+         const client = clients.find(c => c.id === selectedEngagement.customerId || c.id === (selectedEngagement as any).clientId);
+         const engMilestones = milestones.filter(m => m.engagementId === selectedEngagement.id).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+         const engDeliverables = deliverables.filter(d => d.engagementId === selectedEngagement.id);
+
+         return (
+            <div className="fixed inset-y-0 right-0 w-[500px] bg-white border-l border-slate-200 shadow-2xl z-50 p-6 overflow-y-auto animate-in slide-in-from-right">
+               <button onClick={() => setSelectedEngagement(null)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+                  <span className="material-symbols-outlined">close</span>
+               </button>
+               
+               <div className="mb-8">
+                  <p className="text-[12px] font-bold text-blue-600 uppercase tracking-widest mb-1 pb-1">{client?.company || "Unknown"}</p>
+                  <h2 className="text-[24px] font-black text-slate-900 tracking-tight">{selectedEngagement.name}</h2>
+                  <p className="text-[13px] text-slate-500 font-medium mt-1 pr-6">{selectedEngagement.description}</p>
+                  <div className="flex gap-4 mt-4">
+                     <span className={`text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${selectedEngagement.status === "ACTIVE" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{selectedEngagement.status}</span>
+                     <span className="text-[12px] font-black text-slate-900 text-blue-600">{selectedEngagement.progress}% Complete</span>
+                  </div>
+               </div>
+
+               <div className="space-y-8">
+                  {/* Milestones */}
+                  <div>
+                     <h3 className="text-[14px] font-black text-slate-900 mb-4 border-b border-slate-100 pb-2">Delivery Progress (Milestones)</h3>
+                     <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-slate-100">
+                        {engMilestones.map((m, idx) => {
+                           const isComplete = m.status === "COMPLETED";
+                           const isProgress = m.status === "IN_PROGRESS";
+                           return (
+                              <div key={m.id} className="relative flex items-center justify-between max-w-full z-10 w-full group transition-all">
+                                 <div className="flex items-center gap-4">
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 ${isComplete ? "bg-blue-600 border-blue-600" : isProgress ? "bg-white border-blue-600" : "bg-slate-100 border-slate-200"}`}>
+                                       {isComplete && <span className="material-symbols-outlined text-[12px] text-white font-bold">check</span>}
+                                       {isProgress && <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>}
+                                    </div>
+                                    <div>
+                                       <span className="text-[10px] font-bold text-slate-400 block tracking-widest mb-0.5">0{idx+1} {m.dueDate && new Date(m.dueDate).toLocaleDateString()}</span>
+                                       <span className={`text-[13px] font-bold ${isComplete ? "text-slate-400 line-through" : "text-slate-900"}`}>{m.name}</span>
+                                    </div>
+                                 </div>
+                              </div>
+                           )
+                        })}
+                        {engMilestones.length === 0 && <p className="text-[12px] text-slate-500 mt-2 px-6">No mapped milestones.</p>}
+                     </div>
+                  </div>
+
+                  {/* Deliverables List */}
+                  <div>
+                     <h3 className="text-[14px] font-black text-slate-900 mb-3 border-b border-slate-100 pb-2">Deliverables</h3>
+                     <div className="space-y-2">
+                        {engDeliverables.map(d => {
+                           const isDone = d.status === "DELIVERED";
+                           return (
+                              <div key={d.id} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm flex items-center justify-between group cursor-pointer hover:border-slate-300">
+                                 <div>
+                                    <p className={`text-[13px] font-bold ${isDone ? "text-slate-500 line-through" : "text-slate-900"}`}>{d.name}</p>
+                                    <p className="text-[11px] font-medium text-slate-500">Due: {new Date(d.dueDate).toLocaleDateString()}</p>
+                                 </div>
+                                 <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded ${isDone ? "bg-slate-100 text-slate-400" : "bg-amber-50 text-amber-600"}`}>{d.status.replace("_", " ")}</span>
+                              </div>
+                           );
+                        })}
+                        {engDeliverables.length === 0 && <p className="text-[12px] text-slate-500 mt-2">No specific deliverables uploaded.</p>}
+                     </div>
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
     </div>
   );
 }

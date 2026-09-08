@@ -76,6 +76,7 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
          transactions: demo.revenueTransactions,
          renewals: demo.revenueRenewals,
          expansions: demo.revenueExpansions,
+         forecasts: demo.revenueForecasts || []
       };
    });
 
@@ -166,7 +167,8 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
          customers: [...prev.customers.filter(x => !(x as any).isDemo), ...demo.revenueCustomers],
          transactions: [...prev.transactions.filter(x => !(x as any).isDemo), ...demo.revenueTransactions],
          renewals: [...prev.renewals.filter(x => !(x as any).isDemo), ...demo.revenueRenewals],
-         expansions: [...prev.expansions.filter(x => !(x as any).isDemo), ...demo.revenueExpansions]
+         expansions: [...prev.expansions.filter(x => !(x as any).isDemo), ...demo.revenueExpansions],
+         forecasts: [...prev.forecasts.filter(x => !(x as any).isDemo), ...(demo.revenueForecasts || [])]
       }));
    };
 
@@ -176,7 +178,8 @@ export const RevenueOSProvider = ({ children }: { children: React.ReactNode }) =
          customers: prev.customers.filter(x => !(x as any).isDemo),
          transactions: prev.transactions.filter(x => !(x as any).isDemo),
          renewals: prev.renewals.filter(x => !(x as any).isDemo),
-         expansions: prev.expansions.filter(x => !(x as any).isDemo)
+         expansions: prev.expansions.filter(x => !(x as any).isDemo),
+         forecasts: prev.forecasts.filter(x => !(x as any).isDemo)
       }));
    };
 

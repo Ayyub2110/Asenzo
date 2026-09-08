@@ -70,12 +70,12 @@ export default function ExpansionModal({ isOpen, onClose, initialData }: { isOpe
            </div>
 
            <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Deal Stage</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Status</label>
               <select required value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full text-[13px] font-medium border border-slate-200 rounded-lg px-3 py-2">
-                 <option value="IDENTIFIED">Identified</option>
-                 <option value="PITCHED">Solution Pitched</option>
-                 <option value="CLOSED_WON">Closed Won</option>
-                 <option value="CLOSED_LOST">Closed Lost</option>
+                 <option value="IDENTIFIED">Opportunity</option>
+                 <option value="PITCHED">Pitched</option>
+                 <option value="CLOSED_WON">Won</option>
+                 <option value="CLOSED_LOST">Lost</option>
               </select>
            </div>
 

@@ -1,5 +1,5 @@
 import { Lead, Opportunity, SalesCall, QualificationStatus, PipelineStage } from "@/lib/types/conversion";
-import { Customer, RevenueTransaction, Renewal, ExpansionOpportunity } from "@/lib/types/revenue";
+import { Customer, RevenueTransaction, Renewal, ExpansionOpportunity, RevenueForecast } from "@/lib/types/revenue";
 import { DeliveryClient, Engagement, Milestone, Deliverable, Onboarding, CommunicationRecord, DeliveryHealthRecord, DeliveryReport, ProofRecord } from "@/lib/types/delivery";
 
 const NAMES = ["Sarah Jenkins", "David Miller", "Emily Chen", "Michael Ross", "Jessica Wong", "Daniel Carter", "Amanda Smith", "James Wilson", "Olivia Davis", "Robert Taylor", "Sophia Anderson", "William Thomas", "Isabella Jackson", "Joseph White", "Mia Harris", "Charles Martin", "Charlotte Thompson", "Matthew Garcia", "Amelia Martinez", "Anthony Robinson", "Harper Clark", "Donald Rodriguez", "Evelyn Lewis", "Paul Lee"];
@@ -42,6 +42,7 @@ export const generateDemoData = () => {
     const revenueTransactions: (RevenueTransaction & { isDemo?: boolean })[] = [];
     const revenueRenewals: (Renewal & { isDemo?: boolean })[] = [];
     const revenueExpansions: (ExpansionOpportunity & { isDemo?: boolean })[] = [];
+    const revenueForecasts: (RevenueForecast & { isDemo?: boolean })[] = [];
 
     const deliveryClients: DeliveryClient[] = [];
     const deliveryEngagements: Engagement[] = [];
@@ -614,6 +615,31 @@ export const generateDemoData = () => {
         });
     }
 
+    // ============================================================
+    // FORECASTS
+    // ============================================================
+    const currentYear = new Date().getFullYear();
+    const currentMonthIndex = new Date().getMonth();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    
+    // Create forecast for current month, next month, and month after
+    for (let i = 0; i < 3; i++) {
+        const offsetMonth = (currentMonthIndex + i) % 12;
+        const offsetYear = currentYear + Math.floor((currentMonthIndex + i) / 12);
+        const monthLabel = `${monthNames[offsetMonth]} ${offsetYear}`;
+        
+        revenueForecasts.push({
+            id: `demo_fc_${i}`,
+            month: monthLabel,
+            target: i === 0 ? 30000 : i === 1 ? 35000 : 40000,
+            committedRevenue: i === 0 ? 24500 : i === 1 ? 12000 : 8000,
+            weightedPipeline: i === 0 ? 8000 : i === 1 ? 16000 : 22000,
+            bestCase: i === 0 ? 35000 : i === 1 ? 32000 : 45000,
+            createdAt: new Date().toISOString(),
+            isDemo: true
+        } as any);
+    }
+
     return {
         conversionLeads,
         conversionOpps,
@@ -622,6 +648,7 @@ export const generateDemoData = () => {
         revenueTransactions,
         revenueRenewals,
         revenueExpansions,
+        revenueForecasts,
         deliveryClients,
         deliveryEngagements,
         deliveryOnboardings,

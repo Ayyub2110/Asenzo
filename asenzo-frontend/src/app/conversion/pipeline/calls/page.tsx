@@ -136,7 +136,7 @@ export default function CalendarCallWorkspace() {
 
                            <div className="mt-3">
                               <button className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${isSelected ? 'text-blue-300' : 'text-slate-400 group-hover:text-blue-600'}`}>
-                                 [View Context]
+                                 View Context
                               </button>
                            </div>
                         </div>
@@ -177,9 +177,7 @@ export default function CalendarCallWorkspace() {
                            </div>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                           <Link href={`/conversion/leads`} className="text-[11px] font-bold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded bg-white shadow-sm transition">[Open Lead]</Link>
-                           <Link href={`/conversion/conversations`} className="text-[11px] font-bold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded bg-white shadow-sm transition">[Open Conversation]</Link>
-                           <Link href={`/conversion/pipeline`} className="text-[11px] font-bold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded bg-white shadow-sm transition">[Open Opportunity]</Link>
+                           <Link href={`/conversion/conversations`} className="text-[11px] font-bold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded bg-white shadow-sm transition">Open Conversation</Link>
                         </div>
                      </div>
                   </div>

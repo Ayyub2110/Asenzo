@@ -136,13 +136,16 @@ export default function AcquisitionAnalyticsPage() {
       <div className="p-10 max-w-[1200px] mx-auto space-y-10">
         
         {/* OVERVIEW KPI */}
-        <div className="grid grid-cols-6 gap-4">
-           <KPICard label="Views / Reach" value={d.views.toLocaleString()} />
-           <KPICard label="Engagements" value={d.eng.toLocaleString()} />
-           <KPICard label="DM / CTA Responses" value={d.responses.toLocaleString()} />
-           <KPICard label="Leads Captured" value={d.leads.toLocaleString()} highlight />
-           <KPICard label="Top Source" value={analytics.topChannel} isText />
-           <KPICard label="Top Content" value={analytics.topContent} isText />
+        <div className="grid grid-cols-12 gap-4">
+           {/* Primary Metrics Row */}
+           <div className="col-span-6 md:col-span-3"><KPICard label="Views / Reach" value={d.views.toLocaleString()} /></div>
+           <div className="col-span-6 md:col-span-3"><KPICard label="Engagements" value={d.eng.toLocaleString()} /></div>
+           <div className="col-span-6 md:col-span-3"><KPICard label="DM / CTA Responses" value={d.responses.toLocaleString()} /></div>
+           <div className="col-span-6 md:col-span-3"><KPICard label="Leads Captured" value={d.leads.toLocaleString()} highlight /></div>
+           
+           {/* Context Metrics Row */}
+           <div className="col-span-12 md:col-span-5"><KPICard label="Top Source" value={analytics.topChannel} isText /></div>
+           <div className="col-span-12 md:col-span-7"><KPICard label="Top Content" value={analytics.topContent} isText /></div>
         </div>
 
         {/* ACQUISITION HEALTH DIAGNOSTIC */}
@@ -337,7 +340,7 @@ function FunnelStage({ label, val, highlight }: { label: string, val: number, hi
 
 function FunnelConnector({ rate }: { rate: string }) {
    return (
-      <div className="flex-1 flex flex-col items-centerjustify-center relative mx-4 mt-6">
+      <div className="flex-1 flex flex-col items-center justify-center relative mx-4 mt-6">
          <div className="w-full h-px bg-slate-200 absolute top-1/2 -translate-y-1/2"></div>
          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t border-r border-slate-300 rotate-45 transform translate-x-1/2"></div>
          <div className="relative z-10 bg-white px-3 py-1 border border-slate-200 rounded-full text-[11px] font-bold text-slate-500 shadow-sm mx-auto self-center">

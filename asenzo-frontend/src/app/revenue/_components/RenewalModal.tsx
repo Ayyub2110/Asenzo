@@ -72,9 +72,8 @@ export default function RenewalModal({ isOpen, onClose, initialData }: { isOpen:
                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Status</label>
                  <select required value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as any})} className="w-full text-[13px] font-medium border border-slate-200 rounded-lg px-3 py-2">
                     <option value="UPCOMING">Upcoming</option>
-                    <option value="IN_NEGOTIATION">In Negotiation</option>
-                    <option value="RENEWED">Renewed / Won</option>
-                    <option value="CHURNED">Churned / Lost</option>
+                    <option value="RENEWED">Renewed</option>
+                    <option value="CHURNED">Churned</option>
                  </select>
               </div>
               <div>

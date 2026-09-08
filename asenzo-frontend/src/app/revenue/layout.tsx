@@ -51,13 +51,6 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/revenue/intelligence", label: "Revenue Feedback Loop" },
     ],
-  },
-  {
-    id: "analytics",
-    title: "Analytics",
-    items: [
-      { href: "/revenue/analytics", label: "Unified Analytics" },
-    ],
   }
 ];
 
@@ -124,7 +117,7 @@ export default function RevenueLayout({ children }: { children: React.ReactNode 
                 {navGroups
                   .find((g) => g.id === currentGroup)
                   ?.items.map((item) => {
-                    const isActive = pathname === item.href || (item.href !== "/revenue" && pathname?.startsWith(item.href) && item.href !== "/revenue/operations" && item.href !== "/revenue/customers" && item.href !== "/revenue/expansion" && item.href !== "/revenue/billing" && item.href !== "/revenue/intelligence" && item.href !== "/revenue/analytics");
+                    const isActive = pathname === item.href || (item.href !== "/revenue" && pathname?.startsWith(item.href) && item.href !== "/revenue/operations" && item.href !== "/revenue/customers" && item.href !== "/revenue/expansion" && item.href !== "/revenue/billing" && item.href !== "/revenue/intelligence");
 
                     // specialized exact match checking 
                     const isExact = (item.href.split("/").length === 3 && pathname === item.href) ||

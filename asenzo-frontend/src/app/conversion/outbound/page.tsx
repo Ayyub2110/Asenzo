@@ -176,12 +176,12 @@ export default function OutboundWorkspace() {
                         <td className="px-5 py-4 text-right">
                            {row.msgStatus === 'SENT' ? (
                               <Link href={ACTION_MAP.openConversionInbox()} className="inline-flex px-3 py-1.5 border border-slate-200 rounded bg-slate-50 text-[10px] font-bold text-slate-700 uppercase tracking-widest items-center gap-1 hover:bg-slate-100">
-                                 [Open Conversation]
+                                 Open Conversation
                               </Link>
                            ) : row.msgStatus === 'READY' ? (
                               <div className="flex gap-2 justify-end">
-                                 <button className="text-[10px] font-bold text-slate-700 uppercase tracking-widest border border-slate-200 px-3 py-1.5 rounded hover:bg-slate-50 bg-white">[Review]</button>
-                                 <button className="text-[10px] font-bold text-white uppercase tracking-widest bg-emerald-600 border-none px-3 py-1.5 rounded hover:bg-emerald-700 shadow-sm">[Send]</button>
+                                 <button className="text-[10px] font-bold text-slate-700 uppercase tracking-widest border border-slate-200 px-3 py-1.5 rounded hover:bg-slate-50 bg-white">Review</button>
+                                 <button className="text-[10px] font-bold text-white uppercase tracking-widest bg-emerald-600 border-none px-3 py-1.5 rounded hover:bg-emerald-700 shadow-sm">Send</button>
                               </div>
                            ) : (
                               <button disabled className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 py-1.5">Processing...</button>

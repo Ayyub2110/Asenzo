@@ -93,7 +93,7 @@ export default function OffersWorkspace() {
                      <textarea rows={3} placeholder="Optional payment terms or deliverables..." value={newOffer.notes} onChange={e => setNewOffer({...newOffer, notes: e.target.value})} className="w-full border border-slate-200 rounded p-2 text-[13px]" />
                   </div>
                   <div className="flex items-center gap-2 pt-4">
-                     <button type="submit" className="flex-1 py-2 bg-slate-900 text-white font-bold text-[13px] rounded hover:bg-slate-800">[Save Draft]</button>
+                     <button type="submit" className="flex-1 py-2 bg-slate-900 text-white font-bold text-[13px] rounded hover:bg-slate-800">Save Draft</button>
                   </div>
                </form>
             </div>
@@ -160,18 +160,18 @@ export default function OffersWorkspace() {
                     <div className="flex items-center gap-2 pt-2">
                        {isDraft && (
                           <>
-                             <button className="px-3 py-1.5 text-[11px] font-bold border border-slate-200 text-slate-600 rounded bg-white hover:bg-slate-50">[Edit]</button>
-                             <button onClick={() => handleSendOffer(offer)} className="px-3 py-1.5 text-[11px] font-bold border border-slate-900 text-white rounded bg-slate-900 hover:bg-slate-800">[Send]</button>
+                             <button className="px-3 py-1.5 text-[11px] font-bold border border-slate-200 text-slate-600 rounded bg-white hover:bg-slate-50">Edit</button>
+                             <button onClick={() => handleSendOffer(offer)} className="px-3 py-1.5 text-[11px] font-bold border border-slate-900 text-white rounded bg-slate-900 hover:bg-slate-800">Send</button>
                           </>
                        )}
                        {(isSent || isViewed) && (
                           <>
-                             <button onClick={() => handleAcceptOffer(offer)} className="px-3 py-1.5 text-[11px] font-bold border border-emerald-600 text-white rounded bg-emerald-600 hover:bg-emerald-700">[Mark Accepted]</button>
-                             <button onClick={() => handleDeclineOffer(offer)} className="px-3 py-1.5 text-[11px] font-bold border border-red-200 text-red-700 rounded bg-red-50 hover:bg-red-100">[Mark Declined]</button>
+                             <button onClick={() => handleAcceptOffer(offer)} className="px-3 py-1.5 text-[11px] font-bold border border-emerald-600 text-white rounded bg-emerald-600 hover:bg-emerald-700">Mark Accepted</button>
+                             <button onClick={() => handleDeclineOffer(offer)} className="px-3 py-1.5 text-[11px] font-bold border border-red-200 text-red-700 rounded bg-red-50 hover:bg-red-100">Mark Declined</button>
                           </>
                        )}
                        {(isAccepted || isDeclined) && (
-                          <Link href="/conversion/pipeline" className="px-3 py-1.5 text-[11px] font-bold border border-slate-200 text-slate-600 rounded bg-white hover:bg-slate-50">[View Opportunity]</Link>
+                          <Link href="/conversion/pipeline" className="px-3 py-1.5 text-[11px] font-bold border border-slate-200 text-slate-600 rounded bg-white hover:bg-slate-50">View Opportunity</Link>
                        )}
                     </div>
                  </div>

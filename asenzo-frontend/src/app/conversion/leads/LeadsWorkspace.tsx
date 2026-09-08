@@ -10,7 +10,7 @@ const STAGES: LeadLifecycleStage[] = [
 ];
 
 export default function LeadsWorkspace() {
-  const { leads, conversations, opportunities, timelineEvents, addLead } = useConversionOS();
+  const { leads, conversations, opportunities, timelineEvents, addLead, updateLead, createOpportunity } = useConversionOS();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [tempFilter, setTempFilter] = useState<"ALL" | "HOT" | "WARM" | "COLD">("ALL");
@@ -135,7 +135,7 @@ export default function LeadsWorkspace() {
         {STAGES.map(stage => {
            const stageLeads = filteredLeads.filter(l => l.lifecycleStage === stage);
            return (
-              <div key={stage} className="w-[280px] shrink-0 h-full flex flex-col">
+              <div key={stage} className="flex-1 min-w-[260px] h-full flex flex-col">
                  <div className="mb-3 flex items-center justify-between px-1">
                     <h3 className="text-[12px] font-black tracking-widest text-slate-800 uppercase">{stage.replace("_", " ")}</h3>
                     <span className="text-[10px] font-bold text-slate-400 bg-slate-200/50 px-2 rounded-full">{stageLeads.length}</span>
@@ -163,6 +163,36 @@ export default function LeadsWorkspace() {
                                • {lead.temperature}
                              </div>
                           </div>
+
+                          {lead.lifecycleStage === "QUALIFIED" && (
+                             <div className="mt-3 pt-3 border-t border-slate-100">
+                               <button 
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   createOpportunity({
+                                     leadId: lead.id,
+                                     offerId: "TBD",
+                                     pipelineStage: "NEW_OPPORTUNITY",
+                                     estimatedValue: 0,
+                                     probability: 10,
+                                     expectedCloseDate: new Date(Date.now() + 86400000 * 30).toISOString(),
+                                     problem: lead.problem || "",
+                                     desiredOutcome: lead.desiredOutcome || "",
+                                     qualificationNote: "Moved from Leads Kanban",
+                                     buyingTrigger: lead.buyingTrigger || "",
+                                     objections: [],
+                                     followUpState: "UPCOMING",
+                                     owner: "Founder",
+                                     nextAction: "Review Deal",
+                                   });
+                                   updateLead(lead.id, { lifecycleStage: "CALL_BOOKED" }); 
+                                 }}
+                                 className="w-full py-1.5 bg-slate-900 text-white rounded text-[11px] font-bold hover:bg-slate-800 transition-colors"
+                               >
+                                 Move to Sales Pipeline
+                               </button>
+                             </div>
+                          )}
                        </div>
                     ))}
                  </div>
@@ -198,7 +228,7 @@ export default function LeadsWorkspace() {
                      <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
                         <p className="text-[12px] font-bold text-blue-900 mb-2">{renderNextAction(activeLead).text}</p>
                         <Link href={renderNextAction(activeLead).link} className="inline-block px-3 py-1.5 bg-white border border-slate-200 text-slate-700 text-[10px] font-bold rounded shadow-sm hover:bg-slate-50 transition uppercase tracking-wider">
-                           [{renderNextAction(activeLead).actionLabel}]
+                           {renderNextAction(activeLead).actionLabel}
                         </Link>
                      </div>
                   </div>

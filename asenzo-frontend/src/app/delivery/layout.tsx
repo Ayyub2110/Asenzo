@@ -20,29 +20,28 @@ const navGroups: NavGroup[] = [
     id: "onboarding",
     title: "Onboarding",
     items: [
-      { href: "/delivery/onboarding", label: "Unified Intake" }
+      { href: "/delivery/onboarding", label: "Onboarding Pipeline" }
     ],
   },
   {
-    id: "health",
-    title: "Client Health",
+    id: "clients",
+    title: "Clients",
     items: [
-      { href: "/delivery/health", label: "Client Database" }
+      { href: "/delivery/clients", label: "Client Directory" }
     ],
   },
   {
-    id: "retention",
-    title: "Retention & Proof",
+    id: "engagements",
+    title: "Engagements",
     items: [
-      { href: "/delivery/retention", label: "Renewal Pipeline" },
-      { href: "/delivery/retention/proof", label: "Proof Assets" }
+      { href: "/delivery/engagements", label: "Delivery Workspace" }
     ],
   },
   {
-    id: "reporting",
-    title: "Reporting & Outcomes",
+    id: "outcomes-proof",
+    title: "Outcomes & Proof",
     items: [
-      { href: "/delivery/reporting", label: "KPI Tracking & Outcomes" }
+      { href: "/delivery/outcomes-proof", label: "Verified Proof" }
     ],
   }
 ];
