@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { 
   Lead, Opportunity, SalesCall, LeadTemperature, QualificationStatus, PipelineStage, ObjectionRecord 
 } from "@/lib/types/conversion";
+import { getOrGenerateDemoData } from "@/lib/mock/seedData";
 
 // Extended structures to manage offers and follow-ups within our unified store
 export interface OfferRecord {
@@ -11,7 +12,7 @@ export interface OfferRecord {
   opportunityId: string;
   offerName: string;
   value: number;
-  status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+  status: "DRAFT" | "SENT" | "VIEWED" | "ACCEPTED" | "DECLINED" | "EXPIRED";
   sentDate?: string;
   notes?: string;
 }
@@ -63,6 +64,21 @@ interface ConversionOSState {
   createFollowUp: (followUp: Omit<FollowUpRecord, "id">) => void;
   updateFollowUp: (id: string, updates: Partial<FollowUpRecord>) => void;
   logEvent: (leadId: string, type: string, description: string) => void;
+  
+  // Date Filtering & Call Metrics
+  dateRange: "Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time";
+  setDateRange: (range: "Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time") => void;
+  
+  calculateTotalCallsScheduled: () => number;
+  calculateTotalCallsShowed: () => number;
+  calculateShowRate: () => number;
+  calculateTotalCallsClosed: () => number;
+  calculateClosedRate: () => number;
+
+  seedDemoData: () => void;
+  resetDemoData: () => void;
+
+  filterByDate: (dateString: string) => boolean;
 }
 
 const ConversionOSContext = createContext<ConversionOSState | undefined>(undefined);
@@ -82,6 +98,7 @@ const INITIAL_LEAD: Lead = {
   lastTouch: new Date().toISOString(),
   temperature: "WARM",
   qualificationStatus: "QUALIFIED",
+  lifecycleStage: "QUALIFIED",
   problem: "CAC scaling poorly due to outbound reliance",
   desiredOutcome: "Predictable automated inbound",
   buyingTrigger: "Just missed Q3 targets",
@@ -138,15 +155,74 @@ const INITIAL_EVENT: EventTimelineItem = {
 };
 
 export function ConversionOSProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>([INITIAL_LEAD]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([INITIAL_OPP]);
-  const [calls, setCalls] = useState<SalesCall[]>([INITIAL_CALL]);
+  const demo = getOrGenerateDemoData();
+
+  const [leads, setLeads] = useState<Lead[]>([INITIAL_LEAD, ...demo.conversionLeads]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([INITIAL_OPP, ...demo.conversionOpps]);
+  const [calls, setCalls] = useState<SalesCall[]>([INITIAL_CALL, ...demo.conversionCalls]);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [followUps, setFollowUps] = useState<FollowUpRecord[]>([]);
   const [conversations, setConversations] = useState<ConversationRecord[]>([
     { id: "conv_1", leadId: "l_test_01", channel: "Instagram DM", latestMessage: "Let's talk scaling then.", timestamp: new Date().toISOString(), unread: true }
   ]);
   const [timelineEvents, setTimelineEvents] = useState<EventTimelineItem[]>([INITIAL_EVENT]);
+  
+  const [dateRange, setDateRange] = useState<"Today" | "This Week" | "This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
+
+  const filterByDate = (dateString: string) => {
+    if (dateRange === "All Time") return true;
+    const date = new Date(dateString);
+    const now = new Date();
+    if (dateRange === "Today") {
+      return date.toDateString() === now.toDateString();
+    }
+    if (dateRange === "This Week") {
+      const firstDay = new Date(now.setDate(now.getDate() - now.getDay()));
+      return date >= firstDay;
+    }
+    if (dateRange === "This Month") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }
+    if (dateRange === "This Quarter") {
+      const q = Math.floor(now.getMonth() / 3);
+      return Math.floor(date.getMonth() / 3) === q && date.getFullYear() === now.getFullYear();
+    }
+    if (dateRange === "This Year") {
+      return date.getFullYear() === now.getFullYear();
+    }
+    return true;
+  };
+
+  const calculateTotalCallsScheduled = () => {
+    return calls.filter(c => filterByDate(c.scheduledDate) && c.status !== "CANCELLED").length;
+  };
+
+  const calculateTotalCallsShowed = () => {
+    return calls.filter(c => filterByDate(c.scheduledDate) && c.status === "SHOWED").length;
+  };
+
+  const calculateShowRate = () => {
+    const scheduled = calculateTotalCallsScheduled();
+    const showed = calculateTotalCallsShowed();
+    if (scheduled === 0) return 0;
+    return (showed / scheduled) * 100;
+  };
+
+  const calculateTotalCallsClosed = () => {
+    // A call is considered 'closed' if the opportunity it's linked to is CLOSED-WON
+    return calls.filter(c => {
+       if (!filterByDate(c.scheduledDate)) return false;
+       const opp = opportunities.find(o => o.id === c.opportunityId);
+       return opp && opp.pipelineStage === "WON";
+    }).length;
+  };
+
+  const calculateClosedRate = () => {
+    const showed = calculateTotalCallsShowed();
+    const closed = calculateTotalCallsClosed();
+    if (showed === 0) return 0;
+    return (closed / showed) * 100;
+  };
 
   const logEvent = (leadId: string, type: string, description: string) => {
     setTimelineEvents(prev => [{ id: `evt_${Date.now()}`, leadId, type, description, timestamp: new Date().toISOString() }, ...prev]);
@@ -219,10 +295,25 @@ export function ConversionOSProvider({ children }: { children: ReactNode }) {
     setFollowUps(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
+  const seedDemoData = () => {
+      const demo = getOrGenerateDemoData();
+      setLeads(prev => [...prev.filter(x => !(x as any).isDemo), ...demo.conversionLeads]);
+      setOpportunities(prev => [...prev.filter(x => !(x as any).isDemo), ...demo.conversionOpps]);
+      setCalls(prev => [...prev.filter(x => !(x as any).isDemo), ...demo.conversionCalls]);
+  };
+
+  const resetDemoData = () => {
+      setLeads(prev => prev.filter(x => !(x as any).isDemo));
+      setOpportunities(prev => prev.filter(x => !(x as any).isDemo));
+      setCalls(prev => prev.filter(x => !(x as any).isDemo));
+  };
+
   return (
     <ConversionOSContext.Provider value={{
       leads, opportunities, calls, offers, followUps, conversations, timelineEvents,
-      addLead, updateLead, createOpportunity, updateOpportunity, bookCall, updateCall, createOffer, updateOffer, createFollowUp, updateFollowUp, logEvent
+      addLead, updateLead, createOpportunity, updateOpportunity, bookCall, updateCall, createOffer, updateOffer, createFollowUp, updateFollowUp, logEvent,
+      dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate,
+      seedDemoData, resetDemoData, filterByDate
     }}>
       {children}
     </ConversionOSContext.Provider>

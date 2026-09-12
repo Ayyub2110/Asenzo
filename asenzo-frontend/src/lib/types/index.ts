@@ -4,6 +4,7 @@
  */
 
 export * from "./acquisition";
+export * from "./delivery";
 import { ContentItem } from "./acquisition";
 
 export type AutomationStatus =
@@ -389,243 +390,17 @@ export interface RevenueData {
 }
 
 /// ============== DELIVERY & CLIENT OS ==============
-
-export interface DeliveryClientContact {
-  id: string;
-  clientId: string;
-  name: string;
-  email: string;
-  role: string;
-  isPrimary: boolean;
-}
-
-export interface DeliveryClientContract {
-  id: string;
-  clientId: string;
-  dealId: string;
-  offer: string;
-  value: number;
-  startDate: string;
-  endDate: string;
-  paymentStatus: "PENDING" | "PARTIAL" | "PAID";
-  agreementStatus: "PENDING" | "SIGNED";
-}
-
-export interface ClientHealthSignal {
-  id: string;
-  clientId: string;
-  dimension: "DELIVERY" | "OUTCOME" | "COMMUNICATION" | "RELATIONSHIP" | "SCOPE" | "PAYMENT" | "RENEWAL";
-  status: "GREEN" | "YELLOW" | "RED";
-  reason: string;
-  recommendedAction?: string;
-  timestamp: string;
-}
-
-export interface ClientHealth {
-  overall: "GREEN" | "YELLOW" | "RED";
-  signals: ClientHealthSignal[];
-  lastOverriddenBy?: string;
-  lastOverriddenAt?: string;
-  overrideReason?: string;
-}
-
-export interface DeliveryClient {
-  id: string;
-  name: string;
-  company: string;
-  industry: string;
-  icp: string;
-  owner: string;
-  health: ClientHealth;
-  dealSource?: string;
-}
-
-// ------ Onboarding ------
-export interface DeliveryOnboarding {
-  id: string;
-  clientId: string;
-  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
-  intakeStatus: "PENDING" | "SUBMITTED" | "APPROVED";
-  assetCollectionStatus: "PENDING" | "COMPLETED";
-  accessStatus: "PENDING" | "COMPLETED";
-  kickoffStatus: "PENDING" | "SCHEDULED" | "COMPLETED";
-  firstMilestoneId?: string;
-  health: "GREEN" | "YELLOW" | "RED";
-  startDate: string;
-  completionDate?: string;
-  owner: string;
-}
-
-// ------ Engagement ------
-export interface DeliveryEngagementTeam {
-  id: string;
-  engagementId: string;
-  memberId: string;
-  role: string;
-}
-
-export interface DeliveryEngagement {
-  id: string;
-  clientId: string;
-  name: string;
-  offer: string;
-  owner: string;
-  startDate: string;
-  endDate: string;
-  status: "PLANNED" | "ONBOARDING" | "ACTIVE" | "AT_RISK" | "PAUSED" | "COMPLETING" | "COMPLETED" | "CANCELLED";
-  team: DeliveryEngagementTeam[];
-  health: "GREEN" | "YELLOW" | "RED";
-  progress: number;
-}
-
-// ------ Milestones & Deliverables ------
-export interface ClientDependency {
-  id: string;
-  title: string;
-  status: "PENDING" | "FULFILLED" | "DELAYED";
-  dueDate: string;
-}
-
-export interface DeliveryMilestone {
-  id: string;
-  engagementId: string;
-  name: string;
-  description: string;
-  owner: string;
-  startDate: string;
-  dueDate: string;
-  status: "NOT_STARTED" | "IN_PROGRESS" | "BLOCKED" | "AT_RISK" | "AWAITING_CLIENT" | "AWAITING_APPROVAL" | "COMPLETED";
-  progress: number;
-  clientDependencies: ClientDependency[];
-  completionDate?: string;
-}
-
-export interface DeliverableVersion {
-  id: string;
-  version: number;
-  url: string;
-  submittedAt: string;
-}
-
-export interface ClientApproval {
-  id: string;
-  status: "PENDING" | "REQUESTED_CHANGES" | "APPROVED";
-  notes?: string;
-  date?: string;
-}
-
-export interface Deliverable {
-  id: string;
-  name: string;
-  type: string;
-  clientId: string;
-  engagementId: string;
-  milestoneId: string;
-  owner: string;
-  dueDate: string;
-  status: "PLANNED" | "IN_PROGRESS" | "INTERNAL_REVIEW" | "CLIENT_REVIEW" | "CHANGES_REQUESTED" | "APPROVED" | "DELIVERED" | "ARCHIVED";
-  versions: DeliverableVersion[];
-  clientApproval?: ClientApproval;
-  deliveryDate?: string;
-}
-
-// ------ Client Communication ------
-export interface ClientCommunication {
-  id: string;
-  clientId: string;
-  engagementId?: string;
-  milestoneId?: string;
-  deliverableId?: string;
-  owner: string;
-  date: string;
-  type: "MESSAGE" | "EMAIL" | "MEETING" | "UPDATE" | "DEPENDENCY_REMINDER";
-  status: "NEEDS_RESPONSE" | "WAITING_ON_CLIENT" | "WAITING_INTERNAL" | "RESOLVED" | "FOLLOW_UP_REQUIRED" | "CLOSED";
-  summary: string;
-}
-
-// ------ Outcomes & KPI ------
-export interface OutcomeMeasurement {
-  id: string;
-  date: string;
-  value: number;
-  notes?: string;
-}
-
-export interface KPI {
-  id: string;
-  engagementId: string;
-  metricName: string;
-  baseline: number;
-  target: number;
-  currentValue: number;
-  measurements: OutcomeMeasurement[];
-}
-
-export interface ClientOutcome {
-  id: string;
-  clientId: string;
-  engagementId: string;
-  originalProblem: string;
-  successDefinition: string;
-  kpis: KPI[];
-}
-
-// ------ Reporting ------
-export interface DeliveryReport {
-  id: string;
-  clientId: string;
-  engagementId: string;
-  type: "WEEKLY_UPDATE" | "MILESTONE_COMPLETION" | "EXECUTIVE_SUMMARY";
-  generatedDate: string;
-  status: "DRAFT" | "SENT" | "VIEWED";
-  url: string;
-}
-
-// ------ Retention & Proof ------
-export interface DeliveryRenewal {
-  id: string;
-  clientId: string;
-  contractId: string;
-  renewalDate: string;
-  owner: string;
-  status: "NOT_STARTED" | "UPCOMING" | "IN_DISCUSSION" | "RENEWED" | "EXPANDED" | "CHURN_RISK" | "CHURNED";
-  likelihood: number;
-}
-
-export interface ProofAsset {
-  id: string;
-  clientId: string;
-  type: "METRIC" | "TESTIMONIAL" | "CASE_STUDY" | "BEFORE_AFTER" | "QUOTE" | "ARTIFACT";
-  sourceMilestoneId?: string;
-  permissionStatus: "NOT_REQUESTED" | "REQUESTED" | "APPROVED" | "DECLINED";
-  verificationStatus: "UNVERIFIED" | "VERIFIED";
-  publishedStatus: "DRAFT" | "PUBLISHED";
-  url?: string;
-}
-
-export interface DeliveryData {
-  clients: DeliveryClient[];
-  contacts: DeliveryClientContact[];
-  contracts: DeliveryClientContract[];
-  onboardings: DeliveryOnboarding[];
-  engagements: DeliveryEngagement[];
-  milestones: DeliveryMilestone[];
-  deliverables: Deliverable[];
-  communications: ClientCommunication[];
-  outcomes: ClientOutcome[];
-  reports: DeliveryReport[];
-  renewals: DeliveryRenewal[];
-  proofs: ProofAsset[];
-}
+// Migrated to src/lib/types/delivery.ts
 
 // ============== OPERATIONS ==============
 
 export type OperationsPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-export type OperationsTaskStatus = "BACKLOG" | "READY" | "IN_PROGRESS" | "BLOCKED" | "WAITING" | "COMPLETED" | "CANCELLED";
-export type OperationsApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "EXPIRED";
-export type OperationsSOPStatus = "DRAFT" | "ACTIVE" | "NEEDS_REVIEW" | "ARCHIVED";
-export type OperationsEscalationStatus = "OPEN" | "ACKNOWLEDGED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
-export type OperationsQCStatus = "NOT_REVIEWED" | "PASSED" | "FAILED" | "CHANGES_REQUIRED" | "RECHECK_REQUIRED";
+export type OperationsWorkStatus = "BACKLOG" | "NOT_STARTED" | "IN_PROGRESS" | "WAITING" | "BLOCKED" | "IN_REVIEW" | "COMPLETED" | "CANCELLED";
+export type OperationsApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED" | "CANCELLED";
+export type OperationsSOPStatus = "DRAFT" | "IN_REVIEW" | "PUBLISHED" | "ARCHIVED";
+export type OperationsIssueStatus = "OPEN" | "INVESTIGATING" | "ACTION_REQUIRED" | "ESCALATED" | "RESOLVED" | "CLOSED";
+export type OperationsIssueSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type OperationsQCStatus = "PENDING" | "PASSED" | "FAILED" | "REWORK" | "APPROVED";
 export type ModuleSource = "Foundation" | "Attention" | "Acquisition" | "Conversion" | "Revenue" | "Delivery" | "Operations" | "Intelligence" | "Command";
 
 export interface OperationsTeamMember {
@@ -633,39 +408,69 @@ export interface OperationsTeamMember {
   name: string;
   role: string;
   department: string;
+  managerId?: string;
   skills: string[];
   capacity: number; // Max capacity
   workload: number; // Current assigned hours or %
-  status: "ACTIVE" | "AWAY" | "AT_CAPACITY" | "OVER_CAPACITY" | "INACTIVE";
-  backupFor: string[]; // User IDs
+  status: "ACTIVE" | "INACTIVE" | "ON_LEAVE";
 }
 
-export interface OperationsTask {
+export interface OperationsRole {
+  id: string;
+  title: string;
+  department: string;
+  primaryOwnerId?: string;
+  backupOwnerId?: string;
+  escalationOwnerId?: string;
+  responsibilities: string[];
+}
+
+export interface OperationsWork {
   id: string;
   title: string;
   description: string;
-  ownerId: string;
-  backupOwnerId?: string;
   sourceModule: ModuleSource;
-  relatedRecordId?: string;
+  sourceEntityId?: string;
+  workType: string;
+  ownerId?: string;
+  teamId?: string;
   priority: OperationsPriority;
-  status: OperationsTaskStatus;
+  status: OperationsWorkStatus;
+  startDate?: string;
   dueDate: string;
+  estimatedEffort?: number;
+  actualEffort?: number;
+  dependencies?: string[];
+  blocker?: string;
+  relatedClientId?: string;
+  relatedProjectId?: string;
+  relatedSopId?: string;
+  relatedWorkflowId?: string;
+  comments?: string;
   createdAt: string;
+  updatedAt: string;
   completedAt?: string;
-  blockedBy?: string; // Task ID or reason
-  escalationState?: string;
+}
+
+export interface OperationsUpdate {
+  id: string;
+  userId: string;
+  teamId?: string;
+  date: string;
+  completed: string;
+  inProgress: string;
+  blocked: string;
+  needsHelp: string;
+  notes: string;
 }
 
 export interface OperationsSOP {
   id: string;
   name: string;
   purpose: string;
-  trigger: string;
-  ownerId: string;
+  ownerId?: string;
+  department?: string;
   processSteps: string[];
-  qualityStandard: string;
-  expectedOutput: string;
   status: OperationsSOPStatus;
   version: string;
   lastReviewedDate: string;
@@ -676,67 +481,77 @@ export interface OperationsWorkflow {
   id: string;
   name: string;
   triggerEvent: string;
-  steps: string[]; // simplified steps
-  ownerId: string;
+  steps: { id: string; name: string; ownerId?: string; }[];
+  ownerId?: string;
+  approverId?: string;
+  slaHours?: number;
 }
 
 export interface OperationsApproval {
   id: string;
   request: string;
-  sourceModule: ModuleSource;
-  requestedBy: string; // User ID
-  approverId: string; // User ID
+  requestedBy: string;
+  approverId: string;
   priority: OperationsPriority;
   status: OperationsApprovalStatus;
   createdAt: string;
   dueDate: string;
   decisionDate?: string;
   comments?: string;
+  relatedEntityId?: string;
 }
 
 export interface OperationsQC {
   id: string;
   title: string;
-  sourceModule: ModuleSource;
   ownerId: string;
   reviewerId: string;
+  standard: string;
   status: OperationsQCStatus;
-  severity: "LOW" | "MEDIUM" | "HIGH";
-  relatedRecordId?: string;
+  score?: number;
+  issues?: string;
+  correction?: string;
+  reviewedDate?: string;
 }
 
-export interface OperationsEscalation {
-  id: string;
-  issue: string;
-  sourceModule: ModuleSource;
-  severity: OperationsPriority;
-  ownerId: string;
-  escalationOwnerId: string;
-  status: OperationsEscalationStatus;
-  createdAt: string;
-  deadline?: string;
-  reason: string;
-  recommendedAction: string;
-}
-
-export interface OperationsScheduleEvent {
+export interface OperationsIssue {
   id: string;
   title: string;
-  frequency: "WEEKLY" | "MONTHLY" | "QUARTERLY";
-  ownerId: string;
-  agenda: string;
-  status: "PENDING" | "COMPLETED";
+  type: "Issue" | "Risk" | "Blocker" | "Escalation";
+  severity: OperationsIssueSeverity;
+  ownerId?: string;
+  sourceModule: ModuleSource;
+  relatedEntityId?: string;
+  description: string;
+  impact: string;
+  createdAt: string;
+  dueDate?: string;
+  resolution?: string;
+  status: OperationsIssueStatus;
+}
+
+export interface OperationsPlan {
+  id: string;
+  title: string;
+  description?: string;
+  type: "Initiative" | "Internal Project" | "Deadline" | "Event";
+  startDate: string;
+  dueDate: string;
+  ownerId?: string;
+  status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "DELAYED";
 }
 
 export interface OperationsData {
   team: OperationsTeamMember[];
-  tasks: OperationsTask[];
+  roles: OperationsRole[];
+  work: OperationsWork[];
+  updates: OperationsUpdate[];
   sops: OperationsSOP[];
   workflows: OperationsWorkflow[];
   approvals: OperationsApproval[];
   qc: OperationsQC[];
-  escalations: OperationsEscalation[];
-  schedule: OperationsScheduleEvent[];
+  issues: OperationsIssue[];
+  planning: OperationsPlan[];
 }
 
 // ============== CALENDAR ==============

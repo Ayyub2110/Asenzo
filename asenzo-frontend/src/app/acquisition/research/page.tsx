@@ -46,10 +46,10 @@ export default function ResearchPage() {
   return (
     <div className="flex h-full">
       <aside className="w-44 shrink-0 border-r border-slate-100 pt-6 px-3 space-y-0.5 bg-white sticky top-0 h-[calc(100vh-128px)]">
-        {[{ id: "ideas", label: "Winning Ideas", icon: "auto_awesome" }, { id: "engine", label: "Research Engine", icon: "manage_search" }, { id: "watchlist", label: "Watchlist", icon: "bookmarks" }].map(s => (
+        {[{ id: "ideas", label: "Winning Ideas" }, { id: "engine", label: "Research Engine" }, { id: "watchlist", label: "Watchlist" }].map(s => (
           <button key={s.id} onClick={() => setSection(s.id as typeof section)}
             className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold flex items-center gap-2 ${section === s.id ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-            <span className="material-symbols-outlined text-[14px]">{s.icon}</span>{s.label}
+            {s.label}
           </button>
         ))}
       </aside>
@@ -124,6 +124,27 @@ export default function ResearchPage() {
                     ))}
                     <div className="col-span-2"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Keyword / Topic</label><input className={fc} placeholder="e.g. client acquisition, B2B growth..." /></div>
                   </div>
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <h3 className="text-[12px] font-bold text-slate-900 mb-3 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px]">add_circle</span> Add Research Source
+                    </h3>
+                    <div className="flex gap-3 items-end">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Source Type</label>
+                        <select className={fc}>
+                          <option>URL (Article, YouTube, Social)</option>
+                          <option>Keyword / Topic</option>
+                          <option>Creator Profile</option>
+                          <option>Creator Profile (Common)</option>
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Target</label>
+                        <input className={fc} placeholder="Paste URL or keyword..." />
+                      </div>
+                      <button className="px-5 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 h-[38px] flex items-center justify-center">Add</button>
+                    </div>
+                  </div>
                 </div>
                 <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
                   <p className="text-[11px] font-bold text-amber-700 mb-0.5">BOF uses buyer intelligence — not social content</p>
@@ -131,7 +152,7 @@ export default function ResearchPage() {
                 </div>
                 {researchState !== "loading" ? (
                   <div className="flex gap-3">
-                    <button onClick={() => { setResearchState("loading"); setTimeout(() => setResearchState("done"), 2500); }} className="flex-1 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800">Analyze Research Subject</button>
+                    <button onClick={() => { setResearchState("loading"); setTimeout(() => setResearchState("done"), 2500); }} className="flex-1 py-2.5 bg-blue-600 text-white text-[12px] font-bold rounded-lg hover:bg-blue-700 shadow-sm border border-transparent">Analyze Research Subject</button>
                   </div>
                 ) : (
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
@@ -141,21 +162,6 @@ export default function ResearchPage() {
                 )}
               </div>
               <div className="col-span-4 space-y-4">
-                <div className="bg-slate-900 rounded-xl p-5 shadow-lg border border-slate-800 text-white">
-                  <h3 className="text-[14px] font-bold mb-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">add_circle</span> Add Research Source
-                  </h3>
-                  <div className="space-y-3">
-                    <select className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-[12px] font-semibold focus:outline-none">
-                      <option>URL (Article, YouTube, Social)</option>
-                      <option>Keyword / Topic</option>
-                      <option>Creator Profile</option>
-                    </select>
-                    <input className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-[12px] focus:outline-none focus:border-slate-500" placeholder="Paste URL or keyword..." />
-                    <button className="w-full py-2 bg-white text-slate-900 text-[12px] font-bold rounded-lg hover:bg-slate-200">Add Source</button>
-                  </div>
-                </div>
-
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-3"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Creators</p><span className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">Select All</span></div>
                   <div className="space-y-2 text-[11px] text-slate-700 font-semibold h-40 overflow-y-auto">

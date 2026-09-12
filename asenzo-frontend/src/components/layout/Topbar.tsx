@@ -37,6 +37,7 @@ export default function Topbar() {
     if (path.startsWith("/retention")) return "Retention OS";
     if (path.startsWith("/intelligence")) return "Intelligence Center";
     if (path.startsWith("/operations")) return "Operations Center";
+    if (path.startsWith("/analytics")) return "Business Analytics";
     if (path.startsWith("/ai-workforce")) return "AI Workforce";
     if (path.startsWith("/resources")) return "Resources";
     if (path.startsWith("/settings")) return "Settings";
@@ -51,6 +52,7 @@ export default function Topbar() {
     if (path.startsWith("/revenue")) return "Sales Pipeline and Revenue Operations";
     if (path.startsWith("/delivery")) return "Client Services and Fulfillment Engine";
     if (path.startsWith("/operations")) return "Team, Workflows, and Process Management";
+    if (path.startsWith("/analytics")) return "Cross-Business Intelligence & Decision Support";
     return "Monday, August 17 · Business Overview";
   };
 
@@ -74,7 +76,7 @@ export default function Topbar() {
             <span className="text-[10px] font-semibold text-muted-foreground leading-none">⌘ K</span>
           </div>
         </div>
-
+        
         <div className="flex items-center gap-4 relative" ref={dropdownRef}>
           <button className="w-[32px] h-[32px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-ring">
             <span className="material-symbols-outlined text-[20px]">notifications</span>

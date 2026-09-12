@@ -8,19 +8,36 @@ export type QualificationStatus =
   | "CONDITIONALLY_QUALIFIED"
   | "UNQUALIFIED";
 
+export type LeadLifecycleStage = 
+  | "NEW"
+  | "CONTACTED"
+  | "ENGAGED"
+  | "QUALIFIED"
+  | "CALL_BOOKED"
+  | "CALL_SHOWED"
+  | "NURTURE"
+  | "CONVERTED"
+  | "LOST";
+
 export type PipelineStage =
+  | "LEAD"
   | "NEW_OPPORTUNITY"
   | "QUALIFYING"
   | "QUALIFIED"
   | "CALL_BOOKED"
   | "CALL_COMPLETED"
+  | "CALL_SHOWED"
   | "DIAGNOSIS"
   | "OFFER_PRESENTED"
+  | "OFFER_PROPOSAL"
+  | "OFFER_SENT"
   | "DECISION"
   | "WON"
+  | "CLOSED_WON"
   | "FOLLOW_UP"
   | "NURTURE"
-  | "LOST";
+  | "LOST"
+  | "CLOSED_LOST";
 
 export type ObjectionCategory =
   | "PRICE"
@@ -58,6 +75,7 @@ export interface Lead {
   lastTouch: string;
   temperature: LeadTemperature;
   qualificationStatus: QualificationStatus;
+  lifecycleStage: LeadLifecycleStage;
   
   // Conversion state
   problem: string;
@@ -118,7 +136,7 @@ export interface SalesCall {
   id: string;
   opportunityId: string;
   scheduledDate: string;
-  status: "SCHEDULED" | "COMPLETED" | "NO_SHOW" | "CANCELED";
+  status: "SCHEDULED" | "SHOWED" | "NO_SHOW" | "CANCELLED" | "RESCHEDULED";
   situation: string;
   problem: string;
   impact: string;

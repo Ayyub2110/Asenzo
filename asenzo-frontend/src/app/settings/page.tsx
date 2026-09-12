@@ -13,12 +13,30 @@ import {
 import { Skeleton, CardSkeleton } from "@/components/ui/States";
 import { Alert } from "@/components/ui/Alert";
 import { useAdapter } from "@/hooks/useAdapter";
+import { useConversionOS } from "@/contexts/ConversionOSContext";
+import { useRevenueOS } from "@/contexts/RevenueOSContext";
 
 export default function SettingsWorkspace() {
   const { setData, localData, setLocalData, loading, error, reload: loadData } = useAdapter(getSettings);
   
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // OS Contexts for Dev Data
+  const { seedDemoData: seedConversion, resetDemoData: resetConversion } = useConversionOS();
+  const { seedDemoData: seedRevenue, resetDemoData: resetRevenue } = useRevenueOS();
+
+  const handleSeedData = () => {
+      seedConversion();
+      seedRevenue();
+      alert("Realistic Demo Data seeded successfully across Conversion and Revenue OS.");
+  };
+
+  const handleResetData = () => {
+      resetConversion();
+      resetRevenue();
+      alert("Demo Data erased.");
+  };
 
   // Nav state
   const [activeTab, setActiveTab] = useState<"Profile" | "Notifications" | "System">("Profile");
@@ -326,6 +344,7 @@ export default function SettingsWorkspace() {
             )}
 
             {activeTab === "System" && (
+              <>
                 <div className="bg-surface-container-lowest rounded-2xl p-8 mb-8 border border-outline-variant/30 ambient-shadow">
                     <h3 className="font-headline-sm text-headline-sm text-primary mb-6 border-b border-outline-variant/20 pb-4">Global Parameters</h3>
                     
@@ -386,6 +405,29 @@ export default function SettingsWorkspace() {
                         </div>
                     </div>
                 </div>
+                
+                {/* DEV DATA CONTROLS */}
+                <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-8 mb-8 relative">
+                    <div className="absolute top-0 right-0 bg-slate-100 text-slate-500 text-[9px] font-extrabold px-3 py-1 uppercase rounded-bl-xl">Dev Only</div>
+                    <h3 className="font-headline-sm text-headline-sm text-slate-800 mb-2">Development Data Setup</h3>
+                    <p className="font-body-sm text-sm text-slate-500 mb-6">Use these controls to safely seed realistic end-to-end OS data into local memory or reset back to production defaults.</p>
+                    
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={handleSeedData}
+                            className="bg-emerald-600 text-white font-bold text-[12px] px-6 py-2.5 rounded-xl shadow-sm hover:bg-emerald-700 transition-colors"
+                        >
+                            Seed Realistic Dataset
+                        </button>
+                        <button 
+                            onClick={handleResetData}
+                            className="bg-white border border-slate-300 text-slate-700 font-bold text-[12px] px-6 py-2.5 rounded-xl hover:bg-slate-50 transition-colors"
+                        >
+                            Purge Seed Data
+                        </button>
+                    </div>
+                </div>
+              </>
             )}
 
         </div>

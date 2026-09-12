@@ -1,351 +1,368 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { SystemEventType } from "@/lib/types/acquisition";
-import { getIntelligence } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import React, { useMemo } from "react";
 
-// Mock Event Sourced Analytics Data
+// ─── 1. Canonical Event Model (ACQUISITION SCOPE ONLY) ───────────────────────
+
+type EventType = 
+  | "CONTENT_VIEW" 
+  | "ENGAGEMENT" 
+  | "CTA_RESPONSE" 
+  | "LEAD_CAPTURED";
+
 interface AnalyticsEvent {
   id: string;
-  type: SystemEventType;
+  type: EventType;
+  channel: string;
   assetId: string;
   assetTitle: string;
-  value?: number;
   timestamp: string;
 }
 
+// ─── 2. Metric Engine ───────────────────────────────────────────────────────
+
+const calcRateStr = (num: number, den: number): string => {
+  if (!den || den === 0) return "0.0%";
+  return ((num / den) * 100).toFixed(1) + "%";
+};
+
+const determinePerformance = (views: number, leads: number): string => {
+  if (views === 0) return "Insufficient Data";
+  const rate = leads / views;
+  if (rate > 0.05) return "Best";
+  if (rate > 0.02) return "Strong";
+  if (rate > 0.01) return "Healthy";
+  return "Weak";
+};
+
+// ─── 3. Mock Data Generator ──────────────────────────────────────────────────
+
 const generateMockEvents = (): AnalyticsEvent[] => {
   const events: AnalyticsEvent[] = [];
+  const ts = new Date().toISOString();
   
-  const generateBatch = (title: string, views: number, dms: number, leads: number, calls: number, won: number, revenue: number) => {
-    for (let i=0; i<views; i++) events.push({ id: `e${Math.random()}`, type: "CONTENT_VIEW", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
-    for (let i=0; i<dms; i++) events.push({ id: `e${Math.random()}`, type: "CONVERSATION_CREATED", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
-    for (let i=0; i<leads; i++) events.push({ id: `e${Math.random()}`, type: "LEAD_CREATED", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
-    for (let i=0; i<calls; i++) events.push({ id: `e${Math.random()}`, type: "CALL_BOOKED", assetId: title, assetTitle: title, timestamp: new Date().toISOString() });
-    for (let i=0; i<won; i++) events.push({ id: `e${Math.random()}`, type: "DEAL_WON", assetId: title, assetTitle: title, value: revenue, timestamp: new Date().toISOString() });
+  const generatePath = (
+    title: string, channel: string,
+    views: number, eng: number, resp: number, leads: number
+  ) => {
+    for (let i=0; i<views; i++) events.push({ id: `e${Math.random()}`, type: "CONTENT_VIEW", channel, assetId: title, assetTitle: title, timestamp: ts });
+    for (let i=0; i<eng; i++) events.push({ id: `e${Math.random()}`, type: "ENGAGEMENT", channel, assetId: title, assetTitle: title, timestamp: ts });
+    for (let i=0; i<resp; i++) events.push({ id: `e${Math.random()}`, type: "CTA_RESPONSE", channel, assetId: title, assetTitle: title, timestamp: ts });
+    for (let i=0; i<leads; i++) events.push({ id: `e${Math.random()}`, type: "LEAD_CAPTURED", channel, assetId: title, assetTitle: title, timestamp: ts });
   };
 
-  generateBatch("Why consistency isn't your problem", 250, 48, 14, 4, 1, 5000);
-  generateBatch("The reason your agency didn't work", 120, 38, 12, 3, 1, 5000);
-  generateBatch("5 signs your content is attracting wrong clients", 110, 58, 19, 6, 2, 10000);
-  generateBatch("I wasted £12,000 on ads", 310, 22, 7, 2, 0, 0);
+  generatePath("Why consistency isn't your problem", "LinkedIn", 250, 48, 14, 8);
+  generatePath("The reason your agency didn't work", "LinkedIn", 120, 38, 12, 7);
+  generatePath("5 signs your content is attracting wrong clients", "Instagram", 110, 58, 19, 12);
+  generatePath("I wasted £12,000 on ads", "X", 310, 22, 7, 3);
 
   return events;
 };
 
 const MOCK_EVENTS = generateMockEvents();
 
-const BOTTLENECK_CHAIN = [
-  { q: "Strategy clear?", status: "pass" },
-  { q: "Positioning clear?", status: "pass" },
-  { q: "Offer strong?", status: "pass" },
-  { q: "Audience clear?", status: "warn", note: "30-day staleness" },
-  { q: "Content attracting?", status: "pass" },
-  { q: "People responding (DMs)?", status: "pass" },
-  { q: "Conversations converting to applications?", status: "fail", note: "7.2% — target 12–18%" },
-  { q: "Calls converting?", status: "pass", note: "23% close rate" },
-  { q: "Clients producing results?", status: "pass" },
-];
+// ─── 4. Component ─────────────────────────────────────────────────────────────
 
-export default function AnalyticsPage() {
-  const [view, setView] = useState<"overview"|"content"|"funnel"|"channels"|"revenue">("overview");
-
-  // Load backend intelligence data for Channels / Content-Revenue
-  const { localData, loading, error } = useAdapter(getIntelligence);
-
-  // Derive Metrics from Events
-  const aggregatedStats = useMemo(() => {
-    const assetStats: Record<string, any> = {};
-    let totalViews = 0, totalLeads = 0, totalCalls = 0, totalRevenue = 0, totalClosed = 0;
+export default function AcquisitionAnalyticsPage() {
+  
+  // Single pass aggregation engine
+  const analytics = useMemo(() => {
+    let views=0, eng=0, responses=0, leads=0;
+    const contentStats: Record<string, any> = {};
+    const channelStats: Record<string, any> = {};
 
     MOCK_EVENTS.forEach(ev => {
-      if (!assetStats[ev.assetTitle]) {
-        assetStats[ev.assetTitle] = { title: ev.assetTitle, views: 0, dms: 0, leads: 0, calls: 0, sales: 0, revenue: 0 };
+      if (!contentStats[ev.assetTitle]) {
+        contentStats[ev.assetTitle] = { title: ev.assetTitle, channel: ev.channel, views:0, eng:0, responses:0, leads:0 };
       }
-      
+      if (!channelStats[ev.channel]) {
+        channelStats[ev.channel] = { channel: ev.channel, views:0, eng:0, responses:0, leads:0 };
+      }
+
+      const cs = contentStats[ev.assetTitle];
+      const ch = channelStats[ev.channel];
+
       switch (ev.type) {
-        case "CONTENT_VIEW":
-          assetStats[ev.assetTitle].views++;
-          totalViews++;
-          break;
-        case "CONVERSATION_CREATED":
-          assetStats[ev.assetTitle].dms++;
-          break;
-        case "LEAD_CREATED":
-          assetStats[ev.assetTitle].leads++;
-          totalLeads++;
-          break;
-        case "CALL_BOOKED":
-          assetStats[ev.assetTitle].calls++;
-          totalCalls++;
-          break;
-        case "DEAL_WON":
-          assetStats[ev.assetTitle].sales++;
-          assetStats[ev.assetTitle].revenue += (ev.value || 0);
-          totalClosed++;
-          totalRevenue += (ev.value || 0);
-          break;
+        case "CONTENT_VIEW": views++; cs.views++; ch.views++; break;
+        case "ENGAGEMENT": eng++; cs.eng++; ch.eng++; break;
+        case "CTA_RESPONSE": responses++; cs.responses++; ch.responses++; break;
+        case "LEAD_CAPTURED": leads++; cs.leads++; ch.leads++; break;
       }
     });
 
+    const contentArray = Object.values(contentStats).sort((a,b) => b.leads - a.leads);
+    const channelArray = Object.values(channelStats).sort((a,b) => b.leads - a.leads);
+
+    const topContent = contentArray.length > 0 ? contentArray[0].title : "None";
+    const topChannel = channelArray.length > 0 ? channelArray[0].channel : "None";
+
     return {
-      contentPerf: Object.values(assetStats),
-      totals: { views: totalViews, leads: totalLeads, calls: totalCalls, closed: totalClosed, revenue: totalRevenue }
+      totals: { views, eng, responses, leads },
+      content: contentArray,
+      channels: channelArray,
+      topContent,
+      topChannel
     };
   }, []);
 
-  const FUNNEL_CONV = [
-    { stage: "Content Views", value: aggregatedStats.totals.views, icon: "visibility" },
-    { stage: "Leads Captured", value: aggregatedStats.totals.leads, icon: "person", rate: ((aggregatedStats.totals.leads / aggregatedStats.totals.views) * 100).toFixed(1) + "%" },
-    { stage: "Calls Booked", value: aggregatedStats.totals.calls, icon: "call", rate: ((aggregatedStats.totals.calls / aggregatedStats.totals.leads) * 100).toFixed(1) + "%" },
-    { stage: "Closed Won", value: aggregatedStats.totals.closed, icon: "handshake", rate: ((aggregatedStats.totals.closed / aggregatedStats.totals.calls) * 100).toFixed(1) + "%" },
-    { stage: "Revenue", value: `£${aggregatedStats.totals.revenue.toLocaleString()}`, icon: "payments", rate: "" },
-  ];
+  const d = analytics.totals;
+
+  if (d.views === 0) {
+    return (
+       <div className="flex h-full items-center justify-center bg-slate-50">
+          <div className="text-center p-8 bg-white border border-slate-200 rounded-xl shadow-sm">
+             <span className="material-symbols-outlined text-[48px] text-slate-300 mb-4">insights</span>
+             <h2 className="text-[16px] font-bold text-slate-900 mb-2">No acquisition data yet</h2>
+             <p className="text-[13px] text-slate-500">Connect a channel or publish content to begin tracking.</p>
+          </div>
+       </div>
+    );
+  }
 
   return (
-    <div className="flex h-[calc(100vh-72px)] overflow-hidden">
-      <aside className="w-48 shrink-0 border-r border-slate-100 pt-6 px-3 space-y-0.5 bg-white h-full overflow-y-auto">
-        {[
-          { id: "overview", label: "Overview", icon: "dashboard" },
-          { id: "content", label: "Content Matrix", icon: "view_list" },
-          { id: "funnel", label: "Funnel Velocity", icon: "account_tree" },
-          { id: "channels", label: "Channel Performance", icon: "share" },
-          { id: "revenue", label: "Content → Revenue", icon: "move_up" },
-        ].map(s => (
-          <button key={s.id} onClick={() => setView(s.id as any)}
-            className={`w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold flex items-center gap-2 ${view === s.id ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors"}`}>
-            <span className="material-symbols-outlined text-[14px]">{s.icon}</span>{s.label}
-          </button>
-        ))}
-      </aside>
+    <div className="flex-1 overflow-y-auto bg-slate-50/50 font-sans h-full">
+      
+      {/* HEADER */}
+      <div className="sticky top-0 z-10 border-b border-slate-200 px-10 py-5 bg-white flex items-center justify-between shadow-sm">
+        <div>
+           <h1 className="text-[16px] font-black tracking-widest uppercase text-slate-900">Acquisition Analytics</h1>
+           <p className="text-[12px] text-slate-500 font-medium">Which acquisition activities are actually creating qualified demand?</p>
+        </div>
+        <div className="flex items-center gap-3">
+           <select className="px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 bg-white"><option>Last 30 Days</option></select>
+        </div>
+      </div>
 
-      <main className="flex-1 py-6 px-8 overflow-y-auto bg-slate-50/30">
-        {/* ── Overview ── */}
-        {view === "overview" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Unified Analytics</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5 max-w-2xl">Fully event-sourced reporting engine directly mapping content views to closed revenue across all channels.</p>
-            </div>
-            
-            {/* Top metrics */}
-            <div className="grid grid-cols-5 gap-4">
-              {[
-                { label: "Total Views", value: aggregatedStats.totals.views.toLocaleString(), color: "#2563EB", bg:"bg-blue-50/50" },
-                { label: "Total Leads", value: aggregatedStats.totals.leads.toString(), color: "#8B5CF6", bg:"bg-purple-50/50" },
-                { label: "Calls Booked", value: aggregatedStats.totals.calls.toString(), color: "#D97706", bg:"bg-orange-50/50" },
-                { label: "Closed Won", value: aggregatedStats.totals.closed.toString(), color: "#16A34A", bg:"bg-emerald-50/50" },
-                { label: "Pipeline Revenue", value: `£${(aggregatedStats.totals.revenue/1000).toFixed(0)}K`, color: "#7C3AED", bg:"bg-violet-50/50" },
-              ].map(m => (
-                <div key={m.label} className={`border border-slate-200 rounded-xl p-4 shadow-sm ${m.bg}`}>
-                  <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2">{m.label}</p>
-                  <p className="text-[26px] font-black tracking-tight" style={{ color: m.color }}>{m.value}</p>
-                </div>
-              ))}
-            </div>
+      <div className="p-10 max-w-[1200px] mx-auto space-y-10">
+        
+        {/* OVERVIEW KPI */}
+        <div className="grid grid-cols-12 gap-4">
+           {/* Primary Metrics Row */}
+           <div className="col-span-6 md:col-span-3"><KPICard label="Views / Reach" value={d.views.toLocaleString()} /></div>
+           <div className="col-span-6 md:col-span-3"><KPICard label="Engagements" value={d.eng.toLocaleString()} /></div>
+           <div className="col-span-6 md:col-span-3"><KPICard label="DM / CTA Responses" value={d.responses.toLocaleString()} /></div>
+           <div className="col-span-6 md:col-span-3"><KPICard label="Leads Captured" value={d.leads.toLocaleString()} highlight /></div>
+           
+           {/* Context Metrics Row */}
+           <div className="col-span-12 md:col-span-5"><KPICard label="Top Source" value={analytics.topChannel} isText /></div>
+           <div className="col-span-12 md:col-span-7"><KPICard label="Top Content" value={analytics.topContent} isText /></div>
+        </div>
 
-            {/* Bottleneck diagnostic */}
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-5 block pointer-events-none text-slate-900 material-symbols-outlined text-[100px]">vital_signs</div>
-              <h3 className="text-[14px] font-extrabold text-slate-900 mb-4 uppercase tracking-widest flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">psychology</span> AI Bottleneck Diagnostic</h3>
-              <div className="space-y-3 relative z-10 w-2/3">
-                {BOTTLENECK_CHAIN.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-sm border ${item.status === "pass" ? "bg-emerald-50 border-emerald-100" : item.status === "warn" ? "bg-amber-50 border-amber-100" : "bg-red-50 border-red-100"}`}>
-                      <span className={`material-symbols-outlined text-[14px] font-bold ${item.status === "pass" ? "text-emerald-500" : item.status === "warn" ? "text-amber-500" : "text-red-500"}`}>
-                        {item.status === "pass" ? "check" : item.status === "warn" ? "warning" : "close"}
-                      </span>
+        {/* ACQUISITION HEALTH DIAGNOSTIC */}
+        <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex items-start gap-8">
+           <div className="w-1/3 shrink-0 space-y-3">
+              <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-4">Acquisition Health</h3>
+              <HealthItem label="Content attracting" status="pass" />
+              <HealthItem label="Distribution working" status="pass" />
+              <HealthItem label="Audience responding" status="pass" />
+              <HealthItem label="CTA response declining" status="warn" />
+           </div>
+           <div className="flex-1 bg-slate-50 rounded-xl p-6 border border-slate-100">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Primary Issue</p>
+              <h4 className="text-[15px] font-bold text-slate-900 mb-6 leading-relaxed">Content is getting attention, but fewer people are taking the next acquisition action.</h4>
+              
+              <div className="flex gap-3">
+                 <span className="material-symbols-outlined text-blue-600 text-[20px]">psychology</span>
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-1">AI Recommendation</p>
+                    <p className="text-[13px] font-medium text-slate-700 leading-relaxed">Strengthen the CTA on the highest-reach content and connect it to the most relevant conversion asset.</p>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* ACQUISITION FUNNEL */}
+        <div className="space-y-4">
+           <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest">Acquisition Funnel</h2>
+           <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm flex items-center justify-between relative overflow-hidden">
+              <FunnelStage label="Views" val={d.views} />
+              <FunnelConnector rate={calcRateStr(d.eng, d.views)} />
+              
+              <FunnelStage label="Engagement" val={d.eng} />
+              <FunnelConnector rate={calcRateStr(d.responses, d.eng)} />
+              
+              <FunnelStage label="Response" val={d.responses} />
+              <FunnelConnector rate={calcRateStr(d.leads, d.responses)} />
+              
+              <FunnelStage label="Lead" val={d.leads} highlight />
+           </div>
+        </div>
+
+        {/* CONTENT & CHANNEL SECTIONS */}
+        <div className="grid grid-cols-3 gap-8">
+           
+           <div className="col-span-2 space-y-10">
+              {/* CONTENT PERFORMANCE */}
+              <div className="space-y-4">
+                 <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest">Content Performance</h2>
+                 <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
+                    <table className="w-full text-left whitespace-nowrap">
+                       <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Content</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Views</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Engage</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">CTA</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Leads</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-center">Performance</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100">
+                          {analytics.content.map(c => (
+                             <tr key={c.title} className="hover:bg-slate-50/50 cursor-pointer transition-colors group">
+                                <td className="px-5 py-4 text-[13px] font-bold text-slate-900 group-hover:text-blue-600 max-w-[220px] truncate">{c.title}</td>
+                                <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">{c.views.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">{c.eng.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">{c.responses.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-[13px] font-bold text-slate-900 text-right">{c.leads.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-center">
+                                   <StatusBadge status={determinePerformance(c.views, c.leads)} />
+                                </td>
+                             </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+              </div>
+
+              {/* CHANNEL PERFORMANCE */}
+              <div className="space-y-4">
+                 <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest">Channel Performance</h2>
+                 <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left whitespace-nowrap">
+                       <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500">Channel</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Reach</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Engage</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Responses</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-right">Leads</th>
+                             <th className="px-5 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 text-center">Status</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-100">
+                          {analytics.channels.map(c => (
+                             <tr key={c.channel} className="hover:bg-slate-50/50">
+                                <td className="px-5 py-4 text-[13px] font-black text-slate-900">{c.channel}</td>
+                                <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">{c.views.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">{c.eng.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-[13px] font-semibold text-slate-600 text-right">{c.responses.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-[13px] font-bold text-slate-900 text-right">{c.leads.toLocaleString()}</td>
+                                <td className="px-5 py-4 text-center">
+                                   <StatusBadge status={determinePerformance(c.views, c.leads)} />
+                                </td>
+                             </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+              </div>
+           </div>
+
+           {/* TOP SOURCES SIDEBAR */}
+           <div className="space-y-4">
+              <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest">Top Acquisition Sources</h2>
+              <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-8">
+                 
+                 <div>
+                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-100 pb-2">Top Content Streams</h3>
+                    <div className="space-y-4">
+                       {analytics.content.slice(0,3).map((c, i) => (
+                          <div key={c.title} className="flex gap-3">
+                             <div className="text-[12px] font-black text-slate-300 w-4">{i+1}.</div>
+                             <div>
+                                <p className="text-[12px] font-bold text-slate-900 leading-tight mb-1">{c.title}</p>
+                                <p className="text-[11px] font-bold text-slate-500">{c.leads} leads</p>
+                             </div>
+                          </div>
+                       ))}
                     </div>
-                    <span className={`text-[13px] font-semibold ${item.status === "fail" ? "text-red-700" : "text-slate-700"}`}>{item.q}</span>
-                    {item.note && <span className={`text-[10px] ml-auto font-bold uppercase tracking-wider ${item.status === "warn" ? "text-amber-500" : item.status === "fail" ? "text-red-500" : "text-slate-400"}`}>{item.note}</span>}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 p-4 bg-red-50/50 border border-red-200 rounded-xl shadow-sm relative z-10 w-2/3">
-                <p className="text-[12px] font-bold text-red-700">Primary bottleneck: Lead → Application conversion (7.2% vs 12–18% target)</p>
-                <p className="text-[12px] font-medium text-red-600 mt-1">Automated outreach agent recommends adding a high-urgency proof asset to the Email Sequence CRM.</p>
-              </div>
-            </div>
-          </div>
-        )}
+                 </div>
 
-        {/* ── Content Matrix ── */}
-        {view === "content" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Content Matrix Scorecard</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Events aggregated by original content asset source to see which topics drive true business value.</p>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full text-[12px]">
-                <thead><tr className="border-b border-slate-200 bg-slate-50">
-                  {["Content Source Asset","Views","DMs","Leads","Calls Booked","Sales","Attributed Revenue"].map(h => <th key={h} className="text-left p-4 text-slate-500 font-bold uppercase tracking-wider text-[10px]">{h}</th>)}
-                </tr></thead>
-                <tbody className="divide-y divide-slate-100">
-                  {aggregatedStats.contentPerf.map((c: any) => (
-                    <tr key={c.title} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-4 font-bold text-slate-900 max-w-[250px] truncate">{c.title}</td>
-                      <td className="p-4 text-slate-600 font-semibold">{c.views.toLocaleString()}</td>
-                      <td className="p-4 text-slate-600 font-semibold">{c.dms}</td>
-                      <td className="p-4 text-slate-600 font-semibold">{c.leads}</td>
-                      <td className="p-4 text-slate-600 font-semibold">{c.calls}</td>
-                      <td className="p-4 text-slate-600 font-semibold">{c.sales}</td>
-                      <td className="p-4 font-black tracking-tight text-emerald-600">{c.revenue > 0 ? `£${c.revenue.toLocaleString()}` : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── Funnel Velocity ── */}
-        {view === "funnel" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Event Funnel Velocity</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5">Stage to stage conversion based on timestamped event tracking.</p>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm space-y-6">
-              {FUNNEL_CONV.map((stage) => {
-                const max = FUNNEL_CONV[0].value as number;
-                const val = typeof stage.value === "number" ? stage.value : null;
-                const pct = val ? Math.round((val / max) * 100) : 0;
-                return (
-                  <div key={stage.stage} className="flex items-center gap-6">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[20px] text-slate-500">{stage.icon}</span>
+                 <div>
+                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-4 border-b border-slate-100 pb-2">Top Channels</h3>
+                    <div className="space-y-4">
+                       {analytics.channels.slice(0,3).map((c, i) => (
+                          <div key={c.channel} className="flex gap-3 items-center">
+                             <div className="text-[12px] font-black text-slate-300 w-4">{i+1}.</div>
+                             <p className="text-[13px] font-bold text-slate-900 flex-1">{c.channel}</p>
+                             <p className="text-[11px] font-bold text-slate-500">{c.leads} leads</p>
+                          </div>
+                       ))}
                     </div>
-                    <div className="w-40 shrink-0">
-                      <p className="text-[13px] font-bold text-slate-800">{stage.stage}</p>
-                      {stage.rate && <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{stage.rate} Conversions</p>}
-                    </div>
-                    {val !== null ? (
-                      <div className="flex-1 flex gap-2 items-center">
-                        <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${Math.max(2, pct)}%` }} />
-                        </div>
-                      </div>
-                    ) : (
-                       <div className="flex-1 h-6"></div>
-                    )}
-                    <div className="w-24 text-right">
-                      <span className="text-[18px] font-black text-slate-900">{typeof stage.value === "number" ? stage.value.toLocaleString() : stage.value}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                 </div>
 
-        {/* ── Channels ── */}
-        {view === "channels" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Channel Performance Center</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5 max-w-2xl">This view exposes channels driving vanity metrics vs. true commercial results.</p>
-            </div>
-            
-            {loading ? (
-              <div className="p-10 animate-pulse h-96 w-full bg-white rounded-xl border border-slate-200"></div>
-            ) : error || !localData ? (
-              <div className="p-10 text-red-600 font-bold bg-red-50 border border-red-200 rounded-xl">Error loading channels data.</div>
-            ) : localData.channels.length === 0 ? (
-              <div className="p-16 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
-                <h3 className="text-[14px] font-bold text-slate-900 mb-2">No channel performance data available.</h3>
               </div>
-            ) : (
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-[12px] whitespace-nowrap">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Channel</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Reach</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-center">Quality</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Qualified / Leads</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Opp Conv %</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Rev / Opp</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Total Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {localData.channels.map((c: any) => (
-                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-5 py-4 font-bold text-slate-900 text-[13px]">{c.channel}</td>
-                        <td className="px-5 py-4 text-right font-medium text-slate-700 text-[13px]">{c.reach.toLocaleString()}</td>
-                        <td className="px-5 py-4 text-center">
-                          <span className={`px-2 py-1 rounded-lg text-[9px] uppercase font-bold tracking-widest ${c.engagementQuality === 'High' ? 'bg-emerald-100/50 text-emerald-700 border border-emerald-200' : c.engagementQuality === 'Low' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>{c.engagementQuality}</span>
-                        </td>
-                        <td className="px-5 py-4 text-right text-[13px]">
-                          <span className="font-bold text-blue-600 bg-blue-50 px-1 rounded">{c.qualifiedLeads}</span> <span className="text-slate-400">/ {c.leads}</span>
-                        </td>
-                        <td className="px-5 py-4 text-right font-black text-slate-800 text-[13px]">{c.conversionRate}%</td>
-                        <td className="px-5 py-4 text-right font-bold text-slate-500 text-[13px]">${c.revenuePerOpportunity.toLocaleString()}</td>
-                        <td className="px-5 py-4 text-right font-black tracking-tight text-emerald-600 text-[14px]">${c.revenue.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
+           </div>
 
-        {/* ── Content Revenue ── */}
-        {view === "revenue" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">Content-to-Revenue Bridge</h2>
-              <p className="text-[13px] text-slate-500 mt-0.5 max-w-2xl">Which ideas manufacture the highest intent? This maps exact pieces of content directly to pipeline creation and closed revenue.</p>
-            </div>
-            
-            {loading ? (
-              <div className="p-10 animate-pulse h-96 w-full bg-white rounded-xl border border-slate-200"></div>
-            ) : error || !localData ? (
-              <div className="p-10 text-red-600 font-bold bg-red-50 border border-red-200 rounded-xl">Error loading Content to Revenue data.</div>
-            ) : localData.contentRevenue.length === 0 ? (
-              <div className="p-16 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
-                <h3 className="text-[14px] font-bold text-slate-900 mb-2">No content-to-revenue mapping available.</h3>
-              </div>
-            ) : (
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="w-full text-left text-[12px] whitespace-nowrap">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Content Core</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Stage</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Role</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Reach</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Qualified</th>
-                      <th className="px-5 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Revenue Influenced</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {localData.contentRevenue.map((c: any) => (
-                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-5 py-4">
-                          <p className="font-bold text-slate-900 text-[13px] max-w-[300px] truncate">{c.contentPiece}</p>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1.5 flex items-center gap-2"><span className="bg-slate-100 px-1 rounded">{c.contentPillar}</span> <span>{c.channel}</span></p>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="px-2 py-1 rounded-lg text-[9px] uppercase font-bold tracking-widest bg-blue-50 text-blue-700 border border-blue-100">{c.awarenessStage}</span>
-                        </td>
-                        <td className="px-5 py-4 text-[13px] font-semibold text-slate-700">{c.funnelRole}</td>
-                        <td className="px-5 py-4 text-right text-[13px] text-slate-600 font-medium">{c.reach.toLocaleString()}</td>
-                        <td className="px-5 py-4 text-right text-[13px] font-black text-slate-900">{c.qualifiedLeads}</td>
-                        <td className="px-5 py-4 text-right font-black tracking-tight text-emerald-600 text-[14px]">${c.revenueInfluenced.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-      </main>
+        </div>
+      </div>
     </div>
   );
+}
+
+// ─── Subcomponents ─────────────────────────────────────────────────────────────
+
+function KPICard({ label, value, highlight, isText }: { label: string, value: string, highlight?: boolean, isText?: boolean }) {
+   return (
+      <div className={`p-5 rounded-xl border ${highlight ? 'bg-slate-900 border-slate-900 shadow-md' : 'bg-white border-slate-200 shadow-sm'}`}>
+         <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${highlight ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
+         {isText ? (
+            <p className={`text-[13px] font-bold tracking-tight leading-snug truncate ${highlight ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+         ) : (
+            <p className={`text-[28px] font-black leading-none ${highlight ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+         )}
+      </div>
+   )
+}
+
+function HealthItem({ label, status }: { label: string, status: "pass" | "warn" | "fail" }) {
+   return (
+      <div className="flex items-center gap-3">
+         <span className={`material-symbols-outlined text-[16px] font-black ${status === 'pass' ? 'text-emerald-500' : status === 'warn' ? 'text-amber-500' : 'text-red-500'}`}>
+            {status === 'pass' ? 'check' : 'warning'}
+         </span>
+         <span className={`text-[13px] font-bold ${status === 'warn' ? 'text-slate-900' : 'text-slate-600'}`}>{label}</span>
+      </div>
+   )
+}
+
+function FunnelStage({ label, val, highlight }: { label: string, val: number, highlight?: boolean }) {
+   return (
+      <div className="flex flex-col items-center">
+         <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+         <div className={`px-6 py-3 rounded-lg border font-black text-[22px] ${highlight ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-900'}`}>
+            {val.toLocaleString()}
+         </div>
+      </div>
+   )
+}
+
+function FunnelConnector({ rate }: { rate: string }) {
+   return (
+      <div className="flex-1 flex flex-col items-center justify-center relative mx-4 mt-6">
+         <div className="w-full h-px bg-slate-200 absolute top-1/2 -translate-y-1/2"></div>
+         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t border-r border-slate-300 rotate-45 transform translate-x-1/2"></div>
+         <div className="relative z-10 bg-white px-3 py-1 border border-slate-200 rounded-full text-[11px] font-bold text-slate-500 shadow-sm mx-auto self-center">
+            {rate}
+         </div>
+      </div>
+   )
+}
+
+function StatusBadge({ status }: { status: string }) {
+   const colors = {
+      Best: 'bg-emerald-100 text-emerald-800',
+      Strong: 'bg-emerald-50 text-emerald-700',
+      Healthy: 'bg-blue-50 text-blue-700',
+      Weak: 'bg-red-50 text-red-700',
+      'Needs Attention': 'bg-amber-100 text-amber-800',
+      'Insufficient Data': 'bg-slate-100 text-slate-600'
+   } as Record<string, string>;
+
+   return (
+      <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${colors[status] || colors['Insufficient Data']}`}>
+         {status}
+      </span>
+   )
 }

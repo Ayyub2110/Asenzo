@@ -19,12 +19,79 @@ const QUICK_ACTIONS = [
 import { useConversionOS } from "@/contexts/ConversionOSContext";
 
 export default function ConversionCommandCenter() {
-  const [queue] = useState<ActionQueueItem[]>(MOCK_ACTION_QUEUE);
-  
-  const { leads, opportunities } = useConversionOS();
+  const { leads, opportunities, dateRange, setDateRange, calculateTotalCallsScheduled, calculateTotalCallsShowed, calculateShowRate, calculateTotalCallsClosed, calculateClosedRate, calls, filterByDate } = useConversionOS();
+
+  // Dynamic Needs Attention Queue
+  const queue: ActionQueueItem[] = [];
+
+  // Hot leads with no next action
+  const hotNoAction = leads.filter(l => l.temperature === "HOT" && !l.nextAction);
+  if (hotNoAction.length > 0) {
+    queue.push({
+      id: "hot_no_action", type: "HOT_LEAD", urgency: "HIGH", targetRoute: "/conversion/leads/hot",
+      title: "Hot Leads Missing Next Action", description: `${hotNoAction.length} hot leads have no designated next action.`
+    });
+  }
+
+  // Calls today
+  const todayCalls = calls.filter(c => c.status === "SCHEDULED" && c.scheduledDate.startsWith(new Date().toISOString().split('T')[0]));
+  if (todayCalls.length > 0) {
+    queue.push({
+      id: "calls_today", type: "CALL_DUE", urgency: "HIGH", targetRoute: "/conversion/pipeline/calls",
+      title: "Sales Calls Today", description: `You have ${todayCalls.length} sales call(s) happening today.`
+    });
+  }
+
+  // No-shows needing follow-up
+  const noShows = calls.filter(c => c.status === "NO_SHOW");
+  if (noShows.length > 0) {
+    queue.push({
+      id: "no_shows", type: "FOLLOWUP", urgency: "MEDIUM", targetRoute: "/conversion/conversations/follow-ups",
+      title: "No-Shows Need Follow-up", description: `${noShows.length} no-show(s) need a follow-up action.`
+    });
+  }
+
+  // Offers awaiting response
+  const pendingOffers = opportunities.filter(o => o.pipelineStage === "OFFER_PRESENTED");
+  if (pendingOffers.length > 0) {
+    queue.push({
+      id: "pending_offers", type: "OFFER_DECISION", urgency: "MEDIUM", targetRoute: "/conversion/pipeline/offers",
+      title: "Offers Awaiting Response", description: `${pendingOffers.length} offers are currently pending a decision.`
+    });
+  }
+
+  // Qualified leads without active opportunity
+  const qualifiedNoOpp = leads.filter(l => l.qualificationStatus === "QUALIFIED" && !opportunities.some(o => o.leadId === l.id && o.pipelineStage !== "WON" && o.pipelineStage !== "LOST"));
+  if (qualifiedNoOpp.length > 0) {
+    queue.push({
+      id: "qual_no_opp", type: "HOT_LEAD", urgency: "MEDIUM", targetRoute: "/conversion/leads/qualified",
+      title: "Qualified Leads Without Opportunities", description: `${qualifiedNoOpp.length} qualified leads do not have an active deal.`
+    });
+  }
 
   const totalPipeline = opportunities.reduce((acc, curr) => acc + (curr.estimatedValue || 0), 0);
   const qualifiedLeads = leads.filter(l => l.qualificationStatus === "QUALIFIED").length;
+
+  // Funnel calculations
+  const f_new = leads.filter(l => l.lifecycleStage === "NEW" || !l.lifecycleStage).length;
+  const f_contacted = leads.filter(l => l.lifecycleStage === "CONTACTED").length;
+  const f_engaged = leads.filter(l => l.lifecycleStage === "ENGAGED").length;
+  const f_qualified = qualifiedLeads;
+  const f_booked = opportunities.filter(o => o.pipelineStage === "CALL_BOOKED").length;
+  const f_showed = opportunities.filter(o => o.pipelineStage === "OFFER_PRESENTED" || o.pipelineStage === "CALL_SHOWED").length;
+  const f_offer = opportunities.filter(o => o.pipelineStage === "OFFER_SENT" || o.pipelineStage === "OFFER_PRESENTED").length;
+  const f_won = opportunities.filter(o => o.pipelineStage === "WON" || o.pipelineStage === "CLOSED_WON").length;
+
+  const funnelData = [
+    { label: "New", value: f_new, color: "bg-slate-100 text-slate-800" },
+    { label: "Contacted", value: f_contacted, color: "bg-slate-200 text-slate-800" },
+    { label: "Engaged", value: f_engaged, color: "bg-blue-100 text-blue-800" },
+    { label: "Qualified", value: f_qualified, color: "bg-blue-200 text-blue-900" },
+    { label: "Booked", value: f_booked, color: "bg-violet-100 text-violet-800" },
+    { label: "Showed", value: f_showed, color: "bg-violet-200 text-violet-900" },
+    { label: "Offer", value: f_offer, color: "bg-amber-100 text-amber-900" },
+    { label: "Won", value: f_won, color: "bg-emerald-100 text-emerald-900" }
+  ];
 
   const stats = [
     { label: "Total Leads", value: leads.length, change: "All Time" },
@@ -35,19 +102,68 @@ export default function ConversionCommandCenter() {
     { label: "Win Rate", value: "68%", change: "Last 30d" },
   ];
 
+  const totalScheduled = calculateTotalCallsScheduled();
+  const totalShowed = calculateTotalCallsShowed();
+  const showRate = calculateShowRate();
+  const totalClosed = calculateTotalCallsClosed();
+  const closedRate = calculateClosedRate();
+
+  const handleKpiClick = (route: string) => {
+     window.location.href = route;
+  };
+
   return (
-    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-8">
+    <div className="px-8 py-6 max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <div>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[14px]">track_changes</span>
-          Pillar 3 — Conversion OS
-        </p>
-        <h1 className="text-[24px] font-bold text-slate-900 tracking-tight mt-1">Command Center</h1>
-        <p className="text-[12px] text-slate-500 mt-1">Operating hub for turning qualified attention into closed revenue.</p>
+      <div className="flex items-center justify-between">
+         <div>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[14px]">track_changes</span>
+            Pillar 3 — Conversion OS
+            </p>
+            <h1 className="text-[24px] font-black text-slate-900 tracking-tight mt-1">Command Center</h1>
+            <p className="text-[12px] text-slate-500 font-medium mt-1">Operating hub for turning qualified attention into closed revenue.</p>
+         </div>
+         
+         <div className="bg-white border border-slate-200 rounded-lg shadow-sm flex overflow-hidden">
+            {["Today", "This Week", "This Month", "This Quarter", "This Year", "All Time"].map((tab) => (
+               <button 
+                  key={tab}
+                  onClick={() => setDateRange(tab as any)}
+                  className={`px-4 py-2 text-[11px] font-bold transition-colors ${dateRange === tab ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+               >
+                  {tab}
+               </button>
+            ))}
+         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Funnel Snapshot */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5 mb-4">
+          <span className="material-symbols-outlined text-[18px]">filter_alt</span>
+          Conversion Funnel
+        </h2>
+        <div className="flex items-center justify-between gap-1 overflow-x-auto pb-2 scrollbar-none">
+          {funnelData.map((stage, idx) => (
+            <React.Fragment key={stage.label}>
+               <div className="flex flex-col flex-1 items-center gap-1.5 min-w-[80px]">
+                 <div className={`w-full py-2.5 rounded-lg text-center font-black text-[16px] shadow-sm tracking-tight ${stage.color}`}>
+                   {stage.value}
+                 </div>
+                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stage.label}</span>
+               </div>
+               {idx < funnelData.length - 1 && (
+                 <span className="material-symbols-outlined text-[16px] text-slate-300 font-bold shrink-0 px-1">
+                   arrow_right_alt
+                 </span>
+               )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      {/* Existing Main Stats Grid */}
       <div className="grid grid-cols-6 gap-4">
         {stats.map((stat, i) => (
           <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-between">
@@ -60,7 +176,107 @@ export default function ConversionCommandCenter() {
         ))}
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
+      {/* Call Performance KPI Section */}
+      <div className="space-y-4">
+         <h2 className="text-[14px] font-bold text-slate-900 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[18px]">phone_callback</span>
+            Call Performance ({dateRange})
+         </h2>
+         {calls.filter(c => filterByDate(c.scheduledDate)).length === 0 || (totalScheduled === 0 && totalShowed === 0 && totalClosed === 0) ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
+               <div className="text-[13px] font-bold text-slate-600">No calls recorded for this period.</div>
+            </div>
+         ) : totalScheduled > 0 && totalShowed === 0 ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center shadow-sm">
+               <div className="text-[13px] font-bold text-slate-600">Calls are scheduled, but no completed calls are recorded yet.</div>
+            </div>
+         ) : (
+            <div className="grid grid-cols-5 gap-4">
+               <div onClick={() => handleKpiClick('/conversion/pipeline/calls')} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Calls Scheduled</p>
+                  <div className="text-[28px] font-black text-slate-900 tracking-tight leading-none">{totalScheduled}</div>
+               </div>
+               
+               <div onClick={() => handleKpiClick('/conversion/pipeline/calls?filter=SHOWED')} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Calls Showed</p>
+                  <div className="text-[28px] font-black text-slate-900 tracking-tight leading-none">{totalShowed}</div>
+               </div>
+
+               <div onClick={() => handleKpiClick('/conversion/analytics')} className="bg-slate-900 text-white rounded-xl p-5 shadow-sm cursor-pointer hover:bg-slate-800 transition-colors group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-300 transition-colors">Show Rate</p>
+                  <div className="text-[28px] font-black tracking-tight leading-none text-blue-400">{showRate.toFixed(1)}%</div>
+               </div>
+
+               <div onClick={() => handleKpiClick('/conversion/pipeline?filter=WON')} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">Total Calls Closed</p>
+                  <div className="text-[28px] font-black text-slate-900 tracking-tight leading-none">{totalClosed}</div>
+               </div>
+
+               <div onClick={() => handleKpiClick('/conversion/analytics')} className="bg-emerald-600 text-white rounded-xl p-5 shadow-sm cursor-pointer hover:bg-emerald-700 transition-colors">
+                  <p className="text-[10px] font-extrabold text-emerald-200 uppercase tracking-widest mb-1">Closed Rate</p>
+                  <div className="text-[28px] font-black tracking-tight leading-none">{closedRate.toFixed(1)}%</div>
+               </div>
+            </div>
+         )}
+         
+         {/* Call Performance Summary Pipeline */}
+         {calls.length > 0 && totalScheduled > 0 && (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3 text-[12px] font-bold text-slate-700 shadow-sm overflow-hidden">
+               <span>{totalScheduled} Scheduled</span>
+               <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_right_alt</span>
+               <span className={showRate > 0 ? "text-slate-900" : "text-slate-400"}>{totalShowed} Showed</span>
+               <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_right_alt</span>
+               <span className={closedRate > 0 ? "text-emerald-600" : "text-slate-400"}>{totalClosed} Closed Won</span>
+               
+               <div className="ml-auto flex items-center gap-4 text-[11px]">
+                  <span className="text-slate-500">Show Rate: <strong className="text-slate-900">{showRate.toFixed(1)}%</strong></span>
+                  <span className="text-slate-500">Close Rate: <strong className="text-slate-900">{closedRate.toFixed(1)}%</strong></span>
+               </div>
+            </div>
+         )}
+
+         {/* Source Breakdown */}
+         {totalShowed > 0 && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+               {Array.from(new Set(opportunities.map(o => leads.find(l => l.id === o.leadId)?.originalSource || 'Unknown'))).map(source => {
+                  
+                  const sourceOpps = opportunities.filter(o => {
+                     const l = leads.find(lead => lead.id === o.leadId);
+                     return l?.originalSource === source;
+                  });
+
+                  const sourceOppIds = sourceOpps.map(o => o.id);
+                  const sourceCalls = calls.filter(c => sourceOppIds.includes(c.opportunityId));
+
+                  const sched = sourceCalls.filter(c => c.status !== "CANCELLED").length;
+                  const show = sourceCalls.filter(c => c.status === "SHOWED").length;
+                  const won = sourceCalls.filter(c => sourceOpps.find(o => o.id === c.opportunityId)?.pipelineStage === "WON").length;
+                  
+                  if(sched === 0) return null;
+
+                  return (
+                     <div key={source} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[16px] text-slate-600">hub</span>
+                           </div>
+                           <div>
+                              <div className="text-[12px] font-bold text-slate-900">{source}</div>
+                              <div className="text-[10px] font-medium text-slate-500 mt-0.5">{sched} Scheduled &middot; {show} Showed</div>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                           <div className="text-[12px] font-black text-slate-900">{won} Closed</div>
+                           <div className="text-[10px] font-bold text-slate-500 mt-0.5">Win Rate: {(show > 0 ? (won/show)*100 : 0).toFixed(1)}%</div>
+                        </div>
+                     </div>
+                  );
+               })}
+            </div>
+         )}
+      </div>
+
+      <div className="grid grid-cols-12 gap-6 mt-8">
         {/* Left: Action Queue */}
         <div className="col-span-8 space-y-4">
           <div className="flex items-center justify-between">

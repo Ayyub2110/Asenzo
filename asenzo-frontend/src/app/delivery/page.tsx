@@ -2,108 +2,160 @@
 
 import React from "react";
 import Link from "next/link";
-import { ACTION_MAP } from "@/lib/routing";
-import { getDelivery } from "@/lib/adapters";
-import { useAdapter } from "@/hooks/useAdapter";
+import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
 
-export default function DeliveryCommandPage() {
-  const { localData, loading, error } = useAdapter(getDelivery);
+export default function DeliveryCommandCenter() {
+  const { metrics, clients, engagements, onboardings, milestones } = useDeliveryOS();
 
-  if (loading) {
-    return <div className="p-10 animate-pulse h-96 w-full max-w-[1200px] mx-auto bg-muted/20 rounded-[16px]" />;
-  }
+  // Summary Cards Data
+  const activeOnboardings = onboardings.filter(o => o.status !== "COMPLETED");
+  const activeClients = clients.filter(c => c.status === "ACTIVE");
+  const atRiskClients = clients.filter(c => c.status === "AT_RISK");
+  
+  const now = new Date();
+  const overdueMilestones = milestones.filter(m => m.status !== "COMPLETED" && new Date(m.dueDate) < now);
 
-  if (error || !localData) {
-    return <div className="p-10">Error loading Delivery OS.</div>;
-  }
-
-  // Calculate high-level pulse stats
-  const activeClients = localData.clients.length;
-  const onboardingClients = localData.onboardings.length;
-  const activeEngagements = localData.engagements.filter(e => e.status === "ACTIVE").length;
-  const blockedDeliverables = localData.milestones.filter(m => m.status === "BLOCKED").length;
-
-  let healthCounts = { GREEN: 0, YELLOW: 0, RED: 0 };
-  localData.clients.forEach(c => {
-    if (c.health.overall === "GREEN") healthCounts.GREEN++;
-    else if (c.health.overall === "YELLOW") healthCounts.YELLOW++;
-    else if (c.health.overall === "RED") healthCounts.RED++;
-  });
+  // Today / Needs Attention Data (mocked based on context logic)
+  const needsAttention = [
+    ...atRiskClients.map(c => ({
+       id: `risk-${c.id}`,
+       type: "Client at risk",
+       desc: c.company,
+       action: "View Client",
+       link: "/delivery/clients"
+    })),
+    ...overdueMilestones.map(m => {
+       const eng = engagements.find(e => e.id === m.engagementId);
+       const client = clients.find(c => c.id === eng?.clientId);
+       return {
+          id: `milestone-${m.id}`,
+          type: "Milestone overdue",
+          desc: `${client?.name || "Unknown"} — ${m.name}`,
+          action: "Update Milestone",
+          link: "/delivery/engagements"
+       };
+    })
+  ].slice(0, 5);
 
   return (
-    <div className="p-6 md:p-10 mx-auto w-full pb-32">
-      
-      {/* 1. DELIVERY PULSE */}
-      <section className="mb-12">
-        <h2 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-4">Delivery Pulse</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-          {[
-            { label: "Active Clients", val: activeClients, href: ACTION_MAP.openClientHealth() },
-            { label: "Onboarding", val: onboardingClients, href: ACTION_MAP.openOnboarding() },
-            { label: "Engagements", val: activeEngagements, href: ACTION_MAP.openDeliveryProjects() },
-            { label: "Milestones Due", val: localData.milestones.length, href: ACTION_MAP.openDeliveryProjects() },
-            { label: "Blocked Items", val: blockedDeliverables, alert: blockedDeliverables > 0, href: ACTION_MAP.openDeliveryProjects('blocked') },
-            { label: "Renewals", val: localData.renewals.length, href: ACTION_MAP.openRetentionAndProof() },
-            { label: "Proof Assets", val: localData.proofs.length, href: ACTION_MAP.openRetentionAndProof() },
-            { label: "Health Score", val: "94%", highlight: true, href: ACTION_MAP.openClientHealth() },
-          ].map((m, i) => (
-             <Link href={m.href} key={i} className={`block p-4 rounded-[12px] border hover:opacity-80 transition-opacity ${m.alert ? 'border-destructive/30 bg-destructive/10' : 'border-border bg-card'}`}>
-               <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 mx-auto max-w-full text-clip overflow-hidden whitespace-nowrap ${m.alert ? 'text-destructive' : 'text-muted-foreground'}`}>{m.label}</p>
-               <p className={`text-[20px] font-bold leading-none ${m.highlight ? 'text-success' : 'text-foreground'}`}>{m.val}</p>
-             </Link>
-          ))}
+    <div className="pt-8 pb-32 space-y-10 animate-in fade-in duration-300 px-8 max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[24px] font-black text-slate-900 tracking-tight flex items-center gap-2">
+            Delivery Command Center
+          </h1>
+          <p className="text-[14px] text-slate-500 font-medium max-w-2xl mt-1">
+            Immediate view of what needs attention across onboarding and active delivery.
+          </p>
         </div>
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-        
-        {/* TODAY'S ACTIONS */}
-        <section className="lg:col-span-1 bg-card border border-border p-6 rounded-[16px] flex flex-col shadow-sm">
-          <h2 className="text-[11px] font-bold text-foreground uppercase tracking-widest leading-none mb-6">Today's Delivery Actions</h2>
-          <div className="flex flex-col gap-4">
-             <Link href={ACTION_MAP.openDeliveryProjects('blocked')} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Client input overdue</span>
-                <span className="bg-destructive text-destructive-foreground px-2 py-0.5 rounded text-[11px] font-bold">1</span>
-             </Link>
-             <Link href={ACTION_MAP.openDeliveryProjects('review')} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Deliverables Awaiting Approval</span>
-                <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">2</span>
-             </Link>
-             <Link href={ACTION_MAP.openOnboarding()} className="flex justify-between items-center hover:opacity-80">
-                <span className="text-[13px] font-medium text-muted-foreground">Kickoffs Pending</span>
-                <span className="bg-secondary text-foreground px-2 py-0.5 rounded text-[11px] font-bold">0</span>
-             </Link>
-          </div>
-        </section>
-
-        {/* INTELLIGENCE & BOTTLENECKS */}
-        <section className="lg:col-span-2 bg-foreground text-background p-6 rounded-[16px] shadow-sm flex flex-col justify-between">
-            <div>
-              <h2 className="text-[11px] font-bold text-background/70 uppercase tracking-widest leading-none mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px]">psychology</span> Delivery Intelligence
-              </h2>
-              <div className="space-y-4">
-                <div className="border border-background/20 rounded-lg p-4 bg-background/5">
-                  <h3 className="text-[14px] font-bold mb-1">Strong Case-Study Candidate</h3>
-                  <p className="text-[13px] text-background/80 mb-2">Logos Partners is green operationally and has achieved exceptional milestone velocity. They are a strong candidate for a testimonial request.</p>
-                  <button className="text-[12px] font-bold bg-background text-foreground px-3 py-1.5 rounded-full">Request permission</button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6 flex items-center gap-6 pt-4 border-t border-background/20">
-               <div>
-                  <p className="text-[10px] text-background/60 uppercase tracking-widest mb-1">Health Distribution</p>
-                  <div className="flex gap-4">
-                    <span className="flex items-center gap-1 text-[13px]"><span className="w-2 h-2 rounded-full bg-success"></span> {healthCounts.GREEN} Green</span>
-                    <span className="flex items-center gap-1 text-[13px]"><span className="w-2 h-2 rounded-full bg-yellow-500"></span> {healthCounts.YELLOW} Yellow</span>
-                    <span className="flex items-center gap-1 text-[13px]"><span className="w-2 h-2 rounded-full bg-destructive"></span> {healthCounts.RED} Red</span>
-                  </div>
-               </div>
-            </div>
-        </section>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <Link href="/delivery/onboarding" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition">Onboarding</h3>
+            <p className="text-[28px] font-black text-slate-900">{activeOnboardings.length}</p>
+        </Link>
+        <Link href="/delivery/clients" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-slate-700 transition">Active Clients</h3>
+            <p className="text-[28px] font-black text-slate-900">{activeClients.length}</p>
+        </Link>
+        <Link href="/delivery/clients" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-amber-600 transition">At Risk</h3>
+            <p className={`text-[28px] font-black ${atRiskClients.length > 0 ? "text-red-600" : "text-emerald-600"}`}>{atRiskClients.length}</p>
+        </Link>
+        <Link href="/delivery/engagements" className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all group block">
+            <h3 className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-1 group-hover:text-red-600 transition">Due / Overdue</h3>
+            <p className={`text-[28px] font-black ${overdueMilestones.length > 0 ? "text-red-600" : "text-slate-900"}`}>{overdueMilestones.length}</p>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-12 gap-8">
+         {/* NEEDS ATTENTION */}
+         <div className="col-span-4 space-y-4">
+            <h2 className="text-[18px] font-black text-slate-900">Today / Needs Attention</h2>
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden p-1">
+               <div className="divide-y divide-slate-100">
+                  {needsAttention.length > 0 ? needsAttention.map(item => (
+                     <div key={item.id} className="p-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                           <span className="text-[11px] font-bold text-red-600 uppercase tracking-widest bg-red-50 px-1.5 py-0.5 rounded">{item.type}</span>
+                        </div>
+                        <p className="text-[13px] font-bold text-slate-900 mb-3">{item.desc}</p>
+                        <Link href={item.link} className="inline-flex py-1.5 px-3 bg-white border border-slate-200 shadow-sm text-slate-700 text-[11px] font-bold rounded hover:bg-slate-50 transition w-full justify-center">
+                           {item.action}
+                        </Link>
+                     </div>
+                  )) : (
+                     <div className="p-6 text-[13px] font-bold text-slate-400 text-center flex flex-col items-center">
+                        <span className="material-symbols-outlined text-[32px] mb-2 text-emerald-400">check_circle</span>
+                        No immediate actions required today.
+                     </div>
+                  )}
+               </div>
+            </div>
+         </div>
+
+         {/* CURRENT DELIVERY SNAPSHOT */}
+         <div className="col-span-8 space-y-4">
+            <div className="flex items-center justify-between">
+               <h2 className="text-[18px] font-black text-slate-900">Current Delivery Snapshot</h2>
+               <Link href="/delivery/engagements" className="text-[12px] font-bold text-blue-600 hover:underline">View All</Link>
+            </div>
+            
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+               <table className="w-full text-left">
+                  <thead>
+                     <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <th className="px-6 py-4">Client</th>
+                        <th className="px-6 py-4">Engagement</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Progress</th>
+                        <th className="px-6 py-4">Health</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                     {engagements.filter(e => e.status === "ACTIVE").slice(0, 8).map((e) => {
+                        const client = clients.find(c => c.id === e.clientId);
+                        if (!client) return null;
+                        return (
+                           <tr key={e.id} className="hover:bg-slate-50 cursor-pointer transition-colors">
+                              <td className="px-6 py-4">
+                                 <div className="text-[13px] font-black text-slate-900">{client.name}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <div className="text-[13px] font-medium text-slate-700">{e.name}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded">Active</span>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <div className="flex items-center gap-2">
+                                    <div className="w-16 h-1.5 bg-slate-100 rounded overflow-hidden">
+                                       <div className="h-full bg-blue-500 rounded" style={{ width: `${e.progress}%` }}></div>
+                                    </div>
+                                    <span className="text-[11px] font-bold text-slate-500">{e.progress}%</span>
+                                 </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <span className={`text-[12px] font-bold ${client.status === "AT_RISK" ? "text-red-600" : "text-emerald-600"}`}>
+                                    {client.status === "AT_RISK" ? "At Risk" : "Healthy"}
+                                 </span>
+                              </td>
+                           </tr>
+                        );
+                     })}
+                     {engagements.filter(e => e.status === "ACTIVE").length === 0 && (
+                        <tr>
+                           <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-[13px] font-bold">No active engagements.</td>
+                        </tr>
+                     )}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
     </div>
   );
 }

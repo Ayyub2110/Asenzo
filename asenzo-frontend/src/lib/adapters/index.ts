@@ -4,16 +4,13 @@ import {
   FoundationData, 
   AttentionData, 
   ConversionData, 
-  Opportunity,
-  DeliveryData,
-  DeliveryEngagement
+  Opportunity
 } from "../types";
 import {
   mockCommandCenter,
   mockFoundation,
   mockAttention,
   mockConversion,
-  mockDelivery,
   mockRevenue,
   mockOperations,
   mockCalendar,
@@ -125,10 +122,7 @@ export async function updateFollowUp(payload: import("@/lib/types").FollowUp): P
   return { ...mockConversion };
 }
 
-export async function getDelivery(): Promise<import("@/lib/types").DeliveryData> {
-  await delay(300);
-  return mockDelivery;
-}
+// Legacy Delivery Removed
 
 // ============== REVENUE ==============
 

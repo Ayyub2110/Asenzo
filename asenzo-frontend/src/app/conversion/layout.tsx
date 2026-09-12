@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ConversionOSProvider } from "@/contexts/ConversionOSContext";
+
 
 interface NavItem {
   href: string;
@@ -22,21 +22,7 @@ const navGroups: NavGroup[] = [
     id: "leads",
     title: "Leads",
     items: [
-      { href: "/conversion/leads", label: "All Leads" },
-      { href: "/conversion/leads/hot", label: "Hot" },
-      { href: "/conversion/leads/warm", label: "Warm" },
-      { href: "/conversion/leads/cold", label: "Cold" },
-      { href: "/conversion/leads/qualification", label: "Qualification" },
-    ],
-  },
-  {
-    id: "pipeline",
-    title: "Sales Pipeline",
-    items: [
-      { href: "/conversion/pipeline", label: "Opportunities" },
-      { href: "/conversion/pipeline/calls", label: "Calls" },
-      { href: "/conversion/pipeline/offers", label: "Offers" },
-      { href: "/conversion/pipeline/follow-ups", label: "Follow-ups" },
+      { href: "/conversion/leads", label: "Leads Kanban Database", exact: true }
     ],
   },
   {
@@ -46,20 +32,30 @@ const navGroups: NavGroup[] = [
       { href: "/conversion/conversations", label: "Inbox" },
       { href: "/conversion/conversations/dms", label: "DMs" },
       { href: "/conversion/conversations/sales", label: "Sales Conversations" },
+      { href: "/conversion/conversations/follow-ups", label: "Follow-ups" },
+    ],
+  },
+  {
+    id: "pipeline",
+    title: "Sales Pipeline",
+    items: [
+      { href: "/conversion/pipeline", label: "Opportunities" },
+      { href: "/conversion/pipeline/calls", label: "Calls" },
+      { href: "/conversion/pipeline/offers", label: "Offers" },
     ],
   },
   {
     id: "nurture",
     title: "Nurture",
     items: [
-      { href: "/conversion/nurture", label: "Lead Capture & Nurture" },
+      { href: "/conversion/nurture", label: "Nurture Workspace" },
     ],
   },
   {
-    id: "outreach",
+    id: "outbound",
     title: "Outbound",
     items: [
-      { href: "/conversion/outreach", label: "Outreach Workspace" },
+      { href: "/conversion/outbound", label: "Outbound" },
     ],
   },
   {
@@ -76,7 +72,7 @@ const navGroups: NavGroup[] = [
     id: "analytics",
     title: "Analytics",
     items: [
-      { href: "/conversion/analytics", label: "Full Funnel" },
+      { href: "/conversion/analytics", label: "Analytics" },
     ],
   }
 ];
@@ -99,7 +95,7 @@ export default function ConversionLayout({ children }: { children: React.ReactNo
   const currentGroup = activeGroup || getActiveGroup();
 
   return (
-    <ConversionOSProvider>
+    <>
       <div className="flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Top Header - Level 1 Pillars in classic ASENZO clean design */}
         <div className="sticky top-0 z-30 bg-background border-b border-border shrink-0">
@@ -174,6 +170,6 @@ export default function ConversionLayout({ children }: { children: React.ReactNo
           {children}
         </main>
       </div>
-    </ConversionOSProvider>
+    </>
   );
 }

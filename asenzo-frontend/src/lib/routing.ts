@@ -57,8 +57,8 @@ export const ACTION_MAP = {
   openReporting: () => '/delivery/reporting',
 
   // Intelligence
-  openIntelligence: () => '/intelligence',
-  openBusinessPulse: () => '/intelligence',
+  openIntelligence: () => '/intelligence/constraints',
+  openBusinessPulse: () => '/operations',
   openConstraints: (constraintId?: string) =>
     constraintId ? `/intelligence/constraints?id=${constraintId}` : '/intelligence/constraints',
   openIntelligenceOpportunities: () => '/intelligence/opportunities',
@@ -73,4 +73,14 @@ export const ACTION_MAP = {
   // Operations / Shared Configurations
   openApprovals: () => '/operations/approvals',
   openTeamCapacity: () => '/operations/capacity',
+  
+  // Analytics
+  openAnalytics: () => '/analytics',
+  openAnalyticsBusiness: () => '/analytics/business',
+  openAnalyticsAcquisition: () => '/analytics/acquisition',
+  openAnalyticsConversion: () => '/analytics/conversion',
+  openAnalyticsRevenue: () => '/analytics/revenue',
+  openAnalyticsDelivery: () => '/analytics/delivery',
+  openAnalyticsOperations: () => '/analytics/operations',
+  openAnalyticsInsights: () => '/analytics/insights'
 };

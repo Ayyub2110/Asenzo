@@ -34,7 +34,6 @@ const navGroups: NavGroup[] = [
     title: "Distribution",
     items: [
       { href: "/acquisition/distribution", label: "Organic Social" },
-      { href: "/acquisition/channels", label: "Channels" },
     ],
   },
   {
@@ -118,25 +117,34 @@ export default function AcquisitionLayout({ children }: { children: React.ReactN
         {/* Level 2 Sub-Navigation Bar */}
         {pathname !== "/acquisition" && pathname !== "/acquisition/library" && (
           <div className="bg-slate-50/80 border-t border-slate-200 px-8 py-1.5">
-            <div className="max-w-[1400px] mx-auto flex items-center gap-2 overflow-x-auto text-[11px]">
-              {navGroups
-                .find((g) => g.id === currentGroup)
-                ?.items.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== "/acquisition" && pathname?.startsWith(item.href));
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`px-2.5 py-1 rounded transition-colors font-semibold ${
-                        isActive
-                          ? "bg-blue-600 text-white"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
+            <div className="max-w-[1400px] mx-auto flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {navGroups
+                  .find((g) => g.id === currentGroup)
+                  ?.items.map((item) => {
+                    const isActive = pathname === item.href || (item.href !== "/acquisition" && pathname?.startsWith(item.href));
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`px-2.5 py-1 rounded transition-colors font-semibold ${
+                          isActive
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+              </div>
+
+              {isFunnels && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button className="px-4 py-1.5 bg-white border border-slate-200 rounded font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">Templates</button>
+                  <button className="px-5 py-1.5 bg-slate-900 border border-slate-900 rounded font-bold text-white hover:bg-slate-800 transition-colors shadow-sm">Publish Funnel</button>
+                </div>
+              )}
             </div>
           </div>
         )}
