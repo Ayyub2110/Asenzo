@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { POST as audienceDnaPost, GET as audienceDnaGet } from '../src/app/api/automation/audience-dna/route';
 import { fetchAudienceContext, insertAudienceDna } from '../src/lib/automation/db';
+import { getAdminSupabaseClient } from '../src/lib/supabase/admin';
 
 const TEST_SECRET = 'test-secret-token-12345';
 process.env.ASENZO_AUTOMATION_API_KEY = TEST_SECRET;
@@ -108,6 +109,15 @@ async function runAudienceDnaTests() {
   console.log('\n======================================================');
   console.log('AUDIENCE DNA PERSISTENCE & AUTOMATION ENDPOINT TESTS');
   console.log('======================================================\n');
+
+  // Clean up any test records from prior runs to ensure idempotent test assertions
+  const supabase = getAdminSupabaseClient();
+  if (supabase) {
+    const { resolveCanonicalWorkspaceId } = await import('../src/lib/automation/workspace');
+    const ws1 = await resolveCanonicalWorkspaceId('test-workspace-dna');
+    const ws2 = await resolveCanonicalWorkspaceId('version-test-workspace');
+    await supabase.from('audience_dna').delete().in('workspace_id', [ws1, ws2]);
+  }
 
   // TEST 1: Valid Audience DNA POST
   console.log('[Test 1] Valid Audience DNA POST');

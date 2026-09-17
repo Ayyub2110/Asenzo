@@ -85,6 +85,27 @@ export async function resolveCanonicalWorkspaceId(
           workspaceResolutionCache.set(input, ensured.id);
           return ensured.id;
         }
+      } else {
+        // Auto-provision non-default workspace slug so foreign key constraints succeed in Supabase
+        const customUuid = slugToUuid(input);
+        const { data: createdWs, error: createWsErr } = await supabase
+          .from('workspaces')
+          .upsert(
+            {
+              id: customUuid,
+              name: input,
+              slug: input,
+              settings: { dynamic: true }
+            },
+            { onConflict: 'slug' }
+          )
+          .select('id')
+          .maybeSingle();
+
+        if (!createWsErr && createdWs?.id) {
+          workspaceResolutionCache.set(input, createdWs.id);
+          return createdWs.id;
+        }
       }
     } catch (err) {
       console.warn('[resolveCanonicalWorkspaceId] Supabase lookup error:', err);

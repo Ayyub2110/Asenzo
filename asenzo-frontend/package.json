@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx scripts/test-automation-endpoints.ts",
-    "test:automation": "tsx scripts/test-automation-endpoints.ts"
+    "test:automation": "tsx scripts/test-automation-endpoints.ts",
+    "test:canonical": "tsx scripts/test-persistence-canonical.ts",
+    "test:audience-dna": "tsx scripts/test-audience-dna.ts",
+    "test:live-persistence": "tsx scripts/test-live-supabase-persistence.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

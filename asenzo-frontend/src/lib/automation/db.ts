@@ -404,16 +404,10 @@ export async function queryIntelligenceCards(workspaceId: string, limit = 50) {
       throw new Error(`Database error querying intelligence cards: ${error.message}`);
     }
 
-    return data || [];
+    return (data || []) as CanonicalIntelligenceCard[];
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
-  }
-
-  return fallbackStore.intelligenceCards.filter(
-    c => !c.workspace_id || c.workspace_id === resolvedWorkspaceId || c.workspace_id === workspaceId
-  );
+  throw new Error('Database client unavailable: Supabase credentials are not configured or client failed to initialize.');
 }
 
 export async function insertIntelligenceCard(card: CanonicalIntelligenceCard): Promise<CanonicalIntelligenceCard> {
@@ -421,76 +415,86 @@ export async function insertIntelligenceCard(card: CanonicalIntelligenceCard): P
   const now = new Date().toISOString();
   const supabase = getAdminSupabaseClient();
 
-  if (supabase) {
-    const dbRecord: Record<string, unknown> = {
-      workspace_id: resolvedWorkspaceId,
-      source_type: card.source_type,
-      source_id: card.source_id,
-      source_url: card.source_url,
-      recorded_at: card.recorded_at || now,
-      category: card.category,
-      stage: card.stage,
-      signal_type: card.signal_type,
-      exact_language: card.exact_language,
-      context: card.context,
-      emotion: card.emotion,
-      desire: card.desire,
-      fear: card.fear,
-      frustration: card.frustration,
-      belief: card.belief,
-      motivation: card.motivation,
-      objection: card.objection,
-      aspiration: card.aspiration,
-      decision_trigger: card.decision_trigger,
-      awareness_level: card.awareness_level,
-      ai_interpretation: card.ai_interpretation,
-      observation_type: card.observation_type || 'observed_fact',
-      confidence: typeof card.confidence === 'number' ? card.confidence : 0.8,
-      human_verified: Boolean(card.human_verified),
-      verified_by: card.verified_by,
-      verified_at: card.verified_at,
-      relevant_modules: card.relevant_modules || ['Acquisition'],
-      metadata: card.metadata || {},
-      created_at: now,
-      updated_at: now
-    };
-
-    // If caller provided a valid UUID, use it; otherwise omit id to let PostgreSQL uuid_generate_v4() generate it
-    if (card.id && isValidUuid(card.id)) {
-      dbRecord.id = card.id;
-    }
-
-    const { data, error } = await supabase
-      .from('intelligence_cards')
-      .insert(dbRecord)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[insertIntelligenceCard] Supabase insert failed:', error);
-      throw new Error(`Database error inserting intelligence card: ${error.message}`);
-    }
-
-    return data as CanonicalIntelligenceCard;
+  if (!supabase) {
+    const errorMsg = 'Database client unavailable: Supabase credentials are not configured or client failed to initialize.';
+    console.error('[insertIntelligenceCard]', errorMsg);
+    throw new Error(errorMsg);
   }
 
-  // Production guard: fail fast if Supabase is unavailable
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
-  }
-
-  // Fallback for offline / local test sandbox
-  const newCard: CanonicalIntelligenceCard = {
-    ...card,
-    id: card.id && isValidUuid(card.id) ? card.id : crypto.randomUUID(),
+  const dbRecord: Record<string, unknown> = {
     workspace_id: resolvedWorkspaceId,
+    source_type: card.source_type,
+    source_id: card.source_id,
+    source_url: card.source_url,
     recorded_at: card.recorded_at || now,
+    category: card.category,
+    stage: card.stage,
+    signal_type: card.signal_type,
+    exact_language: card.exact_language,
+    context: card.context,
+    emotion: card.emotion,
+    desire: card.desire,
+    fear: card.fear,
+    frustration: card.frustration,
+    belief: card.belief,
+    motivation: card.motivation,
+    objection: card.objection,
+    aspiration: card.aspiration,
+    decision_trigger: card.decision_trigger,
+    awareness_level: card.awareness_level,
+    ai_interpretation: card.ai_interpretation,
+    observation_type: card.observation_type || 'observed_fact',
+    confidence: typeof card.confidence === 'number' ? card.confidence : 0.8,
+    human_verified: Boolean(card.human_verified),
+    verified_by: card.verified_by,
+    verified_at: card.verified_at,
+    relevant_modules: card.relevant_modules || ['Acquisition'],
+    metadata: card.metadata || {},
     created_at: now,
     updated_at: now
   };
 
-  fallbackStore.intelligenceCards.unshift(newCard);
-  return newCard;
+  // If caller provided a valid UUID, use it; otherwise omit id to let PostgreSQL uuid_generate_v4() generate it
+  if (card.id && isValidUuid(card.id)) {
+    dbRecord.id = card.id;
+  }
+
+  const { data, error } = await supabase
+    .from('intelligence_cards')
+    .insert(dbRecord)
+    .select()
+    .single();
+
+  // Print safe diagnostics (no secrets printed)
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  let resolvedHostname = 'unknown';
+  try {
+    if (supabaseUrl) resolvedHostname = new URL(supabaseUrl).hostname;
+  } catch {}
+
+  console.log('[Automation Diagnostics] Intelligence Card Persistence Execution:', {
+    NODE_ENV: process.env.NODE_ENV,
+    hasSupabaseUrl: Boolean(supabaseUrl),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    resolvedHostname,
+    hasRealAdminClient: Boolean(supabase),
+    resolvedWorkspaceId,
+    isExecutingInsert: true,
+    supabaseInsertSuccess: !error && Boolean(data?.id),
+    supabaseInsertError: error ? (error.message || JSON.stringify(error)) : null,
+    persistedId: data?.id || null
+  });
+
+  if (error) {
+    console.error('[insertIntelligenceCard] Supabase insert failed:', error);
+    throw new Error(`Database error inserting intelligence card: ${error.message || JSON.stringify(error)}`);
+  }
+
+  if (!data || !data.id) {
+    throw new Error('Database insert confirmation failed: Supabase did not return persisted row.');
+  }
+
+  return data as CanonicalIntelligenceCard;
 }
 
 // ==========================================
@@ -501,69 +505,47 @@ export async function fetchLatestAudienceDna(workspaceId: string): Promise<Canon
   const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
   const supabase = getAdminSupabaseClient();
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('audience_dna')
-        .select('*')
-        .eq('workspace_id', resolvedWorkspaceId)
-        .order('version', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!error && data) return data;
-      if (error) {
-        console.error('[fetchLatestAudienceDna] Supabase error:', error);
-        throw new Error(`Database error fetching latest Audience DNA: ${error.message}`);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.startsWith('Database error')) throw err;
-      if (process.env.NODE_ENV === 'production') throw err;
-    }
+  if (!supabase) {
+    throw new Error('Database client unavailable: Supabase credentials are not configured or client failed to initialize.');
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  const { data, error } = await supabase
+    .from('audience_dna')
+    .select('*')
+    .eq('workspace_id', resolvedWorkspaceId)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[fetchLatestAudienceDna] Supabase error:', error);
+    throw new Error(`Database error fetching latest Audience DNA: ${error.message || JSON.stringify(error)}`);
   }
 
-  return (
-    fallbackStore.audienceDna.find(
-      d => d.workspace_id === resolvedWorkspaceId || d.workspace_id === workspaceId
-    ) || null
-  );
+  return data as CanonicalAudienceDna | null;
 }
 
 export async function queryAudienceDna(workspaceId: string, limit = 10): Promise<CanonicalAudienceDna[]> {
   const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
   const supabase = getAdminSupabaseClient();
 
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('audience_dna')
-        .select('*')
-        .eq('workspace_id', resolvedWorkspaceId)
-        .order('version', { ascending: false })
-        .limit(limit);
-
-      if (!error && data) return data;
-      if (error) {
-        console.error('[queryAudienceDna] Supabase error:', error);
-        throw new Error(`Database error querying Audience DNA: ${error.message}`);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.startsWith('Database error')) throw err;
-      if (process.env.NODE_ENV === 'production') throw err;
-    }
+  if (!supabase) {
+    throw new Error('Database client unavailable: Supabase credentials are not configured or client failed to initialize.');
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  const { data, error } = await supabase
+    .from('audience_dna')
+    .select('*')
+    .eq('workspace_id', resolvedWorkspaceId)
+    .order('version', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('[queryAudienceDna] Supabase error:', error);
+    throw new Error(`Database error querying Audience DNA: ${error.message || JSON.stringify(error)}`);
   }
 
-  return fallbackStore.audienceDna
-    .filter(d => d.workspace_id === resolvedWorkspaceId || d.workspace_id === workspaceId)
-    .slice(0, limit);
+  return (data || []) as CanonicalAudienceDna[];
 }
 
 export async function insertAudienceDna(payload: AudienceDnaPayload): Promise<CanonicalAudienceDna> {
@@ -579,91 +561,33 @@ export async function insertAudienceDna(payload: AudienceDnaPayload): Promise<Ca
   const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(payload.workspace_id);
   const supabase = getAdminSupabaseClient();
 
-  if (supabase) {
-    // 1. Determine next version from existing records
-    let nextVersion = 1;
-    const { data: latestRecord, error: versionErr } = await supabase
-      .from('audience_dna')
-      .select('version')
-      .eq('workspace_id', resolvedWorkspaceId)
-      .order('version', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (versionErr) {
-      console.error('[insertAudienceDna] Error resolving version:', versionErr);
-      throw new Error(`Database error resolving Audience DNA version: ${versionErr.message}`);
-    }
-
-    if (latestRecord && typeof latestRecord.version === 'number') {
-      nextVersion = latestRecord.version + 1;
-    }
-
-    // 2. Strict mapping to public.audience_dna schema columns
-    const dbRecord: Record<string, unknown> = {
-      workspace_id: resolvedWorkspaceId,
-      situation: {
-        behaviors: dna.behaviors || [],
-        relevant_audience_behaviors: dna.relevant_audience_behaviors || [],
-        frustrations: dna.frustrations || []
-      },
-      pain: dna.core_pains || dna.pain || [],
-      triggers: dna.decision_triggers || dna.triggers || [],
-      objections: dna.objections || [],
-      fears: dna.fears || [],
-      natural_language: dna.natural_language || [],
-      journey: (dna.journey as Record<string, unknown>) || {},
-      desired_future: {
-        core_desires: dna.core_desires || [],
-        aspirations: dna.aspirations || [],
-        motivations: dna.motivations || []
-      },
-      emotions: dna.emotions || dna.motivations || [],
-      beliefs: dna.beliefs || [],
-      awareness: {
-        patterns: dna.awareness_patterns || []
-      },
-      decision_criteria: dna.decision_criteria || [],
-      buying_triggers: dna.decision_triggers || dna.buying_triggers || [],
-      evidence: payload.evidence || [],
-      version: typeof payload.version === 'number' ? payload.version : nextVersion,
-      status: payload.status || 'active',
-      created_at: now,
-      updated_at: now
-    };
-
-    // 3. Write to public.audience_dna and surface any database errors
-    const { data, error: insertErr } = await supabase
-      .from('audience_dna')
-      .insert(dbRecord)
-      .select()
-      .single();
-
-    if (insertErr) {
-      console.error('[insertAudienceDna] Supabase insert failed:', insertErr);
-      throw new Error(`Database error persisting Audience DNA: ${insertErr.message}`);
-    }
-
-    return data as CanonicalAudienceDna;
+  if (!supabase) {
+    const errorMsg = 'Database client unavailable: Supabase credentials are not configured or client failed to initialize.';
+    console.error('[insertAudienceDna]', errorMsg);
+    throw new Error(errorMsg);
   }
 
-  // Production guard
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
-  }
-
-  // Fallback for offline / local test sandbox
-  const existingRecords = fallbackStore.audienceDna.filter(
-    r => r.workspace_id === resolvedWorkspaceId || r.workspace_id === payload.workspace_id
-  );
+  // 1. Determine next version from existing records
   let nextVersion = 1;
-  if (existingRecords.length > 0) {
-    const maxVersion = Math.max(...existingRecords.map(r => r.version || 1));
-    nextVersion = maxVersion + 1;
+  const { data: latestRecord, error: versionErr } = await supabase
+    .from('audience_dna')
+    .select('version')
+    .eq('workspace_id', resolvedWorkspaceId)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (versionErr) {
+    console.error('[insertAudienceDna] Error resolving version:', versionErr);
+    throw new Error(`Database error resolving Audience DNA version: ${versionErr.message || JSON.stringify(versionErr)}`);
   }
 
-  const fallbackRecord: CanonicalAudienceDna = {
-    id: crypto.randomUUID(),
+  if (latestRecord && typeof latestRecord.version === 'number') {
+    nextVersion = latestRecord.version + 1;
+  }
+
+  // 2. Strict mapping to public.audience_dna schema columns
+  const dbRecord: Record<string, unknown> = {
     workspace_id: resolvedWorkspaceId,
     situation: {
       behaviors: dna.behaviors || [],
@@ -695,8 +619,43 @@ export async function insertAudienceDna(payload: AudienceDnaPayload): Promise<Ca
     updated_at: now
   };
 
-  fallbackStore.audienceDna.unshift(fallbackRecord);
-  return fallbackRecord;
+  // 3. Write to public.audience_dna and surface any database errors
+  const { data, error: insertErr } = await supabase
+    .from('audience_dna')
+    .insert(dbRecord)
+    .select()
+    .single();
+
+  // Print safe diagnostics (no secrets printed)
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  let resolvedHostname = 'unknown';
+  try {
+    if (supabaseUrl) resolvedHostname = new URL(supabaseUrl).hostname;
+  } catch {}
+
+  console.log('[Automation Diagnostics] Audience DNA Persistence Execution:', {
+    NODE_ENV: process.env.NODE_ENV,
+    hasSupabaseUrl: Boolean(supabaseUrl),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    resolvedHostname,
+    hasRealAdminClient: Boolean(supabase),
+    resolvedWorkspaceId,
+    isExecutingInsert: true,
+    supabaseInsertSuccess: !insertErr && Boolean(data?.id),
+    supabaseInsertError: insertErr ? (insertErr.message || JSON.stringify(insertErr)) : null,
+    persistedId: data?.id || null
+  });
+
+  if (insertErr) {
+    console.error('[insertAudienceDna] Supabase insert failed:', insertErr);
+    throw new Error(`Database error persisting Audience DNA: ${insertErr.message || JSON.stringify(insertErr)}`);
+  }
+
+  if (!data || !data.id) {
+    throw new Error('Database insert confirmation failed: Supabase did not return persisted row.');
+  }
+
+  return data as CanonicalAudienceDna;
 }
 
 // ==========================================
