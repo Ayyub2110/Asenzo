@@ -19,6 +19,7 @@ import { POST as approvalsPost } from '../src/app/api/automation/approvals/route
 import { GET as approvalGet } from '../src/app/api/automation/approvals/[id]/route';
 import { POST as approvalDecisionPost } from '../src/app/api/automation/approvals/[id]/decision/route';
 import { GET as contentPerformanceGet, POST as contentPerformancePost } from '../src/app/api/automation/content-performance/route';
+import { GET as audienceDnaGet, POST as audienceDnaPost } from '../src/app/api/automation/audience-dna/route';
 
 const TEST_SECRET = 'test-secret-token-12345';
 process.env.ASENZO_AUTOMATION_API_KEY = TEST_SECRET;
@@ -53,7 +54,7 @@ function createReq(url: string, method = 'GET', body?: any, headers: Record<stri
     init.body = JSON.stringify(body);
   }
 
-  return new NextRequest(new URL(url, 'http://localhost:3000'), init);
+  return new NextRequest(new URL(url, 'http://localhost:3000'), init as any);
 }
 
 async function runTests() {
@@ -324,6 +325,70 @@ async function runTests() {
     const jsonGetPerf = await resGetPerf.json();
     assert(resGetPerf.status === 200, 'GET /content-performance returns 200');
     assert(jsonGetPerf.data.length >= 1, 'Returns list of performance records');
+  }
+
+  // TEST 10: Audience DNA Canonical Ingestion & Versioning
+  console.log('\n[Suite 10] Canonical Audience DNA Ingestion & Versioning');
+  {
+    const sampleDna = {
+      workspace_id: 'test-workspace',
+      source_type: 'audience_dna',
+      category: 'AUDIENCE',
+      dna_type: 'AUDIENCE',
+      audience_dna: {
+        core_pains: ['Founder time bottleneck in discovery calls', 'High lead leakage from organic channels'],
+        core_desires: ['Predictable pipeline automation'],
+        fears: ['Wasted agency spend'],
+        frustrations: ['Inbound leads lack qualification'],
+        beliefs: ['Organic content builds long-term brand equity'],
+        motivations: ['Systematize business growth'],
+        aspirations: ['Scale to 8-figure revenue'],
+        objections: ['Is automation too generic for our high-touch offer?'],
+        decision_triggers: ['Exceeded calendar capacity'],
+        awareness_patterns: ['Problem-aware founders'],
+        natural_language: ["I cannot take another unqualified call."],
+        behaviors: ['Regularly publishes LinkedIn posts'],
+        relevant_audience_behaviors: ['Downloads lead magnets'],
+        decision_criteria: ['Seamless integration with existing stack']
+      },
+      evidence: [{ quote: 'I cannot take another unqualified call.', source: 'interview_1' }],
+      metadata: { module: 'ACQUISITION', component: 'C03_AUDIENCE_DNA', version: 'v1' }
+    };
+
+    // Validation checks
+    const resNoWorkspace = await audienceDnaPost(createReq('/api/automation/audience-dna', 'POST', { ...sampleDna, workspace_id: '' }));
+    assert(resNoWorkspace.status === 400, 'POST /audience-dna rejects missing workspace_id (400)');
+
+    const resNoDna = await audienceDnaPost(createReq('/api/automation/audience-dna', 'POST', { workspace_id: 'test-workspace' }));
+    assert(resNoDna.status === 400, 'POST /audience-dna rejects missing audience_dna (400)');
+
+    // Successful ingestion v1
+    const resDna1 = await audienceDnaPost(createReq('/api/automation/audience-dna', 'POST', sampleDna));
+    const jsonDna1 = await resDna1.json();
+    assert(resDna1.status === 201, 'POST /audience-dna ingests canonical record (201)');
+    assert(jsonDna1.success === true, 'Returns success: true');
+    assert(Boolean(jsonDna1.data?.id), 'Generates canonical record ID');
+    assert(Boolean(jsonDna1.data?.workspace_id) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jsonDna1.data.workspace_id), 'Resolves workspace_id to canonical UUID');
+    assert(Array.isArray(jsonDna1.data?.pain), 'Maps core_pains to canonical pain column');
+    assert(Array.isArray(jsonDna1.data?.evidence), 'Persists evidence array');
+
+    // Auto-increment version v2
+    const resDna2 = await audienceDnaPost(createReq('/api/automation/audience-dna', 'POST', {
+      ...sampleDna,
+      audience_dna: {
+        ...sampleDna.audience_dna,
+        core_pains: ['Updated v2 pain point']
+      }
+    }));
+    const jsonDna2 = await resDna2.json();
+    assert(resDna2.status === 201, 'POST /audience-dna ingests second version (201)');
+    assert(jsonDna2.data?.version >= 2, 'Auto-increments version number for workspace');
+
+    // Query latest
+    const resGetDna = await audienceDnaGet(createReq('/api/automation/audience-dna?workspace_id=test-workspace', 'GET'));
+    const jsonGetDna = await resGetDna.json();
+    assert(resGetDna.status === 200, 'GET /audience-dna returns 200 OK');
+    assert(jsonGetDna.data?.version === jsonDna2.data?.version, 'Retrieves latest version of Audience DNA');
   }
 
   console.log('\n======================================================');

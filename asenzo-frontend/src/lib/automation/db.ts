@@ -1,4 +1,5 @@
 import { getAdminSupabaseClient } from '../supabase/admin';
+import { resolveCanonicalWorkspaceId, isValidUuid } from './workspace';
 import {
   mockFoundation,
   mockAttention,
@@ -191,9 +192,67 @@ export interface CanonicalContentPerformance {
   updated_at?: string;
 }
 
+export interface CanonicalAudienceDna {
+  id?: string;
+  workspace_id: string;
+  situation?: Record<string, unknown> | unknown[];
+  pain?: string[];
+  triggers?: string[];
+  objections?: string[];
+  fears?: string[];
+  natural_language?: string[];
+  journey?: Record<string, unknown>;
+  desired_future?: Record<string, unknown> | string[];
+  emotions?: string[];
+  beliefs?: string[];
+  awareness?: Record<string, unknown> | string[];
+  decision_criteria?: string[];
+  buying_triggers?: string[];
+  evidence?: unknown[];
+  version?: number;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AudienceDnaPayload {
+  workspace_id: string;
+  source_type?: string;
+  category?: string;
+  dna_type?: string;
+  audience_dna: {
+    core_pains?: string[];
+    core_desires?: string[];
+    fears?: string[];
+    frustrations?: string[];
+    beliefs?: string[];
+    motivations?: string[];
+    aspirations?: string[];
+    objections?: string[];
+    decision_triggers?: string[];
+    awareness_patterns?: string[];
+    natural_language?: string[];
+    behaviors?: string[];
+    relevant_audience_behaviors?: string[];
+    decision_criteria?: string[];
+    emotions?: string[];
+    journey?: Record<string, unknown>;
+    pain?: string[];
+    triggers?: string[];
+    buying_triggers?: string[];
+    [key: string]: unknown;
+  };
+  evidence?: unknown[];
+  generated_at?: string;
+  metadata?: Record<string, unknown>;
+  version?: number;
+  status?: string;
+}
+
 // In-memory fallback stores for test/offline resilience
 const fallbackStore = {
   intelligenceCards: [] as CanonicalIntelligenceCard[],
+  audienceDna: [] as CanonicalAudienceDna[],
   researchJobs: [] as CanonicalResearchJob[],
   researchResults: [] as CanonicalResearchResult[],
   contentIdeas: [] as CanonicalContentIdea[],
@@ -244,13 +303,14 @@ export async function fetchFounderContext(workspaceId: string) {
 }
 
 export async function fetchAudienceContext(workspaceId: string) {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
   const supabase = getAdminSupabaseClient();
   if (supabase) {
     try {
       const { data } = await supabase
         .from('audience_dna')
         .select('*')
-        .eq('workspace_id', workspaceId)
+        .eq('workspace_id', resolvedWorkspaceId)
         .order('version', { ascending: false })
         .limit(1)
         .single();
@@ -260,6 +320,12 @@ export async function fetchAudienceContext(workspaceId: string) {
       // Fallback
     }
   }
+
+  // Check in-memory fallback store
+  const cached = fallbackStore.audienceDna.find(
+    d => d.workspace_id === resolvedWorkspaceId || d.workspace_id === workspaceId
+  );
+  if (cached) return cached;
 
   return {
     workspace_id: workspaceId,
@@ -322,51 +388,315 @@ export async function fetchContentContext(workspaceId: string) {
 // ==========================================
 
 export async function queryIntelligenceCards(workspaceId: string, limit = 50) {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
   const supabase = getAdminSupabaseClient();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('intelligence_cards')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('recorded_at', { ascending: false })
-        .limit(limit);
 
-      if (!error && data && data.length > 0) return data;
-    } catch {
-      // Fallback
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('intelligence_cards')
+      .select('*')
+      .eq('workspace_id', resolvedWorkspaceId)
+      .order('recorded_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('[queryIntelligenceCards] Supabase query failed:', error);
+      throw new Error(`Database error querying intelligence cards: ${error.message}`);
     }
+
+    return data || [];
   }
 
-  return fallbackStore.intelligenceCards.filter(c => !c.workspace_id || c.workspace_id === workspaceId);
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  }
+
+  return fallbackStore.intelligenceCards.filter(
+    c => !c.workspace_id || c.workspace_id === resolvedWorkspaceId || c.workspace_id === workspaceId
+  );
 }
 
 export async function insertIntelligenceCard(card: CanonicalIntelligenceCard): Promise<CanonicalIntelligenceCard> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(card.workspace_id);
+  const now = new Date().toISOString();
+  const supabase = getAdminSupabaseClient();
+
+  if (supabase) {
+    const dbRecord: Record<string, unknown> = {
+      workspace_id: resolvedWorkspaceId,
+      source_type: card.source_type,
+      source_id: card.source_id,
+      source_url: card.source_url,
+      recorded_at: card.recorded_at || now,
+      category: card.category,
+      stage: card.stage,
+      signal_type: card.signal_type,
+      exact_language: card.exact_language,
+      context: card.context,
+      emotion: card.emotion,
+      desire: card.desire,
+      fear: card.fear,
+      frustration: card.frustration,
+      belief: card.belief,
+      motivation: card.motivation,
+      objection: card.objection,
+      aspiration: card.aspiration,
+      decision_trigger: card.decision_trigger,
+      awareness_level: card.awareness_level,
+      ai_interpretation: card.ai_interpretation,
+      observation_type: card.observation_type || 'observed_fact',
+      confidence: typeof card.confidence === 'number' ? card.confidence : 0.8,
+      human_verified: Boolean(card.human_verified),
+      verified_by: card.verified_by,
+      verified_at: card.verified_at,
+      relevant_modules: card.relevant_modules || ['Acquisition'],
+      metadata: card.metadata || {},
+      created_at: now,
+      updated_at: now
+    };
+
+    // If caller provided a valid UUID, use it; otherwise omit id to let PostgreSQL uuid_generate_v4() generate it
+    if (card.id && isValidUuid(card.id)) {
+      dbRecord.id = card.id;
+    }
+
+    const { data, error } = await supabase
+      .from('intelligence_cards')
+      .insert(dbRecord)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[insertIntelligenceCard] Supabase insert failed:', error);
+      throw new Error(`Database error inserting intelligence card: ${error.message}`);
+    }
+
+    return data as CanonicalIntelligenceCard;
+  }
+
+  // Production guard: fail fast if Supabase is unavailable
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  }
+
+  // Fallback for offline / local test sandbox
   const newCard: CanonicalIntelligenceCard = {
     ...card,
-    id: card.id || `intel_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    recorded_at: card.recorded_at || new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    id: card.id && isValidUuid(card.id) ? card.id : crypto.randomUUID(),
+    workspace_id: resolvedWorkspaceId,
+    recorded_at: card.recorded_at || now,
+    created_at: now,
+    updated_at: now
   };
-
-  const supabase = getAdminSupabaseClient();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('intelligence_cards')
-        .insert(newCard)
-        .select()
-        .single();
-
-      if (!error && data) return data;
-    } catch {
-      // Fallback
-    }
-  }
 
   fallbackStore.intelligenceCards.unshift(newCard);
   return newCard;
+}
+
+// ==========================================
+// AUDIENCE DNA PERSISTENCE & RESOLUTION
+// ==========================================
+
+export async function fetchLatestAudienceDna(workspaceId: string): Promise<CanonicalAudienceDna | null> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('audience_dna')
+        .select('*')
+        .eq('workspace_id', resolvedWorkspaceId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) return data;
+      if (error) {
+        console.error('[fetchLatestAudienceDna] Supabase error:', error);
+        throw new Error(`Database error fetching latest Audience DNA: ${error.message}`);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Database error')) throw err;
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  }
+
+  return (
+    fallbackStore.audienceDna.find(
+      d => d.workspace_id === resolvedWorkspaceId || d.workspace_id === workspaceId
+    ) || null
+  );
+}
+
+export async function queryAudienceDna(workspaceId: string, limit = 10): Promise<CanonicalAudienceDna[]> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('audience_dna')
+        .select('*')
+        .eq('workspace_id', resolvedWorkspaceId)
+        .order('version', { ascending: false })
+        .limit(limit);
+
+      if (!error && data) return data;
+      if (error) {
+        console.error('[queryAudienceDna] Supabase error:', error);
+        throw new Error(`Database error querying Audience DNA: ${error.message}`);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Database error')) throw err;
+      if (process.env.NODE_ENV === 'production') throw err;
+    }
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  }
+
+  return fallbackStore.audienceDna
+    .filter(d => d.workspace_id === resolvedWorkspaceId || d.workspace_id === workspaceId)
+    .slice(0, limit);
+}
+
+export async function insertAudienceDna(payload: AudienceDnaPayload): Promise<CanonicalAudienceDna> {
+  if (!payload.workspace_id) {
+    throw new Error('workspace_id is required');
+  }
+  if (!payload.audience_dna || typeof payload.audience_dna !== 'object') {
+    throw new Error('audience_dna must be an object');
+  }
+
+  const dna = payload.audience_dna;
+  const now = new Date().toISOString();
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(payload.workspace_id);
+  const supabase = getAdminSupabaseClient();
+
+  if (supabase) {
+    // 1. Determine next version from existing records
+    let nextVersion = 1;
+    const { data: latestRecord, error: versionErr } = await supabase
+      .from('audience_dna')
+      .select('version')
+      .eq('workspace_id', resolvedWorkspaceId)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (versionErr) {
+      console.error('[insertAudienceDna] Error resolving version:', versionErr);
+      throw new Error(`Database error resolving Audience DNA version: ${versionErr.message}`);
+    }
+
+    if (latestRecord && typeof latestRecord.version === 'number') {
+      nextVersion = latestRecord.version + 1;
+    }
+
+    // 2. Strict mapping to public.audience_dna schema columns
+    const dbRecord: Record<string, unknown> = {
+      workspace_id: resolvedWorkspaceId,
+      situation: {
+        behaviors: dna.behaviors || [],
+        relevant_audience_behaviors: dna.relevant_audience_behaviors || [],
+        frustrations: dna.frustrations || []
+      },
+      pain: dna.core_pains || dna.pain || [],
+      triggers: dna.decision_triggers || dna.triggers || [],
+      objections: dna.objections || [],
+      fears: dna.fears || [],
+      natural_language: dna.natural_language || [],
+      journey: (dna.journey as Record<string, unknown>) || {},
+      desired_future: {
+        core_desires: dna.core_desires || [],
+        aspirations: dna.aspirations || [],
+        motivations: dna.motivations || []
+      },
+      emotions: dna.emotions || dna.motivations || [],
+      beliefs: dna.beliefs || [],
+      awareness: {
+        patterns: dna.awareness_patterns || []
+      },
+      decision_criteria: dna.decision_criteria || [],
+      buying_triggers: dna.decision_triggers || dna.buying_triggers || [],
+      evidence: payload.evidence || [],
+      version: typeof payload.version === 'number' ? payload.version : nextVersion,
+      status: payload.status || 'active',
+      created_at: now,
+      updated_at: now
+    };
+
+    // 3. Write to public.audience_dna and surface any database errors
+    const { data, error: insertErr } = await supabase
+      .from('audience_dna')
+      .insert(dbRecord)
+      .select()
+      .single();
+
+    if (insertErr) {
+      console.error('[insertAudienceDna] Supabase insert failed:', insertErr);
+      throw new Error(`Database error persisting Audience DNA: ${insertErr.message}`);
+    }
+
+    return data as CanonicalAudienceDna;
+  }
+
+  // Production guard
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Database client unavailable: Supabase credentials are not configured in production.');
+  }
+
+  // Fallback for offline / local test sandbox
+  const existingRecords = fallbackStore.audienceDna.filter(
+    r => r.workspace_id === resolvedWorkspaceId || r.workspace_id === payload.workspace_id
+  );
+  let nextVersion = 1;
+  if (existingRecords.length > 0) {
+    const maxVersion = Math.max(...existingRecords.map(r => r.version || 1));
+    nextVersion = maxVersion + 1;
+  }
+
+  const fallbackRecord: CanonicalAudienceDna = {
+    id: crypto.randomUUID(),
+    workspace_id: resolvedWorkspaceId,
+    situation: {
+      behaviors: dna.behaviors || [],
+      relevant_audience_behaviors: dna.relevant_audience_behaviors || [],
+      frustrations: dna.frustrations || []
+    },
+    pain: dna.core_pains || dna.pain || [],
+    triggers: dna.decision_triggers || dna.triggers || [],
+    objections: dna.objections || [],
+    fears: dna.fears || [],
+    natural_language: dna.natural_language || [],
+    journey: (dna.journey as Record<string, unknown>) || {},
+    desired_future: {
+      core_desires: dna.core_desires || [],
+      aspirations: dna.aspirations || [],
+      motivations: dna.motivations || []
+    },
+    emotions: dna.emotions || dna.motivations || [],
+    beliefs: dna.beliefs || [],
+    awareness: {
+      patterns: dna.awareness_patterns || []
+    },
+    decision_criteria: dna.decision_criteria || [],
+    buying_triggers: dna.decision_triggers || dna.buying_triggers || [],
+    evidence: payload.evidence || [],
+    version: typeof payload.version === 'number' ? payload.version : nextVersion,
+    status: payload.status || 'active',
+    created_at: now,
+    updated_at: now
+  };
+
+  fallbackStore.audienceDna.unshift(fallbackRecord);
+  return fallbackRecord;
 }
 
 // ==========================================

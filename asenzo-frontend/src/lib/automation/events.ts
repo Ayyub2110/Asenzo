@@ -10,7 +10,8 @@ export type AutomationEventType =
   | 'content.approved'
   | 'content.published'
   | 'content.performance.updated'
-  | 'intelligence.created';
+  | 'intelligence.created'
+  | 'audience.dna.created';
 
 export interface AutomationEventPayload<T = Record<string, unknown>> {
   event: AutomationEventType;

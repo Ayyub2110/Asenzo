@@ -18,16 +18,21 @@ export async function GET(req: NextRequest) {
     return auth.response;
   }
 
-  const { searchParams } = new URL(req.url);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
+  try {
+    const { searchParams } = new URL(req.url);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
 
-  const cards = await queryIntelligenceCards(auth.context.workspaceId, limit);
+    const cards = await queryIntelligenceCards(auth.context.workspaceId, limit);
 
-  return NextResponse.json({
-    success: true,
-    data: cards,
-    total: cards.length
-  });
+    return NextResponse.json({
+      success: true,
+      data: cards,
+      total: cards.length
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    return createErrorResponse(ErrorCodes.INTERNAL_ERROR, msg, 500);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -128,6 +133,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(responsePayload, { status: 201 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Invalid JSON or server error';
+    if (
+      msg.includes('Database error') ||
+      msg.includes('Database client unavailable') ||
+      msg.includes('Supabase') ||
+      msg.includes('credentials')
+    ) {
+      return createErrorResponse(ErrorCodes.INTERNAL_ERROR, msg, 500);
+    }
     return createErrorResponse(ErrorCodes.INVALID_INPUT, msg, 400);
   }
 }
