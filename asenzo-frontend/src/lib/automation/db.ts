@@ -249,10 +249,8 @@ export interface AudienceDnaPayload {
   status?: string;
 }
 
-// In-memory fallback stores for test/offline resilience
+// In-memory stores remain only for non-canonical mock-backed workflows.
 const fallbackStore = {
-  intelligenceCards: [] as CanonicalIntelligenceCard[],
-  audienceDna: [] as CanonicalAudienceDna[],
   researchJobs: [] as CanonicalResearchJob[],
   researchResults: [] as CanonicalResearchResult[],
   contentIdeas: [] as CanonicalContentIdea[],
@@ -320,12 +318,6 @@ export async function fetchAudienceContext(workspaceId: string) {
       // Fallback
     }
   }
-
-  // Check in-memory fallback store
-  const cached = fallbackStore.audienceDna.find(
-    d => d.workspace_id === resolvedWorkspaceId || d.workspace_id === workspaceId
-  );
-  if (cached) return cached;
 
   return {
     workspace_id: workspaceId,

@@ -32,7 +32,8 @@ const workspaceResolutionCache = new Map<string, string>();
  * Resolves a workspace identifier (slug or UUID) to a canonical UUID in public.workspaces.
  * - If already a valid UUID, returns it directly.
  * - If "default-workspace" or empty, maps to the canonical default workspace UUID.
- * - Attempts to look up or ensure existence in public.workspaces if Supabase is connected.
+ * - Looks up or ensures existence in public.workspaces through Supabase.
+ * Database failures are surfaced instead of being converted into an in-memory or synthetic workspace.
  */
 export async function resolveCanonicalWorkspaceId(
   workspaceInput?: string | null
@@ -49,73 +50,63 @@ export async function resolveCanonicalWorkspaceId(
     return workspaceResolutionCache.get(input)!;
   }
 
-  // 3. If connected to Supabase, query or ensure canonical record in public.workspaces
+  // 3. Resolve the workspace through Supabase. Missing credentials or database errors are fatal.
   const supabase = getAdminSupabaseClient();
-  if (supabase) {
-    try {
-      // Check if a workspace matches this slug
-      const { data: existingWorkspace, error: lookupErr } = await supabase
-        .from('workspaces')
-        .select('id')
-        .eq('slug', input)
-        .maybeSingle();
+  const { data: existingWorkspace, error: lookupErr } = await supabase
+    .from('workspaces')
+    .select('id')
+    .eq('slug', input)
+    .maybeSingle();
 
-      if (!lookupErr && existingWorkspace?.id) {
-        workspaceResolutionCache.set(input, existingWorkspace.id);
-        return existingWorkspace.id;
-      }
-
-      // If resolving default-workspace, ensure the canonical UUID row exists
-      if (input === CANONICAL_DEFAULT_WORKSPACE_SLUG) {
-        const { data: ensured, error: ensureErr } = await supabase
-          .from('workspaces')
-          .upsert(
-            {
-              id: CANONICAL_DEFAULT_WORKSPACE_ID,
-              name: 'Primary Workspace',
-              slug: CANONICAL_DEFAULT_WORKSPACE_SLUG,
-              settings: { is_default: true, system: true }
-            },
-            { onConflict: 'id' }
-          )
-          .select('id')
-          .single();
-
-        if (!ensureErr && ensured?.id) {
-          workspaceResolutionCache.set(input, ensured.id);
-          return ensured.id;
-        }
-      } else {
-        // Auto-provision non-default workspace slug so foreign key constraints succeed in Supabase
-        const customUuid = slugToUuid(input);
-        const { data: createdWs, error: createWsErr } = await supabase
-          .from('workspaces')
-          .upsert(
-            {
-              id: customUuid,
-              name: input,
-              slug: input,
-              settings: { dynamic: true }
-            },
-            { onConflict: 'slug' }
-          )
-          .select('id')
-          .maybeSingle();
-
-        if (!createWsErr && createdWs?.id) {
-          workspaceResolutionCache.set(input, createdWs.id);
-          return createdWs.id;
-        }
-      }
-    } catch (err) {
-      console.warn('[resolveCanonicalWorkspaceId] Supabase lookup error:', err);
-    }
+  if (lookupErr) {
+    throw new Error(`Database error resolving workspace: ${lookupErr.message}`);
   }
 
-  // 4. Default fallback: return the canonical UUID for default-workspace or deterministic UUID for custom slugs
-  const fallbackUuid = slugToUuid(input);
-  workspaceResolutionCache.set(input, fallbackUuid);
-  return fallbackUuid;
+  if (existingWorkspace?.id) {
+    workspaceResolutionCache.set(input, existingWorkspace.id);
+    return existingWorkspace.id;
+  }
+
+  // If resolving default-workspace, ensure the canonical UUID row exists.
+  if (input === CANONICAL_DEFAULT_WORKSPACE_SLUG) {
+    const { data: ensured, error: ensureErr } = await supabase
+      .from('workspaces')
+      .upsert(
+        {
+          id: CANONICAL_DEFAULT_WORKSPACE_ID,
+          name: 'Primary Workspace',
+          slug: CANONICAL_DEFAULT_WORKSPACE_SLUG,
+          settings: { is_default: true, system: true }
+        },
+        { onConflict: 'id' }
+      )
+      .select('id')
+      .single();
+
+    if (ensureErr || !ensured?.id) {
+      throw new Error(`Database error ensuring canonical workspace: ${ensureErr?.message || 'no workspace returned'}`);
+    }
+    workspaceResolutionCache.set(input, ensured.id);
+    return ensured.id;
+  }
+
+  // Auto-provision non-default workspace slugs so foreign key constraints succeed in Supabase.
+  const customUuid = slugToUuid(input);
+  const { data: createdWs, error: createWsErr } = await supabase
+    .from('workspaces')
+    .upsert(
+      { id: customUuid, name: input, slug: input, settings: { dynamic: true } },
+      { onConflict: 'slug' }
+    )
+    .select('id')
+    .maybeSingle();
+
+  if (createWsErr || !createdWs?.id) {
+    throw new Error(`Database error creating workspace: ${createWsErr?.message || 'no workspace returned'}`);
+  }
+
+  workspaceResolutionCache.set(input, createdWs.id);
+  return createdWs.id;
 }
 
 /**

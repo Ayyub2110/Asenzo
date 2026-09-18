@@ -1,5 +1,3 @@
-import { NextRequest } from 'next/server';
-import { POST as intelligenceCardsPost } from '../src/app/api/automation/intelligence-cards/route';
 import { getAdminSupabaseClient } from '../src/lib/supabase/admin';
 import { CANONICAL_DEFAULT_WORKSPACE_ID, isValidUuid } from '../src/lib/automation/workspace';
 
@@ -44,64 +42,40 @@ async function runLivePersistenceVerification() {
   const apiKey = process.env.ASENZO_AUTOMATION_API_KEY || 'default-test-token';
   process.env.ASENZO_AUTOMATION_API_KEY = apiKey;
 
-  let apiResponseData: any = null;
+  let apiResponseData: {
+    workspace_id?: string;
+    exact_language?: string;
+    source_type?: string;
+  } | null = null;
   let returnedId: string | null = null;
 
-  // 1. Attempt HTTP call if a live server is running on port 3000
-  let usedLiveServer = false;
-  try {
-    const healthCheck = await fetch('http://localhost:3000/api/automation/health', {
-      headers: { 'x-automation-token': apiKey }
-    });
-    if (healthCheck.ok) {
-      console.log('\n[Mode] Detected running Next.js HTTP server on http://localhost:3000');
-      usedLiveServer = true;
-      const res = await fetch('http://localhost:3000/api/automation/intelligence-cards', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-automation-token': apiKey
-        },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      console.log('  HTTP Server Status:', res.status);
-      console.log('  HTTP Server Response Body:', JSON.stringify(json, null, 2));
-
-      if (!res.ok || !json.success) {
-        throw new Error(`HTTP server returned error: ${JSON.stringify(json)}`);
-      }
-      apiResponseData = json.data;
-      returnedId = json.data?.id;
-    }
-  } catch {
-    // Live server not running on port 3000; execute through route handler
+  const baseUrl = process.env.AUTOMATION_BASE_URL || 'http://localhost:3000';
+  console.log(`\n[Mode] Calling running HTTP server at ${baseUrl}`);
+  const healthCheck = await fetch(`${baseUrl}/api/automation/health`, {
+    headers: { 'x-automation-token': apiKey }
+  });
+  if (!healthCheck.ok) {
+    throw new Error(`Running server health check failed with HTTP ${healthCheck.status}`);
   }
 
-  // 2. If live server was not reachable, execute directly through the API route handler
-  if (!usedLiveServer) {
-    console.log('\n[Mode] Running through Route Handler (intelligenceCardsPost)');
-    const req = new NextRequest(new URL('http://localhost:3000/api/automation/intelligence-cards'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-automation-token': apiKey
-      },
-      body: JSON.stringify(payload)
-    });
+  const res = await fetch(`${baseUrl}/api/automation/intelligence-cards`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-automation-token': apiKey,
+      'x-workspace-id': CANONICAL_DEFAULT_WORKSPACE_ID
+    },
+    body: JSON.stringify(payload)
+  });
+  const json = await res.json();
+  console.log('  HTTP Server Status:', res.status);
+  console.log('  HTTP Server Response Body:', JSON.stringify(json, null, 2));
 
-    const res = await intelligenceCardsPost(req);
-    const json = await res.json();
-    console.log('  Route Handler Status:', res.status);
-    console.log('  Route Handler Response Body:', JSON.stringify(json, null, 2));
-
-    if (res.status !== 201 || !json.success) {
-      console.error('\n❌ FATAL: API failed to return HTTP 201 Created or success: true.');
-      process.exit(1);
-    }
-    apiResponseData = json.data;
-    returnedId = json.data?.id;
+  if (!res.ok || !json.success) {
+    throw new Error(`HTTP server returned error: ${JSON.stringify(json)}`);
   }
+  apiResponseData = json.data;
+  returnedId = json.data?.id;
 
   console.log('\n[Step 1 Verification: API Return Shape]');
   console.log('  Returned ID:', returnedId);

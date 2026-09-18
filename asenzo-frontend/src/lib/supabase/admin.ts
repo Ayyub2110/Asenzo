@@ -16,18 +16,15 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY && typeof window === 'undefined') {
 /**
  * Returns a privileged Supabase client for backend/automation operations.
  * Requires SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL).
- * 
- * Throws an error immediately if credentials are missing to prevent silent fallback across all runtime environments.
+ * The backend must never substitute the public anon key for the service-role key.
  */
-export function getAdminSupabaseClient(): SupabaseClient | null {
+export function getAdminSupabaseClient(): SupabaseClient {
   if (adminClient !== undefined) {
     return adminClient;
   }
 
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
     const errorMsg =
@@ -42,6 +39,20 @@ export function getAdminSupabaseClient(): SupabaseClient | null {
       autoRefreshToken: false,
       persistSession: false
     }
+  });
+
+  let hostname = 'unknown';
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    // URL validation is handled by the Supabase client.
+  }
+  console.log('[Supabase Admin Diagnostics]', {
+    NODE_ENV: process.env.NODE_ENV,
+    hasSupabaseUrl: Boolean(url),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    resolvedHostname: hostname,
+    hasRealAdminClient: Boolean(adminClient)
   });
 
   return adminClient;
