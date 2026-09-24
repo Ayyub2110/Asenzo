@@ -8,6 +8,7 @@ import { GET as contentContextGet } from '../src/app/api/automation/content-cont
 import { GET as intelligenceCardsGet, POST as intelligenceCardsPost } from '../src/app/api/automation/intelligence-cards/route';
 import { GET as researchJobGet } from '../src/app/api/automation/research/jobs/[id]/route';
 import { POST as researchJobsPost } from '../src/app/api/automation/research/jobs/route';
+import { POST as researchAssignmentsPost } from '../src/app/api/automation/research/assignments/route';
 import { POST as researchResultsPost } from '../src/app/api/automation/research/results/route';
 import { GET as contentIdeaGet } from '../src/app/api/automation/content-ideas/[id]/route';
 import { POST as contentIdeasPost } from '../src/app/api/automation/content-ideas/route';
@@ -177,10 +178,20 @@ async function runTests() {
       objective: 'Scrape competitor positioning',
       topic: 'Competitor Intelligence',
       platform: 'YouTube'
-    }));
+    }, { 'Idempotency-Key': `job_${Date.now()}_test` }));
     const jsonJob = await resJob.json();
     createdJobId = jsonJob.data.id;
     assert(Boolean(createdJobId), 'Created research job and received ID');
+
+    const resAssignment = await researchAssignmentsPost(createReq('/api/automation/research/assignments', 'POST', {
+      research_job_id: createdJobId,
+      assignment_type: 'creator_research',
+      platform: 'YouTube',
+      creator: 'TechReviewer',
+      topic: 'Competitor Intelligence'
+    }));
+    const jsonAssignment = await resAssignment.json();
+    assert(resAssignment.status === 201, 'Creates research assignment (201)');
 
     // Get job by ID
     const resGetJob = await researchJobGet(createReq(`/api/automation/research/jobs/${createdJobId}`), {
@@ -190,20 +201,28 @@ async function runTests() {
 
     // Ingest research result
     const resResult = await researchResultsPost(createReq('/api/automation/research/results', 'POST', {
-      job_id: createdJobId,
+      research_job_id: createdJobId,
+      research_assignment_id: jsonAssignment.data.id,
       topic: 'Competitor Intelligence',
       angle: 'Why Competitor X fails at onboarding',
-      format: 'Short Video',
       platform: 'YouTube',
-      creator_source: 'TechReviewer',
       source_url: 'https://youtube.com/watch?v=123',
+      source_type: 'video',
+      source_title: 'Competitor onboarding review',
+      claim: 'The onboarding flow creates friction before activation.',
       evidence: { views: 50000 },
-      score: 85,
-      classification: 'proven'
-    }));
+      audience_signals: { friction: 'onboarding' },
+      market_signals: {},
+      content_patterns: {},
+      evidence_strength: 'medium',
+      classification: 'observed_fact',
+      confidence: 'medium',
+      raw_source_reference: { url: 'https://youtube.com/watch?v=123' },
+      research_agent: 'test-worker'
+    }, { 'Idempotency-Key': `result_${Date.now()}_test` }));
     const jsonResult = await resResult.json();
     assert(resResult.status === 201, 'POST /research/results returns 201');
-    assert(jsonResult.data.classification === 'proven', 'Preserves classification');
+    assert(jsonResult.data.classification === 'observed_fact', 'Preserves classification');
   }
 
   // TEST 6: Content Ideas & Assets

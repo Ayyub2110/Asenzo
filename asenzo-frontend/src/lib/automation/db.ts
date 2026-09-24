@@ -53,38 +53,64 @@ export interface CanonicalResearchJob {
   workspace_id?: string;
   objective: string;
   topic: string;
-  question?: string;
   platform?: string;
-  audience?: string;
-  status?: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  assigned_worker?: string;
-  parameters?: Record<string, unknown>;
+  funnel_stage?: string;
+  content_pillar?: string;
+  date_range?: string;
+  keyword_topic?: string;
+  creators: string[];
+  sources: Array<{ type: string; target: string }>;
+  idempotency_key?: string;
+  status?: 'queued' | 'planning' | 'running' | 'completed' | 'failed' | 'cancelled';
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
   error?: string;
   created_at?: string;
+  started_at?: string;
   completed_at?: string;
+}
+
+export interface CanonicalResearchAssignment {
+  id?: string;
+  workspace_id?: string;
+  research_job_id: string;
+  assignment_type: string;
+  platform?: string;
+  creator?: string;
+  topic: string;
+  source_target?: string;
+  status?: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  attempt_count?: number;
+  started_at?: string;
+  completed_at?: string;
+  error?: string;
+  created_at?: string;
 }
 
 export interface CanonicalResearchResult {
   id?: string;
-  job_id?: string;
   workspace_id?: string;
+  research_job_id: string;
+  research_assignment_id: string;
+  source_url: string;
+  source_type: string;
+  source_title?: string;
+  platform: string;
+  creator?: string;
+  published_at?: string;
   topic: string;
+  hook?: string;
   angle?: string;
-  format?: string;
-  platform?: string;
-  creator_source?: string;
-  source_url?: string;
-  evidence?: Record<string, unknown>;
-  audience?: string;
-  awareness?: string;
-  psychological_trigger?: string;
-  founder_similarity?: number;
-  competitor_similarity?: number;
-  dna_match?: number;
-  score?: number;
-  classification?: 'proven' | 'experimental' | 'outlier';
-  metadata?: Record<string, unknown>;
+  claim: string;
+  evidence: Record<string, unknown>;
+  audience_signals: Record<string, unknown>;
+  market_signals: Record<string, unknown>;
+  content_patterns: Record<string, unknown>;
+  evidence_strength: string;
+  classification: 'observed_fact' | 'inferred_pattern' | 'ai_hypothesis';
+  confidence: string;
+  raw_source_reference: Record<string, unknown>;
+  research_agent: string;
+  idempotency_key?: string;
   created_at?: string;
 }
 
@@ -656,74 +682,78 @@ export async function insertAudienceDna(payload: AudienceDnaPayload): Promise<Ca
 
 export async function findResearchJob(id: string): Promise<CanonicalResearchJob | null> {
   const supabase = getAdminSupabaseClient();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('research_jobs')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (!error && data) return data;
-    } catch {
-      // Fallback
-    }
-  }
-
-  return fallbackStore.researchJobs.find(j => j.id === id) || null;
+  const { data, error } = await supabase.from('research_jobs').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`Database error reading research job: ${error.message}`);
+  return data as CanonicalResearchJob | null;
 }
 
 export async function insertResearchJob(job: CanonicalResearchJob): Promise<CanonicalResearchJob> {
   const newJob: CanonicalResearchJob = {
     ...job,
-    id: job.id || `rjob_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     status: job.status || 'queued',
-    created_at: new Date().toISOString()
+    priority: job.priority || 'normal',
+    creators: job.creators || [],
+    sources: job.sources || []
   };
 
   const supabase = getAdminSupabaseClient();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('research_jobs')
-        .insert(newJob)
-        .select()
-        .single();
-
-      if (!error && data) return data;
-    } catch {
-      // Fallback
+  const { data, error } = await supabase.from('research_jobs').insert(newJob).select().single();
+  if (error || !data) {
+    if (error?.code === '23505' && job.idempotency_key) {
+      const existing = await supabase.from('research_jobs').select('*').eq('workspace_id', job.workspace_id!).eq('idempotency_key', job.idempotency_key).single();
+      if (!existing.error && existing.data) return existing.data as CanonicalResearchJob;
     }
+    throw new Error(`Database error creating research job: ${error?.message || 'no row returned'}`);
   }
+  return data as CanonicalResearchJob;
+}
 
-  fallbackStore.researchJobs.unshift(newJob);
-  return newJob;
+export async function findResearchAssignment(id: string): Promise<CanonicalResearchAssignment | null> {
+  const supabase = getAdminSupabaseClient();
+  const { data, error } = await supabase.from('research_assignments').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`Database error reading research assignment: ${error.message}`);
+  return data as CanonicalResearchAssignment | null;
+}
+
+export async function insertResearchAssignment(assignment: CanonicalResearchAssignment): Promise<CanonicalResearchAssignment> {
+  const supabase = getAdminSupabaseClient();
+  const { data, error } = await supabase.from('research_assignments').insert(assignment).select().single();
+  if (error || !data) throw new Error(`Database error creating research assignment: ${error?.message || 'no row returned'}`);
+  return data as CanonicalResearchAssignment;
 }
 
 export async function insertResearchResult(result: CanonicalResearchResult): Promise<CanonicalResearchResult> {
-  const newResult: CanonicalResearchResult = {
-    ...result,
-    id: result.id || `rres_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    created_at: new Date().toISOString()
-  };
-
   const supabase = getAdminSupabaseClient();
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('research_results')
-        .insert(newResult)
-        .select()
-        .single();
-
-      if (!error && data) return data;
-    } catch {
-      // Fallback
+  const { data, error } = await supabase.from('research_results').insert({
+    ...result,
+    job_id: result.research_job_id,
+    creator_source: result.creator
+  }).select().single();
+  if (error || !data) {
+    if (error?.code === '23505' && result.idempotency_key) {
+      const existing = await supabase.from('research_results').select('*').eq('workspace_id', result.workspace_id!).eq('idempotency_key', result.idempotency_key).single();
+      if (!existing.error && existing.data) return existing.data as CanonicalResearchResult;
     }
+    throw new Error(`Database error creating research result: ${error?.message || 'no row returned'}`);
   }
+  return data as CanonicalResearchResult;
+}
 
-  fallbackStore.researchResults.unshift(newResult);
-  return newResult;
+export async function getResearchJobCounts(id: string, workspaceId: string) {
+  const supabase = getAdminSupabaseClient();
+  const [assignments, results] = await Promise.all([
+    supabase.from('research_assignments').select('status').eq('research_job_id', id).eq('workspace_id', workspaceId),
+    supabase.from('research_results').select('id', { count: 'exact', head: true }).eq('research_job_id', id).eq('workspace_id', workspaceId)
+  ]);
+  if (assignments.error) throw new Error(`Database error reading research assignments: ${assignments.error.message}`);
+  if (results.error) throw new Error(`Database error reading research results: ${results.error.message}`);
+  const statuses = assignments.data || [];
+  return {
+    assignment_count: statuses.length,
+    completed_assignment_count: statuses.filter(a => a.status === 'completed').length,
+    failed_assignment_count: statuses.filter(a => a.status === 'failed').length,
+    result_count: results.count || 0
+  };
 }
 
 // ==========================================

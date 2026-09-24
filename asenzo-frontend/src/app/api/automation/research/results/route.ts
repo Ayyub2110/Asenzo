@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateAutomationAuth } from '@/lib/automation/auth';
 import { checkIdempotency, saveIdempotency } from '@/lib/automation/idempotency';
 import { createErrorResponse, ErrorCodes } from '@/lib/automation/errors';
-import { insertResearchResult, CanonicalResearchResult } from '@/lib/automation/db';
-import { dispatchAutomationEvent } from '@/lib/automation/events';
+import { findResearchAssignment, findResearchJob, insertResearchResult, CanonicalResearchResult } from '@/lib/automation/db';
+import { resolveCanonicalWorkspaceId } from '@/lib/automation/workspace';
 
 export async function POST(req: NextRequest) {
   const auth = validateAutomationAuth(req);
   if (!auth.success) {
     return auth.response;
+  }
+
+  if (!req.headers.get('idempotency-key')?.trim()) {
+    return createErrorResponse(ErrorCodes.MISSING_FIELD, 'Idempotency-Key header is required', 400);
   }
 
   const idempotency = await checkIdempotency(req);
@@ -19,42 +23,49 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    if (!body.topic) {
-      return createErrorResponse(ErrorCodes.MISSING_FIELD, 'topic is required', 400);
+    const required = ['research_job_id', 'research_assignment_id', 'source_url', 'source_type', 'platform', 'topic', 'claim', 'evidence_strength', 'confidence', 'research_agent'];
+    const missing = required.find(field => typeof body[field] !== 'string' || !body[field].trim());
+    if (missing) return createErrorResponse(ErrorCodes.MISSING_FIELD, `${missing} is required`, 400);
+    if (!['observed_fact', 'inferred_pattern', 'ai_hypothesis'].includes(body.classification)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'invalid classification', 400);
+    for (const field of ['evidence', 'audience_signals', 'market_signals', 'content_patterns', 'raw_source_reference']) {
+      if (typeof body[field] !== 'object' || body[field] === null || Array.isArray(body[field])) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, `${field} must be an object`, 400);
     }
+    if (Object.keys(body).some(key => ['score', 'founder_similarity', 'competitor_similarity', 'dna_match', 'viral_score', 'idea_score', 'angle_score', 'winner_score', 'topic_ranking'].includes(key))) {
+      return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'Phase 3 score fields are not accepted', 400);
+    }
+    const workspaceId = await resolveCanonicalWorkspaceId(auth.context.workspaceId);
+    const job = await findResearchJob(body.research_job_id);
+    const assignment = await findResearchAssignment(body.research_assignment_id);
+    if (!job || job.workspace_id !== workspaceId) return createErrorResponse(ErrorCodes.NOT_FOUND, 'research job not found', 404);
+    if (!assignment || assignment.workspace_id !== workspaceId || assignment.research_job_id !== job.id) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'assignment does not belong to job and workspace', 400);
 
     const resultPayload: CanonicalResearchResult = {
-      workspace_id: auth.context.workspaceId,
-      job_id: body.job_id,
-      topic: body.topic,
-      angle: body.angle,
-      format: body.format,
-      platform: body.platform,
-      creator_source: body.creator_source,
+      workspace_id: workspaceId,
+      research_job_id: job.id!,
+      research_assignment_id: assignment.id!,
       source_url: body.source_url,
-      evidence: body.evidence || {},
-      audience: body.audience,
-      awareness: body.awareness,
-      psychological_trigger: body.psychological_trigger,
-      founder_similarity: typeof body.founder_similarity === 'number' ? body.founder_similarity : 0,
-      competitor_similarity: typeof body.competitor_similarity === 'number' ? body.competitor_similarity : 0,
-      dna_match: typeof body.dna_match === 'number' ? body.dna_match : 0,
-      score: typeof body.score === 'number' ? body.score : 0,
-      classification: body.classification || 'experimental',
-      metadata: body.metadata || {}
+      source_type: body.source_type,
+      source_title: body.source_title,
+      platform: body.platform,
+      creator: body.creator,
+      published_at: body.published_at,
+      topic: body.topic,
+      hook: body.hook,
+      angle: body.angle,
+      claim: body.claim,
+      evidence: body.evidence,
+      audience_signals: body.audience_signals,
+      market_signals: body.market_signals,
+      content_patterns: body.content_patterns,
+      evidence_strength: body.evidence_strength,
+      classification: body.classification,
+      confidence: body.confidence,
+      raw_source_reference: body.raw_source_reference,
+      research_agent: body.research_agent,
+      idempotency_key: idempotency.key
     };
 
     const createdResult = await insertResearchResult(resultPayload);
-
-    // Dispatch completion event
-    await dispatchAutomationEvent({
-      event: 'research.completed',
-      entity_type: 'research_result',
-      entity_id: createdResult.id!,
-      workspace_id: auth.context.workspaceId,
-      timestamp: new Date().toISOString(),
-      data: createdResult
-    });
 
     const responsePayload = {
       success: true,
@@ -67,7 +78,7 @@ export async function POST(req: NextRequest) {
         201,
         responsePayload,
         req.nextUrl.pathname,
-        auth.context.workspaceId
+        workspaceId
       );
     }
 

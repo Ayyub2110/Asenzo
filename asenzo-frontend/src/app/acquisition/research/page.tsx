@@ -32,6 +32,8 @@ export default function ResearchPage() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState<typeof WINNING_IDEAS[0] | null>(null);
   const [researchState, setResearchState] = useState<"idle" | "loading" | "done">("done");
+  const [researchMessage, setResearchMessage] = useState("");
+  const [researchTopic, setResearchTopic] = useState("");
   const [funnel, setFunnel] = useState("ALL");
   const [watchlist, setWatchlist] = useState(WATCHLIST);
   const [sourceFilter, setSourceFilter] = useState("ALL"); // ALL | Research | Library
@@ -122,7 +124,7 @@ export default function ResearchPage() {
                         <select className={fc}>{opts.split(",").map(o => <option key={o}>{o}</option>)}</select>
                       </div>
                     ))}
-                    <div className="col-span-2"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Keyword / Topic</label><input className={fc} placeholder="e.g. client acquisition, B2B growth..." /></div>
+                    <div className="col-span-2"><label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Keyword / Topic</label><input value={researchTopic} onChange={e => setResearchTopic(e.target.value)} className={fc} placeholder="e.g. client acquisition, B2B growth..." /></div>
                   </div>
                   <div className="mt-4 pt-4 border-t border-slate-100">
                     <h3 className="text-[12px] font-bold text-slate-900 mb-3 flex items-center gap-1.5">
@@ -152,7 +154,15 @@ export default function ResearchPage() {
                 </div>
                 {researchState !== "loading" ? (
                   <div className="flex gap-3">
-                    <button onClick={() => { setResearchState("loading"); setTimeout(() => setResearchState("done"), 2500); }} className="flex-1 py-2.5 bg-blue-600 text-white text-[12px] font-bold rounded-lg hover:bg-blue-700 shadow-sm border border-transparent">Analyze Research Subject</button>
+                    <button onClick={async () => {
+                      if (!researchTopic.trim()) { setResearchMessage("Enter a keyword or topic first."); return; }
+                      setResearchState("loading");
+                      setResearchMessage("");
+                      const response = await fetch("/api/automation/research/jobs", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ objective: `Research ${researchTopic}`, topic: researchTopic, platform: "Instagram", funnel_stage: "TOF", content_pillar: "Client Acquisition", date_range: "last_7_days", keyword_topic: researchTopic, creators: ["Alex Hormozi", "Lara Davies"], sources: [], priority: "normal" }) });
+                      const payload = await response.json();
+                      setResearchState(response.ok ? "done" : "idle");
+                      setResearchMessage(response.ok ? `Research job queued: ${payload.data.id}` : payload.error?.message || "Unable to create research job.");
+                    }} className="flex-1 py-2.5 bg-blue-600 text-white text-[12px] font-bold rounded-lg hover:bg-blue-700 shadow-sm border border-transparent">Analyze Research Subject</button>
                   </div>
                 ) : (
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
@@ -160,6 +170,7 @@ export default function ResearchPage() {
                     {["Extracting key ideas and themes...","Finding audience pain points & desires...","Detecting outlier patterns...","Distinguishing source facts from inferences..."].map((s,i) => <p key={i} className="text-[11px] text-blue-600 pl-5">↳ {s}</p>)}
                   </div>
                 )}
+                {researchMessage && <p className="mt-2 text-[11px] text-slate-600">{researchMessage}</p>}
               </div>
               <div className="col-span-4 space-y-4">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
