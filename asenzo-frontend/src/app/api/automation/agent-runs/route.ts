@@ -7,7 +7,7 @@ import { insertAgentRun, CanonicalAgentRun } from '@/lib/automation/db';
 const VALID_STATUSES = ['queued', 'running', 'completed', 'failed', 'cancelled'];
 
 export async function POST(req: NextRequest) {
-  const auth = validateAutomationAuth(req);
+  const auth = await validateAutomationAuth(req);
   if (!auth.success) {
     return auth.response;
   }

@@ -5,7 +5,7 @@ import { findResearchJob, insertResearchAssignment, CanonicalResearchAssignment 
 import { resolveCanonicalWorkspaceId } from '@/lib/automation/workspace';
 
 export async function POST(req: NextRequest) {
-  const auth = validateAutomationAuth(req);
+  const auth = await validateAutomationAuth(req);
   if (!auth.success) return auth.response;
 
   try {

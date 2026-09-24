@@ -3,7 +3,7 @@ import { validateAutomationAuth } from '@/lib/automation/auth';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 
 export async function GET(req: NextRequest) {
-  const auth = validateAutomationAuth(req);
+  const auth = await validateAutomationAuth(req);
   if (!auth.success) {
     return auth.response;
   }

@@ -6,7 +6,7 @@ import { insertApproval, CanonicalApproval } from '@/lib/automation/db';
 import { dispatchAutomationEvent } from '@/lib/automation/events';
 
 export async function POST(req: NextRequest) {
-  const auth = validateAutomationAuth(req);
+  const auth = await validateAutomationAuth(req);
   if (!auth.success) {
     return auth.response;
   }

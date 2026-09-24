@@ -11,7 +11,7 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const auth = validateAutomationAuth(req);
+  const auth = await validateAutomationAuth(req);
   if (!auth.success) {
     return auth.response;
   }

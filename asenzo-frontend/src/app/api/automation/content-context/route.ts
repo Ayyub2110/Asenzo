@@ -3,7 +3,7 @@ import { validateAutomationAuth } from '@/lib/automation/auth';
 import { fetchContentContext } from '@/lib/automation/db';
 
 export async function GET(req: NextRequest) {
-  const auth = validateAutomationAuth(req);
+  const auth = await validateAutomationAuth(req);
   if (!auth.success) {
     return auth.response;
   }
