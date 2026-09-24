@@ -23,11 +23,16 @@ export interface AutomationEventPayload<T = Record<string, unknown>> {
   data?: T;
 }
 
+function sanitizeLogMessage(msg: string): string {
+  return msg.replace(/https?:\/\/[^\s]+/g, '[REDACTED_URL]');
+}
+
 /**
  * Dispatches an event to the configured n8n webhook and records it in system_events.
  */
 export async function dispatchAutomationEvent<T = Record<string, unknown>>(
-  payload: AutomationEventPayload<T>
+  payload: AutomationEventPayload<T>,
+  options?: { webhookUrl?: string }
 ): Promise<{ dispatched: boolean; webhookStatus?: number; error?: string }> {
   // 1. Record in Supabase system_events
   const supabase = getAdminSupabaseClient();
@@ -41,14 +46,25 @@ export async function dispatchAutomationEvent<T = Record<string, unknown>>(
         payload: payload.data || {}
       });
     } catch (err: unknown) {
-      console.warn('Could not record system event to Supabase:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn('[Automation Events] Could not record system event to Supabase:', sanitizeLogMessage(errMsg));
     }
   }
 
   // 2. Dispatch to n8n webhook URL if configured
-  const webhookUrl = process.env.N8N_WEBHOOK_URL;
+  const webhookUrl =
+    options?.webhookUrl ||
+    (payload.event === 'research.requested'
+      ? (process.env.N8N_RESEARCH_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL)
+      : process.env.N8N_WEBHOOK_URL);
+
   if (!webhookUrl) {
-    return { dispatched: false, error: 'N8N_WEBHOOK_URL is not configured' };
+    const error =
+      payload.event === 'research.requested'
+        ? 'N8N_RESEARCH_WEBHOOK_URL is not configured'
+        : 'N8N_WEBHOOK_URL is not configured';
+    console.warn(`[Automation Events] Webhook dispatch skipped: ${error}`);
+    return { dispatched: false, error };
   }
 
   try {
@@ -65,16 +81,29 @@ export async function dispatchAutomationEvent<T = Record<string, unknown>>(
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(10000)
     });
 
+    if (!response.ok) {
+      console.error(
+        `[Automation Events] n8n delivery failed for event '${payload.event}' (HTTP ${response.status})`
+      );
+      return {
+        dispatched: false,
+        webhookStatus: response.status,
+        error: `Webhook response status HTTP ${response.status}`
+      };
+    }
+
     return {
-      dispatched: response.ok,
+      dispatched: true,
       webhookStatus: response.status
     };
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error('Failed to dispatch webhook to n8n:', errorMessage);
-    return { dispatched: false, error: errorMessage };
+    const rawError = err instanceof Error ? err.message : String(err);
+    const safeError = sanitizeLogMessage(rawError);
+    console.error(`[Automation Events] n8n delivery network failure for event '${payload.event}':`, safeError);
+    return { dispatched: false, error: safeError };
   }
 }
+

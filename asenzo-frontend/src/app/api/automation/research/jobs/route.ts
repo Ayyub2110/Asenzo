@@ -73,21 +73,23 @@ export async function POST(req: NextRequest) {
 
     const createdJob = await insertResearchJob(jobPayload);
 
-    // Notify n8n research worker
-    await dispatchAutomationEvent({
+    // 2. Emit research.requested only after database insert succeeds
+    const dispatchResult = await dispatchAutomationEvent({
       event: 'research.requested',
       entity_type: 'research_job',
       entity_id: createdJob.id!,
       workspace_id: workspaceId,
       timestamp: new Date().toISOString(),
-      requested_action: 'execute_research',
       data: {
-        job_id: createdJob.id!,
-        topic: createdJob.topic,
-        platform: createdJob.platform,
-        funnel_stage: createdJob.funnel_stage
+        job_id: createdJob.id!
       }
     });
+
+    if (!dispatchResult.dispatched) {
+      console.error(
+        `[Research Job] Safe warning: n8n research webhook delivery failed for job ${createdJob.id}: ${dispatchResult.error || 'Unknown error'}`
+      );
+    }
 
     const responsePayload = {
       success: true,
@@ -107,6 +109,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(responsePayload, { status: 201 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Invalid JSON or server error';
+    if (
+      msg.includes('Database error') ||
+      msg.includes('Database client unavailable') ||
+      msg.includes('Supabase') ||
+      msg.includes('credentials')
+    ) {
+      return createErrorResponse(ErrorCodes.INTERNAL_ERROR, msg, 500);
+    }
     return createErrorResponse(ErrorCodes.INVALID_INPUT, msg, 400);
   }
 }
+
