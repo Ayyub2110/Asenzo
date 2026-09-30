@@ -19,7 +19,7 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY && typeof window === 'undefined') {
  * The backend must never substitute the public anon key for the service-role key.
  */
 export function getAdminSupabaseClient(): SupabaseClient {
-  if (adminClient !== undefined) {
+  if (adminClient) {
     return adminClient;
   }
 
