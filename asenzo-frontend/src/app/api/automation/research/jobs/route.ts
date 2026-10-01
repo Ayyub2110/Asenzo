@@ -10,8 +10,26 @@ const PLATFORMS = ['Instagram', 'YouTube', 'TikTok', 'LinkedIn', 'X', 'Reddit', 
 const FUNNEL_STAGES = ['TOF', 'MOF', 'BOF', 'RETENTION'];
 const DATE_RANGES = ['last_7_days', 'last_30_days', 'last_90_days'];
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === 'string' && item.trim().length > 0);
+function isValidHandle(value: unknown): value is string {
+  return typeof value === 'string' && /^@?[A-Za-z0-9._-]+$/.test(value.trim());
+}
+
+function isValidSourceTarget(value: unknown): value is string {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function isCreatorArray(value: unknown): value is Array<{ handle?: string; source_target?: string }> {
+  return Array.isArray(value) && value.every(item => {
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) return false;
+    const creator = item as { handle?: unknown; source_target?: unknown };
+    return isValidHandle(creator.handle) || isValidSourceTarget(creator.source_target);
+  });
 }
 
 function isSourceArray(value: unknown): value is Array<{ type: string; target: string }> {
@@ -49,7 +67,13 @@ export async function POST(req: NextRequest) {
     if (body.platform && !PLATFORMS.includes(body.platform)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'invalid platform', 400);
     if (body.funnel_stage && !FUNNEL_STAGES.includes(body.funnel_stage)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'invalid funnel_stage', 400);
     if (body.date_range && !DATE_RANGES.includes(body.date_range)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'invalid date_range', 400);
-    if (body.creators !== undefined && !isStringArray(body.creators)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'creators must be an array of strings', 400);
+    if (body.creators !== undefined && !isCreatorArray(body.creators)) {
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_FAILED,
+        'creator research requires each creator to include a verified handle or explicit source URL in source_target',
+        400
+      );
+    }
     if (body.sources !== undefined && !isSourceArray(body.sources)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'sources must contain type and target', 400);
     if (body.priority && !['low', 'normal', 'high', 'urgent'].includes(body.priority)) return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'invalid priority', 400);
 

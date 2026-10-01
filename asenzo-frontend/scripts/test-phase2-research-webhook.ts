@@ -57,7 +57,10 @@ async function runPhase2Verification() {
     content_pillar: 'Market Intelligence',
     date_range: 'last_7_days',
     keyword_topic: 'Agentic Workflows',
-    creators: ['Creator A', 'Creator B'],
+    creators: [
+      { handle: 'creator_a', source_target: 'https://www.youtube.com/@creator_a' },
+      { source_target: 'https://www.youtube.com/@creator_b' }
+    ],
     sources: [{ type: 'channel', target: 'TestTarget' }],
     priority: 'high'
   };

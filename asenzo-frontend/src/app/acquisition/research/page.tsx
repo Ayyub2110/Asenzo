@@ -158,7 +158,7 @@ export default function ResearchPage() {
                       if (!researchTopic.trim()) { setResearchMessage("Enter a keyword or topic first."); return; }
                       setResearchState("loading");
                       setResearchMessage("");
-                      const response = await fetch("/api/automation/research/jobs", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ objective: `Research ${researchTopic}`, topic: researchTopic, platform: "Instagram", funnel_stage: "TOF", content_pillar: "Client Acquisition", date_range: "last_7_days", keyword_topic: researchTopic, creators: ["Alex Hormozi", "Lara Davies"], sources: [], priority: "normal" }) });
+                      const response = await fetch("/api/automation/research/jobs", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ objective: `Research ${researchTopic}`, topic: researchTopic, platform: "Instagram", funnel_stage: "TOF", content_pillar: "Client Acquisition", date_range: "last_7_days", keyword_topic: researchTopic, creators: [], sources: [], priority: "normal" }) });
                       const payload = await response.json();
                       setResearchState(response.ok ? "done" : "idle");
                       setResearchMessage(response.ok ? `Research job queued: ${payload.data.id}` : payload.error?.message || "Unable to create research job.");

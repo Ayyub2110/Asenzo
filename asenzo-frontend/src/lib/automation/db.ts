@@ -58,7 +58,7 @@ export interface CanonicalResearchJob {
   content_pillar?: string;
   date_range?: string;
   keyword_topic?: string;
-  creators: string[];
+  creators: Array<{ handle?: string; source_target?: string }>;
   sources: Array<{ type: string; target: string }>;
   idempotency_key?: string;
   status?: 'queued' | 'planning' | 'running' | 'completed' | 'failed' | 'cancelled';

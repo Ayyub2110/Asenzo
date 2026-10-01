@@ -62,6 +62,8 @@ ALTER TABLE public.research_results
   CHECK (classification IS NULL OR classification IN ('observed_fact', 'inferred_pattern', 'ai_hypothesis'));
 
 ALTER TABLE public.research_results
+  DROP CONSTRAINT IF EXISTS research_results_workspace_job_check;
+ALTER TABLE public.research_results
   ADD CONSTRAINT research_results_workspace_job_check
   CHECK (research_job_id IS NOT NULL OR job_id IS NOT NULL);
 

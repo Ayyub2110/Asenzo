@@ -170,6 +170,58 @@ async function runTests() {
     assert(json1.data?.id === json2.data?.id, 'Returned ID is identical without creating duplicate');
   }
 
+  // TEST 4b: Research Creator Input Contract
+  console.log('\n[Suite 4b] Research Creator Input Contract');
+  {
+    const validHandleResponse = await researchJobsPost(createReq('/api/automation/research/jobs', 'POST', {
+      objective: 'Research a verified creator handle',
+      topic: 'Creator contract handle test',
+      creators: [{ handle: 'verified_creator' }]
+    }, { 'Idempotency-Key': `creator_handle_${Date.now()}_test` }));
+    const validHandleJson = await validHandleResponse.json();
+    assert(validHandleResponse.status === 201, 'Accepts a verified creator handle');
+    assert(validHandleJson.data?.creators?.[0]?.handle === 'verified_creator', 'Persists the supplied creator handle unchanged');
+
+    const validSourceResponse = await researchJobsPost(createReq('/api/automation/research/jobs', 'POST', {
+      objective: 'Research an explicit creator source',
+      topic: 'Creator contract source test',
+      creators: [{ source_target: 'https://www.instagram.com/explicit_creator/' }]
+    }, { 'Idempotency-Key': `creator_source_${Date.now()}_test` }));
+    const validSourceJson = await validSourceResponse.json();
+    assert(validSourceResponse.status === 201, 'Accepts a creator explicit source URL');
+    assert(validSourceJson.data?.creators?.[0]?.source_target === 'https://www.instagram.com/explicit_creator/', 'Persists source_target unchanged');
+
+    const invalidDisplayNameResponse = await researchJobsPost(createReq('/api/automation/research/jobs', 'POST', {
+      objective: 'Reject a display name',
+      topic: 'Creator contract display name test',
+      creators: ['Alex Hormozi']
+    }, { 'Idempotency-Key': `creator_display_name_${Date.now()}_test` }));
+    const invalidDisplayNameJson = await invalidDisplayNameResponse.json();
+    assert(invalidDisplayNameResponse.status === 400, 'Rejects creator display-name strings');
+    assert(invalidDisplayNameJson.error?.message?.includes('verified handle or explicit source URL'), 'Explains the research-ready creator requirement');
+
+    const emptyCreatorResponse = await researchJobsPost(createReq('/api/automation/research/jobs', 'POST', {
+      objective: 'Reject an empty creator',
+      topic: 'Creator contract empty creator test',
+      creators: [{}]
+    }, { 'Idempotency-Key': `creator_empty_${Date.now()}_test` }));
+    assert(emptyCreatorResponse.status === 400, 'Rejects an empty creator object');
+
+    const multipleCreatorsResponse = await researchJobsPost(createReq('/api/automation/research/jobs', 'POST', {
+      objective: 'Research multiple verified creators',
+      topic: 'Creator contract multiple creators test',
+      creators: [
+        { handle: 'creator_one' },
+        { handle: 'creator_two', source_target: 'https://www.youtube.com/@creator_two' }
+      ],
+      sources: [{ type: 'channel', target: 'https://www.youtube.com/@creator_two' }]
+    }, { 'Idempotency-Key': `creator_multiple_${Date.now()}_test` }));
+    const multipleCreatorsJson = await multipleCreatorsResponse.json();
+    assert(multipleCreatorsResponse.status === 201, 'Accepts multiple valid creators');
+    assert(multipleCreatorsJson.data?.creators?.length === 2, 'Persists all valid creators');
+    assert(multipleCreatorsJson.data?.sources?.[0]?.target === 'https://www.youtube.com/@creator_two', 'Preserves explicit sources behavior');
+  }
+
   // TEST 5: Research Jobs & Results Ingestion
   console.log('\n[Suite 5] Research Jobs & Results Ingestion');
   let createdJobId = '';
