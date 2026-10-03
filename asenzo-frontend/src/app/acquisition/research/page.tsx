@@ -1,6 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
+import { buildResearchJobPayload, ResearchCreatorInput } from "@/lib/automation/research-request";
+
+const INITIAL_RESEARCH_CREATORS: ResearchCreatorInput[] = [
+  { id: "c-hormozi", name: "Alex Hormozi", state: false },
+  { id: "c-davies", name: "Lara Davies", state: false },
+  { id: "c-yang", name: "Jay Yang", state: false },
+  { id: "c-metry", name: "Mark Metry", state: false },
+  { id: "c-welsh", name: "Justin Welsh", state: false }
+];
 
 const WATCHLIST = [
   { id: "w1", name: "Alex Hormozi", platform: "Instagram", niche: "Business Growth", followers: "4.8M", value: 5, fav: true, notes: "Proof-led content, direct CTA" },
@@ -37,6 +46,85 @@ export default function ResearchPage() {
   const [funnel, setFunnel] = useState("ALL");
   const [watchlist, setWatchlist] = useState(WATCHLIST);
   const [sourceFilter, setSourceFilter] = useState("ALL"); // ALL | Research | Library
+  const [researchCreators, setResearchCreators] = useState<ResearchCreatorInput[]>(INITIAL_RESEARCH_CREATORS);
+  const [creatorSearch, setCreatorSearch] = useState("");
+  const [newCreatorInput, setNewCreatorInput] = useState("");
+  const [sourceType, setSourceType] = useState("URL (Article, YouTube, Social)");
+  const [sourceTarget, setSourceTarget] = useState("");
+
+  const displayedCreators = researchCreators.filter(c =>
+    !creatorSearch.trim() || (c.name || "").toLowerCase().includes(creatorSearch.toLowerCase())
+  );
+
+  const handleSelectAllCreators = () => {
+    const allSelected = researchCreators.every(c => c.state);
+    setResearchCreators(prev => prev.map(c => ({ ...c, state: !allSelected })));
+  };
+
+  const toggleCreator = (name?: string) => {
+    setResearchCreators(prev => prev.map(c => c.name === name ? { ...c, state: !c.state } : c));
+  };
+
+  const handleAddVerifiedCreator = (rawInput?: string) => {
+    const raw = (rawInput ?? newCreatorInput).trim();
+    if (!raw) return;
+
+    if (raw.toLowerCase().includes("verified_handle")) {
+      setResearchMessage("Cannot use placeholder 'verified_handle'. Please provide an actual verified handle or URL.");
+      return;
+    }
+
+    let handle: string | undefined = undefined;
+    let source_target: string | undefined = undefined;
+
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+      source_target = raw;
+      try {
+        const url = new URL(raw);
+        if (url.hostname.includes("instagram.com")) {
+          const parts = url.pathname.split("/").filter(Boolean);
+          if (parts[0] && /^@?[A-Za-z0-9._-]+$/.test(parts[0])) {
+            handle = parts[0].replace(/^@/, "");
+          }
+        }
+      } catch {
+        setResearchMessage("Invalid source URL.");
+        return;
+      }
+    } else {
+      const clean = raw.replace(/^@/, "");
+      if (!/^@?[A-Za-z0-9._-]+$/.test(clean)) {
+        setResearchMessage("Invalid creator handle format. Use letters, numbers, dots, or underscores.");
+        return;
+      }
+      handle = clean;
+      source_target = `https://www.instagram.com/${clean}/`;
+    }
+
+    const newCreator: ResearchCreatorInput = {
+      id: `c-custom-${Date.now()}`,
+      name: handle ? `@${handle}` : source_target,
+      handle,
+      source_target,
+      state: true
+    };
+
+    setResearchCreators(prev => [newCreator, ...prev]);
+    setNewCreatorInput("");
+    setResearchMessage("");
+  };
+
+  const handleAddSource = () => {
+    const target = sourceTarget.trim();
+    if (!target) return;
+    if (sourceType.includes("Creator Profile")) {
+      handleAddVerifiedCreator(target);
+      setSourceTarget("");
+    } else {
+      setResearchMessage(`Added source: ${target}`);
+      setSourceTarget("");
+    }
+  };
 
   const ideas = WINNING_IDEAS.filter(i =>
     (funnel === "ALL" || i.funnel === funnel) &&
@@ -133,7 +221,7 @@ export default function ResearchPage() {
                     <div className="flex gap-3 items-end">
                       <div className="flex-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Source Type</label>
-                        <select className={fc}>
+                        <select className={fc} value={sourceType} onChange={e => setSourceType(e.target.value)}>
                           <option>URL (Article, YouTube, Social)</option>
                           <option>Keyword / Topic</option>
                           <option>Creator Profile</option>
@@ -142,9 +230,21 @@ export default function ResearchPage() {
                       </div>
                       <div className="flex-1">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Target</label>
-                        <input className={fc} placeholder="Paste URL or keyword..." />
+                        <input
+                          className={fc}
+                          placeholder={sourceType.includes("Creator Profile") ? "@handle or IG URL..." : "Paste URL or keyword..."}
+                          value={sourceTarget}
+                          onChange={e => setSourceTarget(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddSource(); } }}
+                        />
                       </div>
-                      <button className="px-5 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 h-[38px] flex items-center justify-center">Add</button>
+                      <button
+                        type="button"
+                        onClick={handleAddSource}
+                        className="px-5 py-2.5 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 h-[38px] flex items-center justify-center"
+                      >
+                        Add
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -155,10 +255,32 @@ export default function ResearchPage() {
                 {researchState !== "loading" ? (
                   <div className="flex gap-3">
                     <button onClick={async () => {
-                      if (!researchTopic.trim()) { setResearchMessage("Enter a keyword or topic first."); return; }
+                      const result = buildResearchJobPayload({
+                        topic: researchTopic,
+                        platform: "Instagram",
+                        funnel_stage: "TOF",
+                        content_pillar: "Client Acquisition",
+                        date_range: "last_7_days",
+                        creators: researchCreators,
+                        sources: [],
+                        priority: "normal"
+                      });
+
+                      if (!result.success) {
+                        setResearchMessage(result.error || "Unable to create research job.");
+                        return;
+                      }
+
                       setResearchState("loading");
                       setResearchMessage("");
-                      const response = await fetch("/api/automation/research/jobs", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ objective: `Research ${researchTopic}`, topic: researchTopic, platform: "Instagram", funnel_stage: "TOF", content_pillar: "Client Acquisition", date_range: "last_7_days", keyword_topic: researchTopic, creators: [], sources: [], priority: "normal" }) });
+                      const response = await fetch("/api/automation/research/jobs", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Idempotency-Key": crypto.randomUUID()
+                        },
+                        body: JSON.stringify(result.payload)
+                      });
                       const payload = await response.json();
                       setResearchState(response.ok ? "done" : "idle");
                       setResearchMessage(response.ok ? `Research job queued: ${payload.data.id}` : payload.error?.message || "Unable to create research job.");
@@ -174,19 +296,58 @@ export default function ResearchPage() {
               </div>
               <div className="col-span-4 space-y-4">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-3"><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Creators</p><span className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">Select All</span></div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Creators</p>
+                    <span onClick={handleSelectAllCreators} className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">
+                      {researchCreators.every(c => c.state) ? "Deselect All" : "Select All"}
+                    </span>
+                  </div>
                   <div className="space-y-2 text-[11px] text-slate-700 font-semibold h-40 overflow-y-auto">
-                    {[
-                      {name:"Alex Hormozi", state:true}, {name:"Lara Davies", state:true}, 
-                      {name:"Jay Yang", state:false}, {name:"Mark Metry", state:false},
-                      {name:"Justin Welsh", state:true}
-                    ].map(c => (
+                    {displayedCreators.map(c => (
                       <label key={c.name} className="flex items-center gap-2.5 p-1.5 rounded hover:bg-slate-50 cursor-pointer">
-                        <input type="checkbox" defaultChecked={c.state} className="rounded text-blue-600" />
-                        <span>{c.name}</span>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(c.state)}
+                          onChange={() => toggleCreator(c.name)}
+                          className="rounded text-blue-600"
+                        />
+                        <span className="truncate">{c.name}</span>
+                        {c.handle && (
+                          <span className="text-[9px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-normal">
+                            @{c.handle}
+                          </span>
+                        )}
                       </label>
                     ))}
-                    <div className="pt-2"><input placeholder="Search creators..." className="w-full px-2 py-1.5 border border-slate-200 rounded text-[10px] bg-slate-50" /></div>
+                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                      <div className="flex gap-1.5">
+                        <input
+                          placeholder="Add verified @handle or IG URL..."
+                          value={newCreatorInput}
+                          onChange={e => setNewCreatorInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddVerifiedCreator();
+                            }
+                          }}
+                          className="flex-1 px-2 py-1.5 border border-slate-200 rounded text-[10px] bg-slate-50 focus:outline-none focus:border-blue-400"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddVerifiedCreator()}
+                          className="px-2.5 py-1.5 bg-slate-900 text-white rounded text-[10px] font-bold hover:bg-slate-800"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <input
+                        placeholder="Search creators..."
+                        value={creatorSearch}
+                        onChange={e => setCreatorSearch(e.target.value)}
+                        className="w-full px-2 py-1 border border-slate-200 rounded text-[10px] bg-slate-50 focus:outline-none focus:border-blue-400"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

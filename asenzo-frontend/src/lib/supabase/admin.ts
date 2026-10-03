@@ -19,7 +19,12 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY && typeof window === 'undefined') {
  * The backend must never substitute the public anon key for the service-role key.
  */
 export function getAdminSupabaseClient(): SupabaseClient {
-  if (adminClient) {
+  if (adminClient !== undefined) {
+    if (!adminClient) {
+      const errorMsg = '[Supabase Admin] Database client unavailable: Client is not configured.';
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
     return adminClient;
   }
 
