@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { NextRequest } from 'next/server';
-import { buildResearchJobPayload, ResearchCreatorInput } from '../src/lib/automation/research-request';
+import { buildResearchJobPayload, buildResearchCollectionRequest, ResearchCreatorInput } from '../src/lib/automation/research-request';
 import { POST as researchJobsPost } from '../src/app/api/automation/research/jobs/route';
 
 const TEST_SECRET = 'test-secret-token-12345';
@@ -206,6 +206,108 @@ async function runResearchRequestTests() {
     console.log('  ✓ PASS: Response data has success: true and valid job ID');
     console.log('  ✓ PASS: Backend persists actual verified creator contract object in database');
     console.log('  ✓ PASS: Zero 400 Bad Request errors');
+  }
+
+  // 7. Research Collection Request Contract (BUILD_RESEARCH_COLLECTION_REQUEST)
+  console.log('\n[Suite 7] Research Collection Request Contract (Topic Research vs Creator Research)');
+  {
+    // 7a. Valid Topic Research Collection Request
+    const topicCollectionResult = buildResearchCollectionRequest({
+      assignment_id: 'asgn-topic-12345',
+      research_job_id: 'rjob-topic-67890',
+      assignment_type: 'topic_research',
+      platform: 'Instagram',
+      topic: 'Outbound Client Acquisition',
+      date_range: 'last_7_days',
+      funnel_stage: 'TOF'
+    });
+
+    assert(topicCollectionResult.success, 'Constructs valid topic_research collection request');
+    assert(topicCollectionResult.request, 'Topic collection request is populated');
+    assert.strictEqual(topicCollectionResult.request.assignment_type, 'topic_research', 'assignment_type is topic_research');
+    assert.strictEqual(topicCollectionResult.request.collection_type, 'topic_search', 'collection_type is topic_search');
+    assert.strictEqual(topicCollectionResult.request.search_query, 'Outbound Client Acquisition', 'search_query matches topic');
+    assert.strictEqual(topicCollectionResult.request.creator, null, 'Never invents a creator handle');
+    assert.strictEqual(topicCollectionResult.request.source_target, null, 'Never fabricates a profile URL');
+    assert.strictEqual(topicCollectionResult.request.assignment_id, 'asgn-topic-12345', 'Preserves assignment_id provenance');
+    assert.strictEqual(topicCollectionResult.request.research_job_id, 'rjob-topic-67890', 'Preserves research_job_id provenance');
+    passed += 8;
+    console.log('  ✓ PASS: Successfully builds canonical topic_research collection request');
+    console.log('  ✓ PASS: Sets collection_type="topic_search" and search_query for topic collector');
+    console.log('  ✓ PASS: Enforces creator=null without inventing fake creator handle');
+    console.log('  ✓ PASS: Enforces source_target=null without inventing fake Instagram URL');
+    console.log('  ✓ PASS: Fully preserves assignment_id and research_job_id provenance');
+
+    // 7b. Valid Creator Research Collection Request
+    const creatorCollectionResult = buildResearchCollectionRequest({
+      assignment_id: 'asgn-creator-12345',
+      research_job_id: 'rjob-creator-67890',
+      assignment_type: 'creator_research',
+      platform: 'Instagram',
+      topic: 'Fitness & Health',
+      creator: 'hubermanlab',
+      source_target: 'https://www.instagram.com/hubermanlab/'
+    });
+
+    assert(creatorCollectionResult.success, 'Constructs valid creator_research collection request');
+    assert.strictEqual(creatorCollectionResult.request?.assignment_type, 'creator_research', 'assignment_type is creator_research');
+    assert.strictEqual(creatorCollectionResult.request?.collection_type, 'creator_profile', 'collection_type is creator_profile');
+    assert.strictEqual(creatorCollectionResult.request?.creator, 'hubermanlab', 'Preserves creator handle');
+    assert.strictEqual(creatorCollectionResult.request?.source_target, 'https://www.instagram.com/hubermanlab/', 'Preserves source_target URL');
+    passed += 5;
+    console.log('  ✓ PASS: Successfully builds canonical creator_research collection request');
+    console.log('  ✓ PASS: Sets collection_type="creator_profile" for creator collector');
+    console.log('  ✓ PASS: Preserves creator handle and source_target URL');
+
+    // 7c. Validation Enforcements
+    // Creator research missing creator and source_target must fail
+    const missingCreatorResult = buildResearchCollectionRequest({
+      assignment_id: 'asgn-fail-1',
+      research_job_id: 'rjob-fail-1',
+      assignment_type: 'creator_research',
+      platform: 'Instagram',
+      topic: 'Missing Creator'
+    });
+    assert(!missingCreatorResult.success, 'Fails creator_research when creator and source_target are missing');
+    assert(missingCreatorResult.error?.includes('requires source_target or creator handle'), 'Explains creator requirement');
+
+    // Placeholder handle rejection
+    const placeholderCreatorResult = buildResearchCollectionRequest({
+      assignment_id: 'asgn-fail-2',
+      research_job_id: 'rjob-fail-2',
+      assignment_type: 'creator_research',
+      platform: 'Instagram',
+      topic: 'Placeholder Creator',
+      creator: 'verified_handle'
+    });
+    assert(!placeholderCreatorResult.success, 'Rejects placeholder handle in collection request');
+
+    // Topic research missing topic must fail
+    const missingTopicResult = buildResearchCollectionRequest({
+      assignment_id: 'asgn-fail-3',
+      research_job_id: 'rjob-fail-3',
+      assignment_type: 'topic_research',
+      platform: 'Instagram',
+      topic: '   '
+    });
+    assert(!missingTopicResult.success, 'Rejects topic_research with blank topic');
+
+    // Unsupported assignment_type
+    const unsupportedTypeResult = buildResearchCollectionRequest({
+      assignment_id: 'asgn-fail-4',
+      research_job_id: 'rjob-fail-4',
+      assignment_type: 'invalid_type',
+      platform: 'Instagram',
+      topic: 'Invalid Type Test'
+    });
+    assert(!unsupportedTypeResult.success, 'Rejects unsupported assignment_type');
+    assert(unsupportedTypeResult.error?.includes('Unsupported assignment_type'), 'Explains allowed assignment types');
+
+    passed += 6;
+    console.log('  ✓ PASS: Rejects creator_research missing creator handle or source_target');
+    console.log('  ✓ PASS: Rejects placeholder verified_handle in collection request');
+    console.log('  ✓ PASS: Rejects topic_research missing topic');
+    console.log('  ✓ PASS: Rejects unsupported assignment_type');
   }
 
   console.log('\n================================================================');

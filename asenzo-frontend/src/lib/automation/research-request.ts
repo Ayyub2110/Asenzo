@@ -164,3 +164,162 @@ export function buildResearchJobPayload(
     }
   };
 }
+
+export type ResearchAssignmentType = 'creator_research' | 'topic_research';
+export type ResearchCollectionType = 'creator_profile' | 'topic_search';
+
+export interface ResearchAssignmentInput {
+  id?: string;
+  assignment_id?: string;
+  research_job_id: string;
+  assignment_type: string;
+  platform?: string;
+  topic: string;
+  creator?: string | null;
+  source_target?: string | null;
+  date_range?: string;
+  funnel_stage?: string;
+}
+
+export interface CanonicalResearchCollectionRequest {
+  assignment_id: string;
+  research_job_id: string;
+  assignment_type: ResearchAssignmentType;
+  collection_type: ResearchCollectionType;
+  platform: string;
+  topic: string;
+  search_query?: string;
+  creator: string | null;
+  source_target: string | null;
+  date_range: string;
+  funnel_stage: string;
+}
+
+export interface BuildResearchCollectionRequestResult {
+  success: boolean;
+  request?: CanonicalResearchCollectionRequest;
+  error?: string;
+}
+
+/**
+ * Validates a research assignment and constructs the canonical collection request
+ * for n8n collection workers (BUILD_RESEARCH_COLLECTION_REQUEST).
+ *
+ * Rules:
+ * 1. assignment_type must be either 'creator_research' or 'topic_research'.
+ * 2. 'creator_research' requires a verified creator handle or explicit source_target URL.
+ *    Rejects placeholders (e.g. 'verified_handle').
+ * 3. 'topic_research' requires topic and platform.
+ *    Does NOT require creator or source_target.
+ *    Sets creator: null and source_target: null (never invents a creator handle or fake profile URL).
+ *    Provides search_query with the topic for search/topic collection.
+ * 4. Preserves provenance: assignment_id, research_job_id, assignment_type, platform, topic.
+ */
+export function buildResearchCollectionRequest(
+  assignment: ResearchAssignmentInput
+): BuildResearchCollectionRequestResult {
+  const assignmentId = (assignment.assignment_id || assignment.id || '').trim();
+  if (!assignmentId) {
+    return {
+      success: false,
+      error: 'Research collection requires a valid assignment_id or id.'
+    };
+  }
+
+  const jobId = (assignment.research_job_id || '').trim();
+  if (!jobId) {
+    return {
+      success: false,
+      error: 'Research collection requires research_job_id for provenance.'
+    };
+  }
+
+  const topic = (assignment.topic || '').trim();
+  if (!topic) {
+    return {
+      success: false,
+      error: 'Research collection requires a topic.'
+    };
+  }
+
+  const platform = (assignment.platform || 'Instagram').trim();
+  const dateRange = (assignment.date_range || 'last_7_days').trim();
+  const funnelStage = (assignment.funnel_stage || 'TOF').trim();
+  const assignmentType = (assignment.assignment_type || '').trim();
+
+  if (assignmentType === 'creator_research') {
+    const rawHandle = typeof assignment.creator === 'string' ? assignment.creator.trim() : '';
+    const rawSource = typeof assignment.source_target === 'string' ? assignment.source_target.trim() : '';
+
+    if (!rawHandle && !rawSource) {
+      return {
+        success: false,
+        error: 'Creator research collection requires source_target or creator handle.'
+      };
+    }
+
+    if (isPlaceholderHandle(rawHandle) || isPlaceholderSourceTarget(rawSource)) {
+      return {
+        success: false,
+        error: 'Creator research collection target contains placeholder "verified_handle".'
+      };
+    }
+
+    if (rawHandle && !isValidHandle(rawHandle)) {
+      return {
+        success: false,
+        error: `Creator handle "${rawHandle}" has an invalid format.`
+      };
+    }
+
+    if (rawSource && !isValidSourceTarget(rawSource)) {
+      return {
+        success: false,
+        error: `Source URL "${rawSource}" has an invalid format (must be http/https).`
+      };
+    }
+
+    const cleanHandle = rawHandle ? rawHandle.replace(/^@/, '') : null;
+    const cleanSource = rawSource || (cleanHandle ? `https://www.instagram.com/${cleanHandle}/` : null);
+
+    return {
+      success: true,
+      request: {
+        assignment_id: assignmentId,
+        research_job_id: jobId,
+        assignment_type: 'creator_research',
+        collection_type: 'creator_profile',
+        platform,
+        topic,
+        creator: cleanHandle,
+        source_target: cleanSource,
+        date_range: dateRange,
+        funnel_stage: funnelStage
+      }
+    };
+  }
+
+  if (assignmentType === 'topic_research') {
+    return {
+      success: true,
+      request: {
+        assignment_id: assignmentId,
+        research_job_id: jobId,
+        assignment_type: 'topic_research',
+        collection_type: 'topic_search',
+        platform,
+        topic,
+        search_query: topic,
+        creator: null,
+        source_target: null,
+        date_range: dateRange,
+        funnel_stage: funnelStage
+      }
+    };
+  }
+
+  return {
+    success: false,
+    error: `Unsupported assignment_type "${assignmentType}". Must be "creator_research" or "topic_research".`
+  };
+}

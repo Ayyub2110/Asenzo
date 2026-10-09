@@ -13,6 +13,28 @@ export async function POST(req: NextRequest) {
     const required = ['research_job_id', 'assignment_type', 'topic'];
     const missing = required.find(field => typeof body[field] !== 'string' || !body[field].trim());
     if (missing) return createErrorResponse(ErrorCodes.MISSING_FIELD, `${missing} is required`, 400);
+
+    const assignmentType = body.assignment_type.trim();
+    if (!['creator_research', 'topic_research'].includes(assignmentType)) {
+      return createErrorResponse(
+        ErrorCodes.VALIDATION_FAILED,
+        "assignment_type must be either 'creator_research' or 'topic_research'",
+        400
+      );
+    }
+
+    if (assignmentType === 'creator_research') {
+      const hasCreator = typeof body.creator === 'string' && body.creator.trim().length > 0;
+      const hasSource = typeof body.source_target === 'string' && body.source_target.trim().length > 0;
+      if (!hasCreator && !hasSource) {
+        return createErrorResponse(
+          ErrorCodes.VALIDATION_FAILED,
+          'creator_research requires creator handle or source_target',
+          400
+        );
+      }
+    }
+
     if (body.status && !['queued', 'running', 'completed', 'failed', 'cancelled'].includes(body.status)) {
       return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'invalid assignment status', 400);
     }

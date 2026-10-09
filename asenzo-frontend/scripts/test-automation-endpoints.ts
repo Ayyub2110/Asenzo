@@ -101,7 +101,7 @@ async function runTests() {
     const resAudience = await audienceContextGet(createReq('/api/automation/audience-context'));
     const jsonAudience = await resAudience.json();
     assert(resAudience.status === 200, 'GET /audience-context returns 200');
-    assert(Array.isArray(jsonAudience.data?.pains), 'Returns pains list in audience context');
+    assert(Array.isArray(jsonAudience.data?.pains || jsonAudience.data?.pain || jsonAudience.data?.icp?.painPoints), 'Returns pains list in audience context');
 
     const resContent = await contentContextGet(createReq('/api/automation/content-context'));
     const jsonContent = await resContent.json();
@@ -235,6 +235,7 @@ async function runTests() {
     createdJobId = jsonJob.data.id;
     assert(Boolean(createdJobId), 'Created research job and received ID');
 
+    // Creator research assignment
     const resAssignment = await researchAssignmentsPost(createReq('/api/automation/research/assignments', 'POST', {
       research_job_id: createdJobId,
       assignment_type: 'creator_research',
@@ -243,7 +244,35 @@ async function runTests() {
       topic: 'Competitor Intelligence'
     }));
     const jsonAssignment = await resAssignment.json();
-    assert(resAssignment.status === 201, 'Creates research assignment (201)');
+    assert(resAssignment.status === 201, 'Creates creator_research assignment (201)');
+
+    // Topic research assignment (no creator or source_target required)
+    const resTopicAssignment = await researchAssignmentsPost(createReq('/api/automation/research/assignments', 'POST', {
+      research_job_id: createdJobId,
+      assignment_type: 'topic_research',
+      platform: 'YouTube',
+      topic: 'Competitor Intelligence'
+    }));
+    const jsonTopicAssignment = await resTopicAssignment.json();
+    assert(resTopicAssignment.status === 201, 'Creates topic_research assignment without creator (201)');
+    assert(jsonTopicAssignment.data?.assignment_type === 'topic_research', 'Preserves assignment_type as topic_research');
+    assert(jsonTopicAssignment.data?.creator === null, 'Creator is null for topic_research');
+
+    // Reject invalid assignment_type
+    const resInvalidType = await researchAssignmentsPost(createReq('/api/automation/research/assignments', 'POST', {
+      research_job_id: createdJobId,
+      assignment_type: 'unknown_type',
+      topic: 'Competitor Intelligence'
+    }));
+    assert(resInvalidType.status === 400, 'Rejects invalid assignment_type (400)');
+
+    // Reject creator_research missing creator and source_target
+    const resMissingCreator = await researchAssignmentsPost(createReq('/api/automation/research/assignments', 'POST', {
+      research_job_id: createdJobId,
+      assignment_type: 'creator_research',
+      topic: 'Competitor Intelligence'
+    }));
+    assert(resMissingCreator.status === 400, 'Rejects creator_research missing creator and source_target (400)');
 
     // Get job by ID
     const resGetJob = await researchJobGet(createReq(`/api/automation/research/jobs/${createdJobId}`), {
@@ -251,13 +280,14 @@ async function runTests() {
     });
     assert(resGetJob.status === 200, 'GET /research/jobs/:id returns 200');
 
-    // Ingest research result
+    // Ingest research result for creator_research
     const resResult = await researchResultsPost(createReq('/api/automation/research/results', 'POST', {
       research_job_id: createdJobId,
       research_assignment_id: jsonAssignment.data.id,
       topic: 'Competitor Intelligence',
       angle: 'Why Competitor X fails at onboarding',
       platform: 'YouTube',
+      creator: 'TechReviewer',
       source_url: 'https://youtube.com/watch?v=123',
       source_type: 'video',
       source_title: 'Competitor onboarding review',
@@ -273,8 +303,31 @@ async function runTests() {
       research_agent: 'test-worker'
     }, { 'Idempotency-Key': `result_${Date.now()}_test` }));
     const jsonResult = await resResult.json();
-    assert(resResult.status === 201, 'POST /research/results returns 201');
+    assert(resResult.status === 201, 'POST /research/results returns 201 for creator_research');
     assert(jsonResult.data.classification === 'observed_fact', 'Preserves classification');
+
+    // Ingest research result for topic_research (no creator pre-assigned, creator discovered or null)
+    const resTopicResult = await researchResultsPost(createReq('/api/automation/research/results', 'POST', {
+      research_job_id: createdJobId,
+      research_assignment_id: jsonTopicAssignment.data.id,
+      topic: 'Competitor Intelligence',
+      angle: 'Market-wide onboarding benchmarking',
+      platform: 'YouTube',
+      source_url: 'https://youtube.com/watch?v=456',
+      source_type: 'video',
+      source_title: 'SaaS Onboarding Trends',
+      claim: 'Time-to-value under 3 minutes yields 2x higher retention.',
+      evidence: { industry_benchmark: '3 minutes' },
+      audience_signals: {},
+      market_signals: {},
+      content_patterns: {},
+      evidence_strength: 'high',
+      classification: 'inferred_pattern',
+      confidence: 'high',
+      raw_source_reference: { url: 'https://youtube.com/watch?v=456' },
+      research_agent: 'test-worker'
+    }, { 'Idempotency-Key': `result_topic_${Date.now()}_test` }));
+    assert(resTopicResult.status === 201, 'POST /research/results returns 201 for topic_research without creator');
   }
 
   // TEST 6: Content Ideas & Assets
