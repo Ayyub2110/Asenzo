@@ -26,11 +26,11 @@ export default function DeliveryCommandCenter() {
     })),
     ...overdueMilestones.map(m => {
        const eng = engagements.find(e => e.id === m.engagementId);
-       const client = clients.find(c => c.id === eng?.clientId);
+       const client = clients.find(c => c.id === eng?.customerId || (eng?.clientId && c.id === eng.clientId));
        return {
           id: `milestone-${m.id}`,
           type: "Milestone overdue",
-          desc: `${client?.name || "Unknown"} — ${m.name}`,
+          desc: `${client?.company || client?.name || "Unknown"} — ${m.name}`,
           action: "Update Milestone",
           link: "/delivery/engagements"
        };
@@ -117,12 +117,12 @@ export default function DeliveryCommandCenter() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                      {engagements.filter(e => e.status === "ACTIVE").slice(0, 8).map((e) => {
-                        const client = clients.find(c => c.id === e.clientId);
+                        const client = clients.find(c => c.id === e.customerId || (e.clientId && c.id === e.clientId));
                         if (!client) return null;
                         return (
                            <tr key={e.id} className="hover:bg-slate-50 cursor-pointer transition-colors">
                               <td className="px-6 py-4">
-                                 <div className="text-[13px] font-black text-slate-900">{client.name}</div>
+                                 <div className="text-[13px] font-black text-slate-900">{client.company || client.name || "Unknown"}</div>
                               </td>
                               <td className="px-6 py-4">
                                  <div className="text-[13px] font-medium text-slate-700">{e.name}</div>

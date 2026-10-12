@@ -158,7 +158,7 @@ export default function ExpansionPage() {
                               </td>
                               <td className="px-6 py-4">
                                  <span className="text-[12px] font-bold text-slate-600 capitalize">
-                                    {e.status === 'CLOSES_WON' ? "Won" : e.status === 'CLOSED_LOST' ? "Lost" : e.status === 'IDENTIFIED' ? "Opportunity" : e.status.toLowerCase()}
+                                    {e.status === 'CLOSED_WON' ? "Won" : e.status === 'CLOSED_LOST' ? "Lost" : e.status === 'IDENTIFIED' ? "Opportunity" : e.status.toLowerCase()}
                                  </span>
                               </td>
                            </tr>
@@ -237,7 +237,7 @@ export default function ExpansionPage() {
                               <div className="flex justify-between items-start mb-2">
                                  <div>
                                     <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded mr-2">{e.type.replace('_','-')}</span>
-                                    <span className="text-[10px] uppercase font-bold text-slate-500 border border-slate-200 bg-white px-2 py-0.5 rounded">{e.status === 'CLOSES_WON' ? "WON" : e.status === 'CLOSED_LOST' ? "LOST" : e.status}</span>
+                                    <span className="text-[10px] uppercase font-bold text-slate-500 border border-slate-200 bg-white px-2 py-0.5 rounded">{e.status === 'CLOSED_WON' ? "WON" : e.status === 'CLOSED_LOST' ? "LOST" : e.status}</span>
                                  </div>
                               </div>
                               <p className="text-[18px] font-black text-emerald-600 mb-2">+£{e.potentialRevenue.toLocaleString()}</p>

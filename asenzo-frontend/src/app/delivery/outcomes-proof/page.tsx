@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useDeliveryOS } from "@/contexts/DeliveryOSContext";
 
 export default function OutcomesProofPage() {
-  const { clients, engagements } = useDeliveryOS();
+  const { clients, engagements, proofs } = useDeliveryOS();
   const [activeTab, setActiveTab] = useState<"Outcomes" | "Proof">("Outcomes");
 
   return (
@@ -54,17 +54,17 @@ export default function OutcomesProofPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                      {engagements.map((e) => {
-                        const client = clients.find(c => c.id === e.clientId);
+                        const client = clients.find(c => c.id === e.customerId || c.id === e.clientId);
                         if (!client) return null;
                         
                         return (
                            <tr key={e.id} className="hover:bg-slate-50 cursor-pointer transition-colors">
                               <td className="px-6 py-4">
-                                 <div className="text-[13px] font-black text-slate-900">{client.name}</div>
+                                 <div className="text-[13px] font-black text-slate-900">{client.company || client.name || client.primaryContact}</div>
                                  <div className="text-[11px] font-medium text-slate-500">{e.name}</div>
                               </td>
                               <td className="px-6 py-4">
-                                 <div className="text-[13px] font-bold text-slate-700">{client.salesContext?.promisedOutcome || "Not specified"}</div>
+                                 <div className="text-[13px] font-bold text-slate-700">{client.salesContext?.promisedOutcome || e.successCriteria || "Not specified"}</div>
                               </td>
                               <td className="px-6 py-4 text-[13px] font-medium text-slate-600">
                                  — 
@@ -105,9 +105,24 @@ export default function OutcomesProofPage() {
                      </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                     <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-[13px] font-bold">No proof assets generated yet.</td>
-                     </tr>
+                     {proofs && proofs.length > 0 ? (
+                        proofs.map((p) => {
+                           const client = clients.find(c => c.id === p.customerId);
+                           return (
+                              <tr key={p.id} className="hover:bg-slate-50 cursor-pointer transition-colors">
+                                 <td className="px-6 py-4 text-[13px] font-bold text-slate-900">{p.outcome}</td>
+                                 <td className="px-6 py-4 text-[13px] font-medium text-slate-700">{client?.company || client?.name || "Unknown"}</td>
+                                 <td className="px-6 py-4 text-[12px] font-bold text-slate-600">{p.proofType}</td>
+                                 <td className="px-6 py-4 text-[12px] font-bold text-emerald-600">{p.permissionStatus}</td>
+                                 <td className="px-6 py-4 text-[13px] font-medium text-slate-500">{p.date}</td>
+                              </tr>
+                           );
+                        })
+                     ) : (
+                        <tr>
+                           <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-[13px] font-bold">No proof assets generated yet.</td>
+                        </tr>
+                     )}
                   </tbody>
                </table>
             </div>

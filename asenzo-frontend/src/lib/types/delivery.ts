@@ -11,6 +11,7 @@ export interface DeliveryClient {
     id: string; // Matches Revenue Customer ID strictly
     primaryContact: string; // From Customer
     company: string; // From Customer
+    name?: string;
     email: string;
     owner: string;
     status: DeliveryClientStatus;
@@ -19,12 +20,20 @@ export interface DeliveryClient {
     currentOffer: string;
     renewalDate: string;
     portalStatus: "ACTIVE" | "INACTIVE";
+    salesContext?: {
+        promisedOutcome?: string;
+        dealValue?: number;
+        originalScope?: string;
+        salesRep?: string;
+        [key: string]: any;
+    };
     isDemo?: boolean;
 }
 
 export interface Engagement {
     id: string;
     customerId: string;
+    clientId?: string;
     offer: string;
     name: string;
     description: string;
