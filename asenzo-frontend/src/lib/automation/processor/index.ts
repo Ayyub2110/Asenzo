@@ -34,6 +34,7 @@ export * from './types';
 export * from './errors';
 export * from './collector';
 export * from './idempotency';
+export * from './dispatcher';
 
 // In-memory tracker for active running jobs on this server process
 const activeJobs = new Set<string>();
@@ -218,6 +219,25 @@ export async function processResearchJob(
       durationMs: duration,
       errors
     };
+  } catch (err: unknown) {
+    const rawMsg = err instanceof Error ? err.message : String(err);
+    const sanitizedMsg = sanitizeErrorMessage(rawMsg);
+    console.error(`[Native Processor] Catastrophic failure executing job ${jobId}:`, sanitizedMsg);
+    try {
+      await updateResearchJobStatus(
+        jobId,
+        resolvedWorkspaceId,
+        {
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error: `Native processor error: ${sanitizedMsg}`
+        },
+        { allowOverwriteCompleted: true }
+      );
+    } catch (statusErr) {
+      console.error(`[Native Processor] Failed to record failure status for job ${jobId}:`, statusErr);
+    }
+    throw err;
   } finally {
     activeJobs.delete(jobId);
   }

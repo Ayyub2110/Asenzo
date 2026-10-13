@@ -32,8 +32,8 @@ function sanitizeLogMessage(msg: string): string {
  */
 export async function dispatchAutomationEvent<T = Record<string, unknown>>(
   payload: AutomationEventPayload<T>,
-  options?: { webhookUrl?: string }
-): Promise<{ dispatched: boolean; webhookStatus?: number; error?: string }> {
+  options?: { webhookUrl?: string; skipWebhook?: boolean }
+): Promise<{ dispatched: boolean; webhookStatus?: number; error?: string; webhookSkipped?: boolean }> {
   // 1. Record in Supabase system_events
   const supabase = getAdminSupabaseClient();
   if (supabase) {
@@ -49,6 +49,11 @@ export async function dispatchAutomationEvent<T = Record<string, unknown>>(
       const errMsg = err instanceof Error ? err.message : String(err);
       console.warn('[Automation Events] Could not record system event to Supabase:', sanitizeLogMessage(errMsg));
     }
+  }
+
+  // If webhook delivery is skipped (e.g. for native processor execution), return immediately
+  if (options?.skipWebhook) {
+    return { dispatched: true, webhookSkipped: true };
   }
 
   // 2. Dispatch to n8n webhook URL if configured

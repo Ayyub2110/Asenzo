@@ -4,10 +4,8 @@ import { createErrorResponse, ErrorCodes } from '@/lib/automation/errors';
 import { resolveCanonicalWorkspaceId } from '@/lib/automation/workspace';
 import { findResearchJob } from '@/lib/automation/db';
 import {
-  processResearchJob,
-  isJobActiveInMemory,
-  PermanentProcessorError,
-  ResearchProcessorOptions
+  dispatchResearchJobExecution,
+  PermanentProcessorError
 } from '@/lib/automation/processor';
 
 export async function POST(
@@ -41,9 +39,21 @@ export async function POST(
     }
 
     const force = Boolean(body.force);
+    const mode = body.mode === 'async' ? 'async' : 'sync';
+    const rawConcurrency = typeof body.concurrency === 'number' ? body.concurrency : 2;
+    const rawMaxRetries = typeof body.max_retries === 'number' ? body.max_retries : 2;
+    const rawTimeoutMs = typeof body.timeout_ms === 'number' ? body.timeout_ms : 15000;
 
-    // If job is already completed and caller is not forcing a rerun, return immediately
-    if (job.status === 'completed' && !force) {
+    const dispatchResult = await dispatchResearchJobExecution(job, {
+      mode,
+      concurrency: rawConcurrency,
+      maxRetries: rawMaxRetries,
+      timeoutMs: rawTimeoutMs,
+      force,
+      engineOverride: 'native'
+    });
+
+    if (dispatchResult.already_completed) {
       return NextResponse.json({
         success: true,
         message: 'Job is already completed',
@@ -55,26 +65,7 @@ export async function POST(
       });
     }
 
-    if (job.status === 'cancelled') {
-      return createErrorResponse(ErrorCodes.VALIDATION_FAILED, 'Cannot process a cancelled research job', 400);
-    }
-
-    const mode = body.mode === 'async' ? 'async' : 'sync';
-
-    // Bounded, validated server-side parameters
-    const rawConcurrency = typeof body.concurrency === 'number' ? body.concurrency : 2;
-    const rawMaxRetries = typeof body.max_retries === 'number' ? body.max_retries : 2;
-    const rawTimeoutMs = typeof body.timeout_ms === 'number' ? body.timeout_ms : 15000;
-
-    const processorOptions: ResearchProcessorOptions = {
-      concurrency: Math.max(1, Math.min(rawConcurrency, 5)),
-      maxRetries: Math.max(0, Math.min(rawMaxRetries, 5)),
-      timeoutMs: Math.max(1000, Math.min(rawTimeoutMs, 60000)),
-      force
-    };
-
-    // Duplicate trigger guard: Check if already actively executing
-    if (isJobActiveInMemory(id) || (job.status === 'running' && !force)) {
+    if (dispatchResult.duplicate_trigger) {
       return NextResponse.json(
         {
           success: true,
@@ -92,11 +83,6 @@ export async function POST(
     }
 
     if (mode === 'async') {
-      // Honest asynchronous execution: Tracks in-process promise on the running Node server
-      processResearchJob(id, workspaceId, processorOptions).catch(err => {
-        console.error(`[Native Processor Background] Error processing job ${id}:`, err);
-      });
-
       return NextResponse.json(
         {
           success: true,
@@ -114,12 +100,9 @@ export async function POST(
       );
     }
 
-    // Synchronous execution for bounded workloads
-    const summary = await processResearchJob(id, workspaceId, processorOptions);
-
     return NextResponse.json({
       success: true,
-      data: summary
+      data: dispatchResult.summary
     });
   } catch (err: unknown) {
     if (err instanceof PermanentProcessorError && err.statusCode) {

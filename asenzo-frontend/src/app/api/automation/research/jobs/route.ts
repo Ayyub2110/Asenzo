@@ -3,8 +3,11 @@ import { validateAutomationAuth } from '@/lib/automation/auth';
 import { checkIdempotency, saveIdempotency } from '@/lib/automation/idempotency';
 import { createErrorResponse, ErrorCodes } from '@/lib/automation/errors';
 import { insertResearchJob, queryResearchJobs, CanonicalResearchJob } from '@/lib/automation/db';
-import { dispatchAutomationEvent } from '@/lib/automation/events';
 import { resolveCanonicalWorkspaceId } from '@/lib/automation/workspace';
+import {
+  dispatchResearchJobExecution,
+  provisionJobAssignments
+} from '@/lib/automation/processor';
 
 const PLATFORMS = ['Instagram', 'YouTube', 'TikTok', 'LinkedIn', 'X', 'Reddit', 'Substack'];
 const FUNNEL_STAGES = ['TOF', 'MOF', 'BOF', 'RETENTION'];
@@ -140,27 +143,16 @@ export async function POST(req: NextRequest) {
 
     const createdJob = await insertResearchJob(jobPayload);
 
-    // 2. Emit research.requested only after database insert succeeds
-    const dispatchResult = await dispatchAutomationEvent({
-      event: 'research.requested',
-      entity_type: 'research_job',
-      entity_id: createdJob.id!,
-      workspace_id: workspaceId,
-      timestamp: new Date().toISOString(),
-      requested_action: 'execute_research',
-      data: {
-        job_id: createdJob.id,
-        objective: createdJob.objective,
-        topic: createdJob.topic,
-        platform: createdJob.platform,
-        funnel_stage: createdJob.funnel_stage,
-        content_pillar: createdJob.content_pillar,
-        creators: createdJob.creators,
-        sources: createdJob.sources
-      }
+    // 2. Provision or derive assignments using established native processor logic
+    const assignments = await provisionJobAssignments(createdJob);
+
+    // 3. Initiate research execution through reusable server-side service
+    const executionMode = body.execution_mode === 'sync' ? 'sync' : 'async';
+    const dispatchResult = await dispatchResearchJobExecution(createdJob, {
+      mode: executionMode
     });
 
-    if (!dispatchResult.dispatched) {
+    if (dispatchResult.engine === 'n8n' && !dispatchResult.initiated) {
       console.error(
         `[Research Job] Safe warning: n8n research webhook delivery failed for job ${createdJob.id}: ${dispatchResult.error || 'Unknown error'}`
       );
@@ -168,7 +160,11 @@ export async function POST(req: NextRequest) {
 
     const responsePayload = {
       success: true,
-      data: createdJob
+      data: {
+        ...createdJob,
+        assignment_count: assignments.length
+      },
+      execution: dispatchResult
     };
 
     if (idempotency.key) {
