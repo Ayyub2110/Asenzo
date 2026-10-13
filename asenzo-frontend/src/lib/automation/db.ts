@@ -2,7 +2,6 @@ import { getAdminSupabaseClient } from '../supabase/admin';
 import { resolveCanonicalWorkspaceId, isValidUuid } from './workspace';
 import {
   mockFoundation,
-  mockAttention,
   mockCreators,
   mockCreatorChannels,
   mockContentPatterns,
@@ -753,6 +752,296 @@ export async function getResearchJobCounts(id: string, workspaceId: string) {
     completed_assignment_count: statuses.filter(a => a.status === 'completed').length,
     failed_assignment_count: statuses.filter(a => a.status === 'failed').length,
     result_count: results.count || 0
+  };
+}
+
+export interface ResearchOverviewCounts {
+  total_jobs: number;
+  jobs_by_status: Record<string, number>;
+  total_assignments: number;
+  completed_assignments: number;
+  failed_assignments: number;
+  running_assignments: number;
+  queued_assignments: number;
+  total_results: number;
+}
+
+export async function getResearchOverview(workspaceId: string): Promise<ResearchOverviewCounts> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  const [jobsRes, assignmentsRes, resultsRes] = await Promise.all([
+    supabase.from('research_jobs').select('status').eq('workspace_id', resolvedWorkspaceId),
+    supabase.from('research_assignments').select('status').eq('workspace_id', resolvedWorkspaceId),
+    supabase.from('research_results').select('id', { count: 'exact', head: true }).eq('workspace_id', resolvedWorkspaceId)
+  ]);
+
+  if (jobsRes.error) throw new Error(`Database error reading research jobs: ${jobsRes.error.message}`);
+  if (assignmentsRes.error) throw new Error(`Database error reading research assignments: ${assignmentsRes.error.message}`);
+  if (resultsRes.error) throw new Error(`Database error reading research results: ${resultsRes.error.message}`);
+
+  const jobs = jobsRes.data || [];
+  const assignments = assignmentsRes.data || [];
+
+  const jobsByStatus: Record<string, number> = {
+    queued: 0,
+    planning: 0,
+    running: 0,
+    completed: 0,
+    failed: 0,
+    cancelled: 0
+  };
+
+  for (const j of jobs) {
+    if (j.status) {
+      jobsByStatus[j.status] = (jobsByStatus[j.status] || 0) + 1;
+    }
+  }
+
+  return {
+    total_jobs: jobs.length,
+    jobs_by_status: jobsByStatus,
+    total_assignments: assignments.length,
+    completed_assignments: assignments.filter(a => a.status === 'completed').length,
+    failed_assignments: assignments.filter(a => a.status === 'failed').length,
+    running_assignments: assignments.filter(a => a.status === 'running').length,
+    queued_assignments: assignments.filter(a => a.status === 'queued').length,
+    total_results: resultsRes.count || 0
+  };
+}
+
+export interface QueryResearchJobsOptions {
+  search?: string;
+  status?: string;
+  platform?: string;
+  funnel_stage?: string;
+  content_pillar?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function queryResearchJobs(
+  workspaceId: string,
+  options: QueryResearchJobsOptions = {}
+): Promise<{ jobs: Array<CanonicalResearchJob & { assignment_count: number; result_count: number }>; total: number }> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  let query = supabase
+    .from('research_jobs')
+    .select('*', { count: 'exact' })
+    .eq('workspace_id', resolvedWorkspaceId);
+
+  if (options.status && options.status !== 'all') {
+    query = query.eq('status', options.status);
+  }
+  if (options.platform && options.platform !== 'all') {
+    query = query.eq('platform', options.platform);
+  }
+  if (options.funnel_stage && options.funnel_stage !== 'all') {
+    query = query.eq('funnel_stage', options.funnel_stage);
+  }
+  if (options.content_pillar && options.content_pillar !== 'all') {
+    query = query.eq('content_pillar', options.content_pillar);
+  }
+  if (options.search?.trim()) {
+    const s = options.search.trim();
+    query = query.or(`topic.ilike.%${s}%,objective.ilike.%${s}%`);
+  }
+
+  query = query.order('created_at', { ascending: false });
+
+  const limit = Math.max(1, Math.min(options.limit || 20, 100));
+  const offset = Math.max(0, options.offset || 0);
+  query = query.range(offset, offset + limit - 1);
+
+  const { data, count, error } = await query;
+  if (error) throw new Error(`Database error querying research jobs: ${error.message}`);
+
+  const jobs = (data || []) as CanonicalResearchJob[];
+
+  const jobIds = jobs.map(j => j.id).filter(Boolean) as string[];
+  const assignmentCountsByJob: Record<string, number> = {};
+  const resultCountsByJob: Record<string, number> = {};
+
+  if (jobIds.length > 0) {
+    const [assignmentsRes, resultsRes] = await Promise.all([
+      supabase.from('research_assignments').select('research_job_id').in('research_job_id', jobIds).eq('workspace_id', resolvedWorkspaceId),
+      supabase.from('research_results').select('research_job_id').in('research_job_id', jobIds).eq('workspace_id', resolvedWorkspaceId)
+    ]);
+
+    if (!assignmentsRes.error && assignmentsRes.data) {
+      for (const a of assignmentsRes.data) {
+        if (a.research_job_id) {
+          assignmentCountsByJob[a.research_job_id] = (assignmentCountsByJob[a.research_job_id] || 0) + 1;
+        }
+      }
+    }
+
+    if (!resultsRes.error && resultsRes.data) {
+      for (const r of resultsRes.data) {
+        if (r.research_job_id) {
+          resultCountsByJob[r.research_job_id] = (resultCountsByJob[r.research_job_id] || 0) + 1;
+        }
+      }
+    }
+  }
+
+  const enhancedJobs = jobs.map(j => ({
+    ...j,
+    assignment_count: assignmentCountsByJob[j.id!] || 0,
+    result_count: resultCountsByJob[j.id!] || 0
+  }));
+
+  return { jobs: enhancedJobs, total: count || 0 };
+}
+
+export interface QueryResearchAssignmentsOptions {
+  research_job_id?: string;
+  status?: string;
+  assignment_type?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function queryResearchAssignments(
+  workspaceId: string,
+  options: QueryResearchAssignmentsOptions = {}
+): Promise<{ assignments: CanonicalResearchAssignment[]; total: number }> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  let query = supabase
+    .from('research_assignments')
+    .select('*', { count: 'exact' })
+    .eq('workspace_id', resolvedWorkspaceId);
+
+  if (options.research_job_id) {
+    query = query.eq('research_job_id', options.research_job_id);
+  }
+  if (options.status && options.status !== 'all') {
+    query = query.eq('status', options.status);
+  }
+  if (options.assignment_type && options.assignment_type !== 'all') {
+    query = query.eq('assignment_type', options.assignment_type);
+  }
+
+  query = query.order('created_at', { ascending: false });
+
+  const limit = Math.max(1, Math.min(options.limit || 50, 200));
+  const offset = Math.max(0, options.offset || 0);
+  query = query.range(offset, offset + limit - 1);
+
+  const { data, count, error } = await query;
+  if (error) throw new Error(`Database error querying research assignments: ${error.message}`);
+
+  return { assignments: (data || []) as CanonicalResearchAssignment[], total: count || 0 };
+}
+
+export interface QueryResearchResultsOptions {
+  research_job_id?: string;
+  research_assignment_id?: string;
+  classification?: string;
+  platform?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function queryResearchResults(
+  workspaceId: string,
+  options: QueryResearchResultsOptions = {}
+): Promise<{ results: CanonicalResearchResult[]; total: number }> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  let query = supabase
+    .from('research_results')
+    .select('*', { count: 'exact' })
+    .eq('workspace_id', resolvedWorkspaceId);
+
+  if (options.research_job_id) {
+    query = query.eq('research_job_id', options.research_job_id);
+  }
+  if (options.research_assignment_id) {
+    query = query.eq('research_assignment_id', options.research_assignment_id);
+  }
+  if (options.classification && options.classification !== 'all') {
+    query = query.eq('classification', options.classification);
+  }
+  if (options.platform && options.platform !== 'all') {
+    query = query.eq('platform', options.platform);
+  }
+  if (options.search?.trim()) {
+    const s = options.search.trim();
+    query = query.or(`claim.ilike.%${s}%,topic.ilike.%${s}%,source_url.ilike.%${s}%,creator.ilike.%${s}%`);
+  }
+
+  query = query.order('created_at', { ascending: false });
+
+  const limit = Math.max(1, Math.min(options.limit || 50, 200));
+  const offset = Math.max(0, options.offset || 0);
+  query = query.range(offset, offset + limit - 1);
+
+  const { data, count, error } = await query;
+  if (error) throw new Error(`Database error querying research results: ${error.message}`);
+
+  return { results: (data || []) as CanonicalResearchResult[], total: count || 0 };
+}
+
+export async function findResearchResultWithProvenance(
+  id: string,
+  workspaceId: string
+): Promise<{
+  result: CanonicalResearchResult;
+  job: CanonicalResearchJob | null;
+  assignment: CanonicalResearchAssignment | null;
+} | null> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  const { data: result, error } = await supabase
+    .from('research_results')
+    .select('*')
+    .eq('id', id)
+    .eq('workspace_id', resolvedWorkspaceId)
+    .maybeSingle();
+
+  if (error) throw new Error(`Database error reading research result: ${error.message}`);
+  if (!result) return null;
+
+  let job: CanonicalResearchJob | null = null;
+  let assignment: CanonicalResearchAssignment | null = null;
+
+  if (result.research_job_id) {
+    const { data: jobData } = await supabase
+      .from('research_jobs')
+      .select('*')
+      .eq('id', result.research_job_id)
+      .eq('workspace_id', resolvedWorkspaceId)
+      .maybeSingle();
+    job = jobData as CanonicalResearchJob | null;
+  }
+
+  if (result.research_assignment_id) {
+    const { data: assignmentData } = await supabase
+      .from('research_assignments')
+      .select('*')
+      .eq('id', result.research_assignment_id)
+      .eq('workspace_id', resolvedWorkspaceId)
+      .maybeSingle();
+    assignment = assignmentData as CanonicalResearchAssignment | null;
+  }
+
+  return {
+    result: result as CanonicalResearchResult,
+    job,
+    assignment
   };
 }
 

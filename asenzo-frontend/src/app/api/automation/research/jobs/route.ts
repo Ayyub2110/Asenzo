@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateAutomationAuth } from '@/lib/automation/auth';
 import { checkIdempotency, saveIdempotency } from '@/lib/automation/idempotency';
 import { createErrorResponse, ErrorCodes } from '@/lib/automation/errors';
-import { insertResearchJob, CanonicalResearchJob } from '@/lib/automation/db';
+import { insertResearchJob, queryResearchJobs, CanonicalResearchJob } from '@/lib/automation/db';
 import { dispatchAutomationEvent } from '@/lib/automation/events';
 import { resolveCanonicalWorkspaceId } from '@/lib/automation/workspace';
 
@@ -38,6 +38,49 @@ function isSourceArray(value: unknown): value is Array<{ type: string; target: s
     typeof (item as { type?: unknown }).type === 'string' &&
     typeof (item as { target?: unknown }).target === 'string'
   ));
+}
+
+export async function GET(req: NextRequest) {
+  const auth = await validateAutomationAuth(req);
+  if (!auth.success) {
+    return auth.response;
+  }
+
+  try {
+    const workspaceId = await resolveCanonicalWorkspaceId(auth.context.workspaceId);
+    const { searchParams } = new URL(req.url);
+
+    const search = searchParams.get('search') || undefined;
+    const status = searchParams.get('status') || undefined;
+    const platform = searchParams.get('platform') || undefined;
+    const funnelStage = searchParams.get('funnel_stage') || undefined;
+    const contentPillar = searchParams.get('content_pillar') || undefined;
+    const limit = searchParams.has('limit') ? parseInt(searchParams.get('limit')!, 10) : 20;
+    const offset = searchParams.has('offset') ? parseInt(searchParams.get('offset')!, 10) : 0;
+
+    const result = await queryResearchJobs(workspaceId, {
+      search,
+      status,
+      platform,
+      funnel_stage: funnelStage,
+      content_pillar: contentPillar,
+      limit,
+      offset
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        jobs: result.jobs,
+        total: result.total,
+        limit,
+        offset
+      }
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Server error querying research jobs';
+    return createErrorResponse(ErrorCodes.INTERNAL_ERROR, msg, 500);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -104,8 +147,16 @@ export async function POST(req: NextRequest) {
       entity_id: createdJob.id!,
       workspace_id: workspaceId,
       timestamp: new Date().toISOString(),
+      requested_action: 'execute_research',
       data: {
-        job_id: createdJob.id!
+        job_id: createdJob.id,
+        objective: createdJob.objective,
+        topic: createdJob.topic,
+        platform: createdJob.platform,
+        funnel_stage: createdJob.funnel_stage,
+        content_pillar: createdJob.content_pillar,
+        creators: createdJob.creators,
+        sources: createdJob.sources
       }
     });
 
@@ -144,4 +195,3 @@ export async function POST(req: NextRequest) {
     return createErrorResponse(ErrorCodes.INVALID_INPUT, msg, 400);
   }
 }
-

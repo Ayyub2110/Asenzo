@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { buildResearchJobPayload, ResearchCreatorInput } from "@/lib/automation/research-request";
 
 const INITIAL_RESEARCH_CREATORS: ResearchCreatorInput[] = [
@@ -45,7 +46,7 @@ export default function ResearchPage() {
   const [researchTopic, setResearchTopic] = useState("");
   const [funnel, setFunnel] = useState("ALL");
   const [watchlist, setWatchlist] = useState(WATCHLIST);
-  const [sourceFilter, setSourceFilter] = useState("ALL"); // ALL | Research | Library
+  const sourceFilter = "ALL";
   const [researchCreators, setResearchCreators] = useState<ResearchCreatorInput[]>(INITIAL_RESEARCH_CREATORS);
   const [creatorSearch, setCreatorSearch] = useState("");
   const [newCreatorInput, setNewCreatorInput] = useState("");
@@ -198,9 +199,18 @@ export default function ResearchPage() {
 
         {section === "engine" && (
           <div>
-            <div className="mb-5">
-              <h2 className="text-[16px] font-bold text-slate-900">Research Engine</h2>
-              <p className="text-[12px] text-slate-500">Find what is working right now. Ranked by recency, virality, and cross-creator validation.</p>
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-bold text-slate-900">Research Engine</h2>
+                <p className="text-[12px] text-slate-500">Find what is working right now. Ranked by recency, virality, and cross-creator validation.</p>
+              </div>
+              <Link
+                href="/acquisition/data-bank"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-blue-600 text-[11px] font-bold rounded-lg transition-colors shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[15px]">inventory_2</span>
+                Open Research Data Bank →
+              </Link>
             </div>
             <div className="grid grid-cols-12 gap-5">
               <div className="col-span-8 space-y-4">

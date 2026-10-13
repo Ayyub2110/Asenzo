@@ -13,7 +13,8 @@
     "test:audience-dna": "npx tsx scripts/test-audience-dna.ts",
     "test:live-persistence": "npx tsx scripts/test-live-supabase-persistence.ts",
     "test:research-job": "npx tsx scripts/test-phase2-research-webhook.ts",
-    "test:research-ui": "npx tsx scripts/test-research-request.ts"
+    "test:research-ui": "npx tsx scripts/test-research-request.ts",
+    "test:data-bank": "npx tsx scripts/test-data-bank.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

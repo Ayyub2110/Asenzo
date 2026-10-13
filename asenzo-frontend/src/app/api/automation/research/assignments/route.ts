@@ -1,8 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateAutomationAuth } from '@/lib/automation/auth';
 import { createErrorResponse, ErrorCodes } from '@/lib/automation/errors';
-import { findResearchJob, insertResearchAssignment, CanonicalResearchAssignment } from '@/lib/automation/db';
+import { findResearchJob, insertResearchAssignment, queryResearchAssignments, CanonicalResearchAssignment } from '@/lib/automation/db';
 import { resolveCanonicalWorkspaceId } from '@/lib/automation/workspace';
+
+export async function GET(req: NextRequest) {
+  const auth = await validateAutomationAuth(req);
+  if (!auth.success) return auth.response;
+
+  try {
+    const workspaceId = await resolveCanonicalWorkspaceId(auth.context.workspaceId);
+    const { searchParams } = new URL(req.url);
+
+    const researchJobId = searchParams.get('research_job_id') || undefined;
+    const status = searchParams.get('status') || undefined;
+    const assignmentType = searchParams.get('assignment_type') || undefined;
+    const limit = searchParams.has('limit') ? parseInt(searchParams.get('limit')!, 10) : 50;
+    const offset = searchParams.has('offset') ? parseInt(searchParams.get('offset')!, 10) : 0;
+
+    const result = await queryResearchAssignments(workspaceId, {
+      research_job_id: researchJobId,
+      status,
+      assignment_type: assignmentType,
+      limit,
+      offset
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        assignments: result.assignments,
+        total: result.total,
+        limit,
+        offset
+      }
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Server error querying assignments';
+    return createErrorResponse(ErrorCodes.INTERNAL_ERROR, msg, 500);
+  }
+}
 
 export async function POST(req: NextRequest) {
   const auth = await validateAutomationAuth(req);
