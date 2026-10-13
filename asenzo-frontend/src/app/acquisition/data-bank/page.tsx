@@ -56,6 +56,7 @@ export default function ResearchDataBankPage() {
   } | null>(null);
   // General error state
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [processingJobId, setProcessingJobId] = useState<string | null>(null);
 
   // 1. Overview fetch effect
   useEffect(() => {
@@ -289,6 +290,27 @@ export default function ResearchDataBankPage() {
     setJobResults([]);
   };
 
+  const handleExecuteNativeJob = async (jobId: string) => {
+    setProcessingJobId(jobId);
+    try {
+      const res = await fetch(`/api/automation/research/jobs/${jobId}/process`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "sync" })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to process research job");
+      }
+      handleRefreshAll();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error executing native processor";
+      setErrorMessage(msg);
+    } finally {
+      setProcessingJobId(null);
+    }
+  };
+
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case "completed":
@@ -503,6 +525,16 @@ export default function ResearchDataBankPage() {
                   <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
                     {selectedJob.priority || "normal"} priority
                   </span>
+                  <button
+                    disabled={processingJobId === selectedJob.id}
+                    onClick={() => handleExecuteNativeJob(selectedJob.id!)}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg transition-colors shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">
+                      {processingJobId === selectedJob.id ? "sync" : "play_arrow"}
+                    </span>
+                    {processingJobId === selectedJob.id ? "Processing..." : selectedJob.status === "completed" ? "Re-run Processor" : "Run Native Processor"}
+                  </button>
                 </div>
               </div>
 
@@ -803,7 +835,7 @@ export default function ResearchDataBankPage() {
                           </td>
                           <td className="px-6 py-4 text-right">
                             <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedJobId(job.id!); }}
+                              onClick={(e) => { e.stopPropagation(); handleSelectJob(job.id!); }}
                               className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
                             >
                               Inspect →
