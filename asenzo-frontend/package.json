@@ -16,7 +16,9 @@
     "test:research-ui": "npx tsx scripts/test-research-request.ts",
     "test:data-bank": "npx tsx scripts/test-data-bank.ts",
     "test:native-processor": "npx tsx scripts/test-native-processor.ts",
-    "test:native-dispatch": "npx tsx scripts/test-native-dispatch-cutover.ts"
+    "test:native-dispatch": "npx tsx scripts/test-native-dispatch-cutover.ts",
+    "test:durable-worker": "npx tsx scripts/test-durable-worker.ts",
+    "worker:research": "npx tsx scripts/research-worker.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

@@ -109,10 +109,10 @@ async function runNativeDispatchVerification() {
     // Execution acknowledgment
     assert(Boolean(json.execution), 'Response includes execution metadata');
     assert(json.execution?.engine === 'native', 'Default execution engine is native');
-    assert(json.execution?.status === 'initiated', 'Execution status is initiated');
+    assert(json.execution?.status === 'queued', 'Execution status is queued');
     assert(json.execution?.mode === 'async', 'Default mode is async');
-    assert(json.execution?.execution_mode === 'in_process_background', 'Accurately acknowledges in_process_background');
-    assert(json.execution?.durability === 'in_process_ephemeral', 'Accurately declares in_process_ephemeral durability');
+    assert(json.execution?.execution_mode === 'durable_worker_queue', 'Accurately acknowledges durable_worker_queue');
+    assert(json.execution?.durability === 'postgres_persisted', 'Accurately declares postgres_persisted durability');
     assert(typeof json.execution?.notice === 'string', 'Includes explicit queue notice for serverless / durable execution');
 
     // Verify row in DB
@@ -461,9 +461,11 @@ async function runNativeDispatchVerification() {
     const res = await researchJobsPost(req);
     const json = await res.json();
 
-    assert(json.execution?.durability === 'in_process_ephemeral', 'Never falsely claims job is durably queued');
-    assert(json.execution?.execution_mode === 'in_process_background', 'Accurately declares in_process_background execution mode');
-    assert(json.execution?.notice?.includes('external worker queue') === true, 'Explicitly specifies worker queue requirements for durable execution');
+    assert(json.execution?.durability === 'postgres_persisted', 'Durably persisted in PostgreSQL queue');
+    assert(json.execution?.execution_mode === 'durable_worker_queue', 'Accurately declares durable_worker_queue execution mode');
+    assert(json.execution?.status === 'queued', 'Honestly returns status: queued rather than claiming started');
+    assert(json.data?.status === 'queued', 'Job row in database has status: queued');
+    assert(json.execution?.notice?.includes('PostgreSQL queue') === true, 'Explicitly declares durable PostgreSQL queue storage');
   }
 
   console.log('\n================================================================');

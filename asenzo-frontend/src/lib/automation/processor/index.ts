@@ -85,7 +85,18 @@ export async function processResearchJob(
   }
 
   // 2. Atomic Job Claim
-  const claimedJob = await claimResearchJob(jobId, resolvedWorkspaceId, options.staleJobTimeoutMs);
+  let claimedJob: CanonicalResearchJob | null = null;
+  const isPreClaimed = Boolean(
+    options.skipJobClaim ||
+    (options.workerId && (job.assigned_worker === options.workerId || job.locked_by === options.workerId))
+  );
+
+  if (isPreClaimed) {
+    claimedJob = job;
+  } else {
+    claimedJob = await claimResearchJob(jobId, resolvedWorkspaceId, options.staleJobTimeoutMs);
+  }
+
   if (!claimedJob) {
     console.warn(`[Native Processor] Job ${jobId} could not be claimed (already running or actively claimed).`);
     const currentJob = await findResearchJob(jobId);

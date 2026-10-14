@@ -46,6 +46,12 @@ export interface ResearchProcessorOptions {
    * If true, forces reprocessing even if already marked completed.
    */
   force?: boolean;
+
+  /**
+   * Worker identifier or flag indicating the job lease is already held by this worker.
+   */
+  workerId?: string;
+  skipJobClaim?: boolean;
 }
 
 export interface ResearchCollectionJob {

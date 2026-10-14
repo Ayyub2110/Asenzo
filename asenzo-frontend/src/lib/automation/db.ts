@@ -62,6 +62,14 @@ export interface CanonicalResearchJob {
   idempotency_key?: string;
   status?: 'queued' | 'planning' | 'running' | 'completed' | 'failed' | 'cancelled';
   priority?: 'low' | 'normal' | 'high' | 'urgent';
+  assigned_worker?: string | null;
+  locked_by?: string | null;
+  locked_at?: string | null;
+  last_heartbeat_at?: string | null;
+  next_run_at?: string | null;
+  attempt_count?: number;
+  max_retries?: number;
+  parameters?: Record<string, unknown>;
   error?: string | null;
   created_at?: string;
   started_at?: string;
@@ -79,6 +87,10 @@ export interface CanonicalResearchAssignment {
   source_target?: string | null;
   status?: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   attempt_count?: number;
+  locked_by?: string | null;
+  locked_at?: string | null;
+  max_retries?: number;
+  next_run_at?: string | null;
   started_at?: string;
   completed_at?: string;
   error?: string | null;
@@ -687,16 +699,47 @@ export async function findResearchJob(id: string): Promise<CanonicalResearchJob 
 }
 
 export async function insertResearchJob(job: CanonicalResearchJob): Promise<CanonicalResearchJob> {
-  const newJob: CanonicalResearchJob = {
+  const jobParams = (job.parameters && typeof job.parameters === 'object') ? job.parameters : {};
+  const queueParams: Record<string, unknown> = {
+    ...((jobParams as { queue?: Record<string, unknown> }).queue || {})
+  };
+  if (job.attempt_count !== undefined) queueParams.attempt_count = job.attempt_count;
+  if (job.max_retries !== undefined) queueParams.max_retries = job.max_retries;
+  if (job.next_run_at !== undefined) queueParams.next_run_at = job.next_run_at;
+  if (job.locked_by !== undefined) queueParams.locked_by = job.locked_by;
+  if (job.locked_at !== undefined) queueParams.locked_at = job.locked_at;
+
+  const newJob: Record<string, unknown> = {
     ...job,
     status: job.status || 'queued',
     priority: job.priority || 'normal',
     creators: job.creators || [],
-    sources: job.sources || []
+    sources: job.sources || [],
+    parameters: {
+      ...jobParams,
+      ...(Object.keys(queueParams).length > 0 ? { queue: queueParams } : {})
+    }
   };
 
   const supabase = getAdminSupabaseClient();
-  const { data, error } = await supabase.from('research_jobs').insert(newJob).select().single();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  let { data, error } = await supabase.from('research_jobs').insert(newJob).select().single();
+
+  if (error && (error.code === '42703' || error.message?.includes('schema cache') || error.message?.includes('column'))) {
+    // Strip non-core columns and retry
+    delete newJob.attempt_count;
+    delete newJob.max_retries;
+    delete newJob.next_run_at;
+    delete newJob.locked_by;
+    delete newJob.locked_at;
+    delete newJob.last_heartbeat_at;
+
+    const retryRes = await supabase.from('research_jobs').insert(newJob).select().single();
+    data = retryRes.data;
+    error = retryRes.error;
+  }
+
   if (error || !data) {
     if (error?.code === '23505' && job.idempotency_key) {
       const existing = await supabase.from('research_jobs').select('*').eq('workspace_id', job.workspace_id!).eq('idempotency_key', job.idempotency_key).single();
@@ -879,6 +922,417 @@ export async function claimResearchJob(
 
   if (staleErr) throw new Error(`Database error claiming stale research job: ${staleErr.message}`);
   return (staleClaim || null) as CanonicalResearchJob | null;
+}
+
+export interface ClaimNextJobOptions {
+  workspaceId?: string;
+  staleTimeoutMs?: number;
+}
+
+/**
+ * Atomically claims the next eligible queued or stale research job.
+ * Prioritizes urgent/high priority jobs first, followed by creation order.
+ * Safe against concurrent workers: exactly one worker receives each claimed row.
+ */
+export async function claimNextQueuedResearchJob(
+  workerId: string,
+  options: ClaimNextJobOptions = {}
+): Promise<CanonicalResearchJob | null> {
+  const staleTimeoutMs = options.staleTimeoutMs ?? 5 * 60 * 1000;
+  const resolvedWorkspaceId = options.workspaceId
+    ? await resolveCanonicalWorkspaceId(options.workspaceId)
+    : undefined;
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  // Attempt 1: Call RPC function if available in database
+  try {
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('claim_next_research_job', {
+      p_worker_id: workerId,
+      p_workspace_id: resolvedWorkspaceId || null,
+      p_stale_timeout_seconds: Math.floor(staleTimeoutMs / 1000)
+    });
+
+    if (!rpcErr && rpcData) {
+      if (Array.isArray(rpcData) && rpcData.length > 0) {
+        return rpcData[0] as CanonicalResearchJob;
+      }
+      if (!Array.isArray(rpcData) && typeof rpcData === 'object' && (rpcData as { id?: string }).id) {
+        return rpcData as CanonicalResearchJob;
+      }
+      return null;
+    }
+  } catch {
+    // Graceful fallback to resilient conditional UPDATE
+  }
+
+  // Attempt 2: Resilient atomic claim via conditional UPDATE
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const staleThresholdIso = new Date(now.getTime() - staleTimeoutMs).toISOString();
+
+  let query = supabase
+    .from('research_jobs')
+    .select('*')
+    .in('status', ['queued', 'running']);
+
+  if (resolvedWorkspaceId) {
+    query = query.eq('workspace_id', resolvedWorkspaceId);
+  }
+
+  const { data: candidates, error: selectErr } = await query;
+  if (selectErr || !candidates || candidates.length === 0) return null;
+
+  // Filter candidates eligible for claiming
+  const eligible = (candidates as CanonicalResearchJob[]).filter(job => {
+    if (job.status === 'queued') {
+      const jobParams = (job.parameters && typeof job.parameters === 'object') ? job.parameters : {};
+      const nextRunAt = job.next_run_at || (jobParams as { queue?: { next_run_at?: string } }).queue?.next_run_at;
+      if (nextRunAt && nextRunAt > nowIso) return false;
+      return true;
+    }
+    if (job.status === 'running') {
+      const jobParams = (job.parameters && typeof job.parameters === 'object') ? job.parameters : {};
+      const leaseTime = job.locked_at || (jobParams as { queue?: { locked_at?: string } }).queue?.locked_at || job.started_at;
+      return Boolean(leaseTime && leaseTime < staleThresholdIso);
+    }
+    return false;
+  });
+
+  if (eligible.length === 0) return null;
+
+  // Sort by priority (urgent > high > normal/medium > low) then created_at ASC
+  const priorityWeight: Record<string, number> = {
+    urgent: 1,
+    high: 2,
+    normal: 3,
+    medium: 3,
+    low: 4
+  };
+
+  eligible.sort((a, b) => {
+    const wA = priorityWeight[a.priority || 'normal'] || 3;
+    const wB = priorityWeight[b.priority || 'normal'] || 3;
+    if (wA !== wB) return wA - wB;
+    const tA = new Date(a.created_at || 0).getTime();
+    const tB = new Date(b.created_at || 0).getTime();
+    return tA - tB;
+  });
+
+  // Atomically claim the first eligible candidate
+  for (const candidate of eligible) {
+    if (!candidate.id || !candidate.workspace_id) continue;
+    const currentParams = (candidate.parameters && typeof candidate.parameters === 'object')
+      ? candidate.parameters
+      : {};
+    const nextAttempt = (candidate.attempt_count || (currentParams as { queue?: { attempt_count?: number } }).queue?.attempt_count || 0) + 1;
+
+    const updatedParams = {
+      ...currentParams,
+      queue: {
+        ...((currentParams as { queue?: Record<string, unknown> }).queue || {}),
+        locked_by: workerId,
+        locked_at: nowIso,
+        last_heartbeat_at: nowIso,
+        attempt_count: nextAttempt
+      }
+    };
+
+    // Try including dedicated columns first
+    const fullPayload: Record<string, unknown> = {
+      status: 'running',
+      assigned_worker: workerId,
+      locked_by: workerId,
+      locked_at: nowIso,
+      last_heartbeat_at: nowIso,
+      started_at: nowIso,
+      attempt_count: nextAttempt,
+      parameters: updatedParams,
+      error: null
+    };
+
+    let updateQuery = supabase
+      .from('research_jobs')
+      .update(fullPayload)
+      .eq('id', candidate.id)
+      .eq('workspace_id', candidate.workspace_id);
+
+    if (candidate.status === 'queued') {
+      updateQuery = updateQuery.eq('status', 'queued');
+    } else {
+      updateQuery = updateQuery.eq('status', 'running').lt('started_at', staleThresholdIso);
+    }
+
+    let { data: claimed, error: updateErr } = await updateQuery.select().maybeSingle();
+
+    // If column missing error (e.g. 42703), fallback with core columns only
+    if (updateErr && (updateErr.code === '42703' || updateErr.message?.includes('column'))) {
+      const fallbackPayload: Record<string, unknown> = {
+        status: 'running',
+        assigned_worker: workerId,
+        started_at: nowIso,
+        parameters: updatedParams,
+        error: null
+      };
+
+      let fallbackQuery = supabase
+        .from('research_jobs')
+        .update(fallbackPayload)
+        .eq('id', candidate.id)
+        .eq('workspace_id', candidate.workspace_id);
+
+      if (candidate.status === 'queued') {
+        fallbackQuery = fallbackQuery.eq('status', 'queued');
+      } else {
+        fallbackQuery = fallbackQuery.eq('status', 'running').lt('started_at', staleThresholdIso);
+      }
+
+      const fallbackRes = await fallbackQuery.select().maybeSingle();
+      claimed = fallbackRes.data;
+      updateErr = fallbackRes.error;
+    }
+
+    if (updateErr) {
+      console.warn(`[claimNextQueuedResearchJob] Claim conflict or warning on ${candidate.id}:`, updateErr.message);
+      continue;
+    }
+
+    if (claimed) {
+      return claimed as CanonicalResearchJob;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Renews the active worker lease heartbeat timestamp.
+ */
+export async function heartbeatResearchJob(
+  jobId: string,
+  workerId: string,
+  workspaceId?: string
+): Promise<boolean> {
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  // Try RPC
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('heartbeat_research_job', {
+      p_job_id: jobId,
+      p_worker_id: workerId
+    });
+    if (!rpcErr && typeof rpcRes === 'boolean') {
+      return rpcRes;
+    }
+  } catch {}
+
+  const nowIso = new Date().toISOString();
+  let query = supabase
+    .from('research_jobs')
+    .update({
+      started_at: nowIso,
+      locked_at: nowIso,
+      last_heartbeat_at: nowIso
+    })
+    .eq('id', jobId)
+    .eq('status', 'running');
+
+  if (workspaceId) {
+    const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+    query = query.eq('workspace_id', resolvedWorkspaceId);
+  }
+
+  const { data, error } = await query.select('id').maybeSingle();
+  if (error && (error.code === '42703' || error.message?.includes('column'))) {
+    const { data: retryData } = await supabase
+      .from('research_jobs')
+      .update({ started_at: nowIso })
+      .eq('id', jobId)
+      .eq('status', 'running')
+      .select('id')
+      .maybeSingle();
+    return Boolean(retryData);
+  }
+
+  return Boolean(data);
+}
+
+export interface RescheduleOptions {
+  error?: string;
+  backoffMs?: number;
+  maxRetries?: number;
+}
+
+/**
+ * Reschedules a job for retry with exponential backoff, or transitions to terminal failure
+ * if maxRetries has been exhausted.
+ */
+export async function rescheduleResearchJob(
+  jobId: string,
+  workerId: string,
+  workspaceId: string,
+  options: RescheduleOptions = {}
+): Promise<{ status: 'queued' | 'failed'; deadLettered: boolean; nextRunAt?: string }> {
+  const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  const maxRetries = options.maxRetries ?? 3;
+  const backoffMs = options.backoffMs ?? 5000;
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  // Try RPC if available
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('reschedule_research_job', {
+      p_job_id: jobId,
+      p_worker_id: workerId,
+      p_error: options.error || 'Execution failure',
+      p_backoff_seconds: Math.floor(backoffMs / 1000),
+      p_max_retries: maxRetries
+    });
+    if (!rpcErr && rpcRes && Array.isArray(rpcRes) && rpcRes.length > 0) {
+      const rRow = rpcRes[0] as CanonicalResearchJob;
+      return {
+        status: rRow.status === 'failed' ? 'failed' : 'queued',
+        deadLettered: rRow.status === 'failed',
+        nextRunAt: rRow.next_run_at || undefined
+      };
+    }
+  } catch {}
+
+  const current = await findResearchJob(jobId);
+  const currentParams = (current?.parameters && typeof current.parameters === 'object') ? current.parameters : {};
+  const currentAttempts = (current?.attempt_count || (currentParams as { queue?: { attempt_count?: number } }).queue?.attempt_count || 1);
+
+  if (currentAttempts >= maxRetries) {
+    // Dead-letter: terminal failure
+    await updateResearchJobStatus(jobId, resolvedWorkspaceId, {
+      status: 'failed',
+      completed_at: nowIso,
+      error: options.error || 'Max retries exhausted'
+    });
+    return { status: 'failed', deadLettered: true };
+  }
+
+  // Reschedule with backoff
+  const nextRunAt = new Date(now.getTime() + backoffMs).toISOString();
+  const updatedParams = {
+    ...currentParams,
+    queue: {
+      ...((currentParams as { queue?: Record<string, unknown> }).queue || {}),
+      locked_by: null,
+      next_run_at: nextRunAt,
+      last_error: options.error || null
+    }
+  };
+
+  const updatePayload: Record<string, unknown> = {
+    status: 'queued',
+    parameters: updatedParams,
+    error: options.error || null,
+    locked_by: null,
+    next_run_at: nextRunAt
+  };
+
+  const { error: updateErr } = await supabase
+    .from('research_jobs')
+    .update(updatePayload)
+    .eq('id', jobId)
+    .eq('workspace_id', resolvedWorkspaceId);
+
+  if (updateErr && (updateErr.code === '42703' || updateErr.message?.includes('column'))) {
+    delete updatePayload.locked_by;
+    delete updatePayload.next_run_at;
+    await supabase
+      .from('research_jobs')
+      .update(updatePayload)
+      .eq('id', jobId)
+      .eq('workspace_id', resolvedWorkspaceId);
+  }
+
+  return { status: 'queued', deadLettered: false, nextRunAt };
+}
+
+/**
+ * Scans for abandoned running job leases and safely recovers them back to 'queued'.
+ */
+export async function recoverStaleResearchLeases(
+  staleTimeoutMs = 5 * 60 * 1000,
+  workspaceId?: string
+): Promise<number> {
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) throw new Error('Database client unavailable');
+
+  const staleThresholdIso = new Date(Date.now() - staleTimeoutMs).toISOString();
+  let query = supabase
+    .from('research_jobs')
+    .select('*')
+    .eq('status', 'running');
+
+  if (workspaceId) {
+    const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+    query = query.eq('workspace_id', resolvedWorkspaceId);
+  }
+
+  const { data: runningJobs, error } = await query;
+  if (error || !runningJobs || runningJobs.length === 0) return 0;
+
+  let recoveredCount = 0;
+  for (const job of runningJobs) {
+    const jobParams = (job as { parameters?: { queue?: { locked_at?: string } } }).parameters;
+    const leaseTime = (job as { locked_at?: string }).locked_at || jobParams?.queue?.locked_at || (job as { started_at?: string }).started_at;
+    if (leaseTime && leaseTime < staleThresholdIso) {
+      const updatePayload: Record<string, unknown> = {
+        status: 'queued',
+        assigned_worker: null,
+        error: 'Recovered from abandoned worker lease'
+      };
+
+      let { error: resetErr } = await supabase
+        .from('research_jobs')
+        .update({ ...updatePayload, locked_by: null })
+        .eq('id', (job as { id: string }).id)
+        .eq('status', 'running');
+
+      if (resetErr && (resetErr.code === '42703' || resetErr.message?.includes('column') || resetErr.message?.includes('schema cache'))) {
+        const fallbackReset = await supabase
+          .from('research_jobs')
+          .update(updatePayload)
+          .eq('id', (job as { id: string }).id)
+          .eq('status', 'running');
+        resetErr = fallbackReset.error;
+      }
+
+      if (!resetErr) {
+        recoveredCount++;
+      }
+    }
+  }
+
+  return recoveredCount;
+}
+
+/**
+ * Returns count of currently queued jobs.
+ */
+export async function findQueuedResearchJobsCount(workspaceId?: string): Promise<number> {
+  const supabase = getAdminSupabaseClient();
+  if (!supabase) return 0;
+
+  let query = supabase
+    .from('research_jobs')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'queued');
+
+  if (workspaceId) {
+    const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+    query = query.eq('workspace_id', resolvedWorkspaceId);
+  }
+
+  const { count } = await query;
+  return count || 0;
 }
 
 export async function updateResearchJobStatus(

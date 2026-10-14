@@ -23,6 +23,7 @@ export interface ResearchDispatchOptions {
   timeoutMs?: number;
   force?: boolean;
   engineOverride?: ResearchDispatchEngine;
+  executionStrategy?: 'durable_worker_queue' | 'in_process_background';
 }
 
 export interface ResearchDispatchResult {
@@ -30,8 +31,8 @@ export interface ResearchDispatchResult {
   initiated: boolean;
   status: string;
   mode: 'sync' | 'async' | 'webhook';
-  execution_mode: 'in_process_background' | 'synchronous_process' | 'n8n_orchestration' | 'none';
-  durability: 'in_process_ephemeral' | 'persisted' | 'external_n8n_queue';
+  execution_mode: 'durable_worker_queue' | 'in_process_background' | 'synchronous_process' | 'n8n_orchestration' | 'none';
+  durability: 'postgres_persisted' | 'in_process_ephemeral' | 'persisted' | 'external_n8n_queue';
   notice?: string;
   duplicate_trigger?: boolean;
   already_completed?: boolean;
@@ -198,19 +199,35 @@ export async function dispatchResearchJobExecution(
   const mode = options.mode === 'sync' ? 'sync' : 'async';
 
   if (mode === 'async') {
-    // In-process background execution (honest ephemeral durability notice)
-    processResearchJob(job.id, resolvedWorkspaceId, processorOptions).catch(err => {
-      console.error(`[Native Processor Background] Error processing job ${job.id}:`, err);
-    });
+    const strategy = options.executionStrategy ||
+      (process.env.RESEARCH_ASYNC_EXECUTION === 'in_process_background' ? 'in_process_background' : 'durable_worker_queue');
 
+    if (strategy === 'in_process_background') {
+      // Ephemeral in-process execution fallback
+      processResearchJob(job.id, resolvedWorkspaceId, processorOptions).catch(err => {
+        console.error(`[Native Processor Background] Error processing job ${job.id}:`, err);
+      });
+
+      return {
+        engine: 'native',
+        initiated: true,
+        status: 'initiated',
+        mode: 'async',
+        execution_mode: 'in_process_background',
+        durability: 'in_process_ephemeral',
+        notice: 'Executing in active Node.js server process. Durable background execution across process restarts or serverless environments requires an external worker queue.'
+      };
+    }
+
+    // Default: Durable native PostgreSQL worker queue
     return {
       engine: 'native',
       initiated: true,
-      status: 'initiated',
+      status: 'queued',
       mode: 'async',
-      execution_mode: 'in_process_background',
-      durability: 'in_process_ephemeral',
-      notice: 'Executing in active Node.js server process. Durable background execution across process restarts or serverless environments requires an external worker queue.'
+      execution_mode: 'durable_worker_queue',
+      durability: 'postgres_persisted',
+      notice: 'Durable research task persisted in PostgreSQL queue. Ready for native worker processing.'
     };
   }
 
