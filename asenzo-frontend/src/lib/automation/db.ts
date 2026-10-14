@@ -846,6 +846,7 @@ export async function completeResearchAssignment(assignmentId: string, workspace
     })
     .eq('id', assignmentId)
     .eq('workspace_id', resolvedWorkspaceId)
+    .eq('status', 'running')
     .select()
     .maybeSingle();
 
@@ -1143,15 +1144,28 @@ export async function heartbeatResearchJob(
     query = query.eq('workspace_id', resolvedWorkspaceId);
   }
 
+  // Lease fencing: only current leaseholder may renew heartbeat
+  if (workerId) {
+    query = query.or(`assigned_worker.eq.${workerId},locked_by.eq.${workerId}`);
+  }
+
   const { data, error } = await query.select('id').maybeSingle();
   if (error && (error.code === '42703' || error.message?.includes('column'))) {
-    const { data: retryData } = await supabase
+    let fallbackQuery = supabase
       .from('research_jobs')
       .update({ started_at: nowIso })
       .eq('id', jobId)
-      .eq('status', 'running')
-      .select('id')
-      .maybeSingle();
+      .eq('status', 'running');
+
+    if (workspaceId) {
+      const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
+      fallbackQuery = fallbackQuery.eq('workspace_id', resolvedWorkspaceId);
+    }
+    if (workerId) {
+      fallbackQuery = fallbackQuery.eq('assigned_worker', workerId);
+    }
+
+    const { data: retryData } = await fallbackQuery.select('id').maybeSingle();
     return Boolean(retryData);
   }
 
@@ -1173,7 +1187,7 @@ export async function rescheduleResearchJob(
   workerId: string,
   workspaceId: string,
   options: RescheduleOptions = {}
-): Promise<{ status: 'queued' | 'failed'; deadLettered: boolean; nextRunAt?: string }> {
+): Promise<{ status: 'queued' | 'failed'; deadLettered: boolean; nextRunAt?: string; lostLease?: boolean }> {
   const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
   const supabase = getAdminSupabaseClient();
   if (!supabase) throw new Error('Database client unavailable');
@@ -1203,16 +1217,35 @@ export async function rescheduleResearchJob(
   } catch {}
 
   const current = await findResearchJob(jobId);
+  if (!current) {
+    return { status: 'failed', deadLettered: false, lostLease: true };
+  }
+
+  // Fencing check: verify current lease ownership
+  const currentWorker = current.assigned_worker || (current.parameters as { queue?: { locked_by?: string } })?.queue?.locked_by;
+  if (current.status !== 'running' || (currentWorker && currentWorker !== workerId)) {
+    console.warn(`[rescheduleResearchJob] Lease fencing rejected mutation: Job ${jobId} is no longer owned by worker ${workerId} (current worker: ${currentWorker}, status: ${current.status})`);
+    return { status: 'failed', deadLettered: false, lostLease: true };
+  }
+
   const currentParams = (current?.parameters && typeof current.parameters === 'object') ? current.parameters : {};
   const currentAttempts = (current?.attempt_count || (currentParams as { queue?: { attempt_count?: number } }).queue?.attempt_count || 1);
 
   if (currentAttempts >= maxRetries) {
-    // Dead-letter: terminal failure
-    await updateResearchJobStatus(jobId, resolvedWorkspaceId, {
-      status: 'failed',
-      completed_at: nowIso,
-      error: options.error || 'Max retries exhausted'
-    });
+    // Dead-letter: terminal failure (with lease fencing)
+    const deadLetteredJob = await updateResearchJobStatus(
+      jobId,
+      resolvedWorkspaceId,
+      {
+        status: 'failed',
+        completed_at: nowIso,
+        error: options.error || 'Max retries exhausted'
+      },
+      { workerId }
+    );
+    if (!deadLetteredJob) {
+      return { status: 'failed', deadLettered: false, lostLease: true };
+    }
     return { status: 'failed', deadLettered: true };
   }
 
@@ -1232,24 +1265,40 @@ export async function rescheduleResearchJob(
     status: 'queued',
     parameters: updatedParams,
     error: options.error || null,
+    assigned_worker: null,
     locked_by: null,
     next_run_at: nextRunAt
   };
 
-  const { error: updateErr } = await supabase
+  const updateQuery = supabase
     .from('research_jobs')
     .update(updatePayload)
     .eq('id', jobId)
-    .eq('workspace_id', resolvedWorkspaceId);
+    .eq('workspace_id', resolvedWorkspaceId)
+    .eq('status', 'running')
+    .or(`assigned_worker.eq.${workerId},locked_by.eq.${workerId}`);
+
+  let { data: updatedData, error: updateErr } = await updateQuery.select('id').maybeSingle();
 
   if (updateErr && (updateErr.code === '42703' || updateErr.message?.includes('column'))) {
     delete updatePayload.locked_by;
     delete updatePayload.next_run_at;
-    await supabase
+    const fallbackRes = await supabase
       .from('research_jobs')
       .update(updatePayload)
       .eq('id', jobId)
-      .eq('workspace_id', resolvedWorkspaceId);
+      .eq('workspace_id', resolvedWorkspaceId)
+      .eq('status', 'running')
+      .eq('assigned_worker', workerId)
+      .select('id')
+      .maybeSingle();
+    updatedData = fallbackRes.data;
+    updateErr = fallbackRes.error;
+  }
+
+  if (!updatedData && !updateErr) {
+    // Fenced out by another worker
+    return { status: 'failed', deadLettered: false, lostLease: true };
   }
 
   return { status: 'queued', deadLettered: false, nextRunAt };
@@ -1339,7 +1388,7 @@ export async function updateResearchJobStatus(
   jobId: string,
   workspaceId: string,
   updates: { status?: string; started_at?: string; completed_at?: string; error?: string | null },
-  options: { allowOverwriteCompleted?: boolean } = {}
+  options: { allowOverwriteCompleted?: boolean; workerId?: string } = {}
 ): Promise<CanonicalResearchJob | null> {
   const resolvedWorkspaceId = await resolveCanonicalWorkspaceId(workspaceId);
   const supabase = getAdminSupabaseClient();
@@ -1349,7 +1398,7 @@ export async function updateResearchJobStatus(
   if (!options.allowOverwriteCompleted && (updates.status === 'completed' || updates.status === 'failed')) {
     const { data: current } = await supabase
       .from('research_jobs')
-      .select('status, completed_at')
+      .select('status, completed_at, assigned_worker, parameters')
       .eq('id', jobId)
       .eq('workspace_id', resolvedWorkspaceId)
       .maybeSingle();
@@ -1363,15 +1412,44 @@ export async function updateResearchJobStatus(
         .single();
       return data as CanonicalResearchJob | null;
     }
+
+    // Fencing check: if caller passed workerId, ensure current job is still leased to that worker
+    if (options.workerId) {
+      const currentWorker = current?.assigned_worker || (current?.parameters as { queue?: { locked_by?: string } })?.queue?.locked_by;
+      if (currentWorker && currentWorker !== options.workerId) {
+        console.warn(`[updateResearchJobStatus] Lease fencing prevented status update for job ${jobId}: Owned by ${currentWorker}, update requested by ${options.workerId}`);
+        return null;
+      }
+    }
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('research_jobs')
     .update(updates)
     .eq('id', jobId)
-    .eq('workspace_id', resolvedWorkspaceId)
+    .eq('workspace_id', resolvedWorkspaceId);
+
+  if (options.workerId) {
+    query = query.or(`assigned_worker.eq.${options.workerId},locked_by.eq.${options.workerId}`);
+  }
+
+  const { data, error } = await query
     .select()
     .maybeSingle();
+
+  if (error && (error.code === '42703' || error.message?.includes('column'))) {
+    let fallbackQuery = supabase
+      .from('research_jobs')
+      .update(updates)
+      .eq('id', jobId)
+      .eq('workspace_id', resolvedWorkspaceId);
+
+    if (options.workerId) {
+      fallbackQuery = fallbackQuery.eq('assigned_worker', options.workerId);
+    }
+    const fallbackRes = await fallbackQuery.select().maybeSingle();
+    return fallbackRes.data as CanonicalResearchJob | null;
+  }
 
   if (error) throw new Error(`Database error updating research job: ${error.message}`);
   return data as CanonicalResearchJob | null;

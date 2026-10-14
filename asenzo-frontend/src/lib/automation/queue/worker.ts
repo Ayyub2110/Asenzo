@@ -47,6 +47,9 @@ export class ResearchWorker {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private stopPromiseResolve: (() => void) | null = null;
   private isShuttingDown = false;
+  private consecutivePollErrors = 0;
+  private lastPollError: string | null = null;
+  private lostLeaseJobs = new Set<string>();
 
   constructor(options: WorkerConfig = {}) {
     const rawHostname = os.hostname().replace(/[^a-zA-Z0-9-]/g, '') || 'worker-host';
@@ -176,16 +179,24 @@ export class ResearchWorker {
    */
   public getHealth(): WorkerHealth {
     const uptimeSeconds = this.startedAt > 0 ? Math.floor((Date.now() - this.startedAt) / 1000) : 0;
+    const isHealthy = this.consecutivePollErrors < 3 && this.state !== 'stopped';
+    const databaseConnected = this.consecutivePollErrors === 0;
+
     return {
       status: this.state,
+      isHealthy,
+      databaseConnected,
       workerId: this.workerId,
       workspaceId: this.config.workspaceId || null,
       uptimeSeconds,
       activeJobs: this.activeJobs.size,
+      activeJobIds: Array.from(this.activeJobs.keys()),
       maxConcurrency: this.config.maxConcurrency,
       jobsProcessed: this.jobsProcessed,
       jobsSucceeded: this.jobsSucceeded,
       jobsFailed: this.jobsFailed,
+      consecutivePollErrors: this.consecutivePollErrors,
+      lastPollError: this.lastPollError,
       lastPollAt: this.lastPollAt,
       lastHeartbeatAt: this.lastHeartbeatAt,
       lastClaimedJobId: this.lastClaimedJobId
@@ -205,6 +216,10 @@ export class ResearchWorker {
             workspaceId: this.config.workspaceId || undefined,
             staleTimeoutMs: this.config.staleTimeoutMs
           });
+
+          // Successfully communicated with database
+          this.consecutivePollErrors = 0;
+          this.lastPollError = null;
 
           if (claimedJob && claimedJob.id) {
             this.lastClaimedJobId = claimedJob.id;
@@ -262,10 +277,14 @@ export class ResearchWorker {
           }, this.config.pollIntervalMs);
         });
       } catch (loopErr: unknown) {
+        this.consecutivePollErrors++;
+        this.lastPollError = sanitizeErrorMessage(loopErr);
+
         this.log({
           level: 'error',
           event: 'worker_poll_loop_error',
-          error: sanitizeErrorMessage(loopErr)
+          error: this.lastPollError,
+          details: { consecutiveErrors: this.consecutivePollErrors }
         });
 
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -317,6 +336,7 @@ export class ResearchWorker {
       await this.handleJobFailure(job, sanitizeErrorMessage(err));
     } finally {
       this.activeJobs.delete(jobId);
+      this.lostLeaseJobs.delete(jobId);
 
       // If shutting down and active jobs reached zero, notify graceful shutdown
       if (this.isShuttingDown && this.activeJobs.size === 0 && this.stopPromiseResolve) {
@@ -331,6 +351,18 @@ export class ResearchWorker {
   private async handleJobFailure(job: CanonicalResearchJob, rawError: string): Promise<void> {
     const jobId = job.id!;
     const workspaceId = job.workspace_id!;
+
+    if (this.lostLeaseJobs.has(jobId)) {
+      this.log({
+        level: 'warn',
+        event: 'job_failure_discarded_lease_lost',
+        job_id: jobId,
+        workspace_id: workspaceId,
+        details: { reason: 'Job lease was lost to replacement worker; skipping reschedule/dead-letter' }
+      });
+      return;
+    }
+
     const sanitizedError = sanitizeErrorMessage(rawError);
     const isTransient = isTransientError(new Error(sanitizedError));
 
@@ -402,7 +434,17 @@ export class ResearchWorker {
 
       for (const [jobId, job] of this.activeJobs.entries()) {
         try {
-          await heartbeatResearchJob(jobId, this.workerId, job.workspace_id);
+          const renewed = await heartbeatResearchJob(jobId, this.workerId, job.workspace_id);
+          if (!renewed) {
+            this.lostLeaseJobs.add(jobId);
+            this.log({
+              level: 'warn',
+              event: 'lease_lost_fenced',
+              job_id: jobId,
+              workspace_id: job.workspace_id,
+              error: 'Worker heartbeat failed: lease expired or was reclaimed by another worker.'
+            });
+          }
         } catch (hbErr) {
           this.log({
             level: 'warn',

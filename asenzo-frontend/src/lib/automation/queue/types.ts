@@ -20,14 +20,19 @@ export type WorkerExecutionState = 'idle' | 'polling' | 'processing' | 'stopping
 
 export interface WorkerHealth {
   status: WorkerExecutionState;
+  isHealthy: boolean;
+  databaseConnected: boolean;
   workerId: string;
   workspaceId: string | null;
   uptimeSeconds: number;
   activeJobs: number;
+  activeJobIds: string[];
   maxConcurrency: number;
   jobsProcessed: number;
   jobsSucceeded: number;
   jobsFailed: number;
+  consecutivePollErrors: number;
+  lastPollError: string | null;
   lastPollAt: string | null;
   lastHeartbeatAt: string | null;
   lastClaimedJobId: string | null;

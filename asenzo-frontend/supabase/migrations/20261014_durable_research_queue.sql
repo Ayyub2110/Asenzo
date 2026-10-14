@@ -142,7 +142,7 @@ BEGIN
   WHERE id = p_job_id;
 
   IF v_current_attempts >= v_max_attempts THEN
-    -- Dead-letter: terminal failure
+    -- Dead-letter: terminal failure (fenced to current worker)
     RETURN QUERY
     UPDATE public.research_jobs
     SET
@@ -151,18 +151,48 @@ BEGIN
       completed_at = timezone('utc'::text, now()),
       error = p_error
     WHERE id = p_job_id
+      AND status = 'running'
+      AND (locked_by = p_worker_id OR assigned_worker = p_worker_id)
     RETURNING *;
   ELSE
-    -- Retry with exponential backoff
+    -- Retry with exponential backoff (fenced to current worker)
     RETURN QUERY
     UPDATE public.research_jobs
     SET
       status = 'queued',
       locked_by = NULL,
+      assigned_worker = NULL,
       next_run_at = timezone('utc'::text, now()) + (p_backoff_seconds || ' seconds')::interval,
       error = p_error
     WHERE id = p_job_id
+      AND status = 'running'
+      AND (locked_by = p_worker_id OR assigned_worker = p_worker_id)
     RETURNING *;
   END IF;
+END;
+$$;
+
+-- 7. Complete Research Job with Lease Fencing
+CREATE OR REPLACE FUNCTION public.complete_research_job(
+  p_job_id UUID,
+  p_worker_id TEXT,
+  p_error TEXT DEFAULT NULL
+)
+RETURNS SETOF public.research_jobs
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  UPDATE public.research_jobs
+  SET
+    status = 'completed',
+    locked_by = NULL,
+    completed_at = timezone('utc'::text, now()),
+    error = p_error
+  WHERE id = p_job_id
+    AND status = 'running'
+    AND (locked_by = p_worker_id OR assigned_worker = p_worker_id)
+  RETURNING *;
 END;
 $$;

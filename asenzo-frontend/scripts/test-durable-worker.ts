@@ -434,6 +434,99 @@ async function runDurableWorkerTests() {
     assert(resultsJson.data?.results?.[0]?.research_job_id === jobId, 'Observation maintains research_job_id provenance');
   }
 
+  // [Suite 11] Lease Fencing & Stale Worker Mutation Rejection
+  console.log('\n[Suite 11] Lease Fencing & Stale Worker Mutation Rejection');
+  {
+    // Insert a fresh urgent job
+    const fencingJob = await insertResearchJob({
+      workspace_id: CANONICAL_DEFAULT_WORKSPACE_ID,
+      objective: 'Lease Fencing Verification',
+      topic: 'Lease Fencing Protection',
+      priority: 'urgent',
+      status: 'queued'
+    });
+    assert(Boolean(fencingJob.id), 'Inserted job for lease fencing test');
+
+    // Worker Alpha claims the job
+    const claimAlpha = await claimNextQueuedResearchJob('worker-alpha', {
+      workspaceId: CANONICAL_DEFAULT_WORKSPACE_ID
+    });
+    assert(claimAlpha?.id === fencingJob.id, 'Worker Alpha claimed fencing job');
+
+    // Simulate stale lease: Worker Beta reclaims the job after lease expiry
+    const claimBeta = await claimNextQueuedResearchJob('worker-beta', {
+      workspaceId: CANONICAL_DEFAULT_WORKSPACE_ID,
+      staleTimeoutMs: 0 // force stale claim immediately
+    });
+    assert(claimBeta?.id === fencingJob.id, 'Worker Beta reclaimed job after lease expiration');
+
+    // Fencing Test 1: Worker Alpha attempts heartbeat -> MUST BE REJECTED
+    const alphaHeartbeat = await heartbeatResearchJob(fencingJob.id!, 'worker-alpha', CANONICAL_DEFAULT_WORKSPACE_ID);
+    assert(alphaHeartbeat === false, 'Stale Worker Alpha heartbeat rejected by lease fencing');
+
+    // Fencing Test 2: Worker Alpha attempts to complete the job -> MUST BE REJECTED
+    const alphaComplete = await updateResearchJobStatus(
+      fencingJob.id!,
+      CANONICAL_DEFAULT_WORKSPACE_ID,
+      {
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      },
+      { workerId: 'worker-alpha' }
+    );
+    assert(alphaComplete === null, 'Stale Worker Alpha completion rejected by lease fencing');
+
+    // Fencing Test 3: Worker Alpha attempts to reschedule/dead-letter the job -> MUST BE REJECTED
+    const alphaReschedule = await rescheduleResearchJob(
+      fencingJob.id!,
+      'worker-alpha',
+      CANONICAL_DEFAULT_WORKSPACE_ID,
+      {
+        error: 'Stale worker error',
+        backoffMs: 5000,
+        maxRetries: 3
+      }
+    );
+    assert((alphaReschedule as { lostLease?: boolean }).lostLease === true, 'Stale Worker Alpha reschedule rejected with lostLease flag');
+
+    // Verify job in DB remains running and under Worker Beta's lease
+    const midJob = await findResearchJob(fencingJob.id!);
+    assert(midJob?.status === 'running', 'Job remains running despite stale worker mutation attempts');
+    const assigned = midJob?.assigned_worker || (midJob?.parameters as { queue?: { locked_by?: string } })?.queue?.locked_by;
+    assert(assigned === 'worker-beta', 'Job lease remains securely owned by Worker Beta');
+
+    // Legitimate leaseholder Worker Beta completes the job -> MUST BE ACCEPTED
+    const betaComplete = await updateResearchJobStatus(
+      fencingJob.id!,
+      CANONICAL_DEFAULT_WORKSPACE_ID,
+      {
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      },
+      { workerId: 'worker-beta' }
+    );
+    assert(Boolean(betaComplete), 'Legitimate Worker Beta successfully completed job');
+    assert(betaComplete?.status === 'completed', 'Final database status is completed');
+  }
+
+  // [Suite 12] Worker Health & Connection Error Telemetry
+  console.log('\n[Suite 12] Worker Health & Connection Error Telemetry');
+  {
+    const telemetryWorker = new ResearchWorker({
+      workspaceId: CANONICAL_DEFAULT_WORKSPACE_ID,
+      maxConcurrency: 2,
+      pollIntervalMs: 500
+    });
+
+    const initialHealth = telemetryWorker.getHealth();
+    assert(initialHealth.isHealthy === true, 'Worker initial health reports isHealthy: true');
+    assert(initialHealth.databaseConnected === true, 'Worker initial health reports databaseConnected: true');
+    assert(initialHealth.consecutivePollErrors === 0, 'Worker initial consecutivePollErrors is 0');
+    assert(initialHealth.lastPollError === null, 'Worker initial lastPollError is null');
+    assert(Array.isArray(initialHealth.activeJobIds), 'Worker activeJobIds is an array');
+    assert(initialHealth.activeJobIds.length === 0, 'Worker initial activeJobIds is empty');
+  }
+
   console.log('\n================================================================');
   console.log(`DURABLE WORKER TEST SUMMARY: ${passed} PASSED, ${failed} FAILED`);
   console.log('================================================================\n');

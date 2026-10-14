@@ -201,7 +201,7 @@ export async function processResearchJob(
     }
 
     if (finalJobStatus !== 'running') {
-      await updateResearchJobStatus(
+      const updated = await updateResearchJobStatus(
         jobId,
         resolvedWorkspaceId,
         {
@@ -209,8 +209,11 @@ export async function processResearchJob(
           completed_at: new Date().toISOString(),
           error: jobErrorMessage
         },
-        { allowOverwriteCompleted: options.force }
+        { allowOverwriteCompleted: options.force, workerId: options.workerId }
       );
+      if (!updated && options.workerId) {
+        console.warn(`[Native Processor] Lease fencing: Job ${jobId} was reclaimed by another worker or already finalized. Discarding final status update.`);
+      }
     }
 
     const totalResultsCreated = assignmentResults.reduce((sum, r) => sum + r.resultsCount, 0);
@@ -243,7 +246,7 @@ export async function processResearchJob(
           completed_at: new Date().toISOString(),
           error: `Native processor error: ${sanitizedMsg}`
         },
-        { allowOverwriteCompleted: true }
+        { allowOverwriteCompleted: true, workerId: options.workerId }
       );
     } catch (statusErr) {
       console.error(`[Native Processor] Failed to record failure status for job ${jobId}:`, statusErr);
