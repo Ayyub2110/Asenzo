@@ -18,6 +18,7 @@
     "test:native-processor": "npx tsx scripts/test-native-processor.ts",
     "test:native-dispatch": "npx tsx scripts/test-native-dispatch-cutover.ts",
     "test:durable-worker": "npx tsx scripts/test-durable-worker.ts",
+    "test:live-e2e": "npx tsx scripts/test-live-e2e-verification.ts",
     "worker:research": "npx tsx scripts/research-worker.ts"
   },
   "dependencies": {

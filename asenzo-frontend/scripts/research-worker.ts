@@ -14,6 +14,8 @@
  *   npx tsx scripts/research-worker.ts --concurrency 3 --poll 1000
  */
 
+import { loadEnvConfig } from '@next/env';
+loadEnvConfig(process.cwd());
 import { ResearchWorker } from '../src/lib/automation/queue';
 
 function parseArgs(): {

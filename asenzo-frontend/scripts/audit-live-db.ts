@@ -69,6 +69,21 @@ async function auditLiveDb() {
     console.log('reschedule_research_job RPC check: EXISTS AND CALLABLE (returned:', rpcReschedData, ')');
   }
 
+  // 5. Check RPC complete_research_job
+  const { data: rpcCompData, error: rpcCompErr } = await supabase.rpc('complete_research_job', {
+    p_job_id: '00000000-0000-0000-0000-000000000000',
+    p_worker_id: 'audit-test-worker',
+    p_error: null
+  });
+  if (rpcCompErr) {
+    console.log('complete_research_job RPC check: FAILED/NOT FOUND ->', {
+      message: rpcCompErr.message,
+      code: rpcCompErr.code
+    });
+  } else {
+    console.log('complete_research_job RPC check: EXISTS AND CALLABLE (returned:', rpcCompData, ')');
+  }
+
   process.exit(0);
 }
 

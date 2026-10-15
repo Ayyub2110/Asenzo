@@ -11,7 +11,8 @@ ALTER TABLE public.research_jobs
   ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS max_retries INTEGER NOT NULL DEFAULT 3,
-  ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMP WITH TIME ZONE;
+  ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMP WITH TIME ZONE,
+  ADD COLUMN IF NOT EXISTS dead_lettered BOOLEAN NOT NULL DEFAULT false;
 
 -- 2. Lease and retry columns on public.research_assignments
 ALTER TABLE public.research_assignments
